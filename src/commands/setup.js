@@ -1,0 +1,155 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
+import { checkHealth } from '../client.js';
+import { getEndpoint, getToken } from '../config.js';
+
+const SKILLS = [
+  'skill-orchestrate',
+  'skill-pipeline',
+  'skill-review',
+  'skill-audit',
+  'skill-context',
+  'skill-ui',
+];
+
+// ponytail: synchronous copy and unary probe; upgrade to async workers when syncing >50 skills
+export async function run({ positionals = [], flags = {} } = {}) {
+  if (flags?.help) {
+    console.log('Usage: universal-skill setup [--dest <path>] [--endpoint <url>] [--write-mcp] [--json]');
+    return;
+  }
+
+  const endpoint = flags?.endpoint || getEndpoint();
+  const token = getToken();
+  const rootDir = fileURLToPath(new URL('../../', import.meta.url));
+  const cwd = process.cwd();
+  const destArg = typeof flags?.dest === 'string' ? flags.dest : (positionals[0] || null);
+  const destDir = destArg || path.join(cwd, '.agents', 'skills');
+
+  fs.mkdirSync(destDir, { recursive: true });
+  const installed = [];
+  for (const item of [...SKILLS, 'scripts']) {
+    const src = path.join(rootDir, item);
+    if (fs.existsSync(src)) {
+      fs.cpSync(src, path.join(destDir, item), { recursive: true });
+      installed.push(item);
+    }
+  }
+
+  const harnesses = [];
+
+  // If a custom destination was not explicitly passed, configure local project harnesses
+  if (!destArg) {
+    // 1. Grok Build / Agent Skills
+    if (fs.existsSync(path.join(cwd, '.agents'))) {
+      harnesses.push('.agents');
+    }
+
+    // 2. Claude Code
+    const claudeDir = path.join(cwd, '.claude');
+    if (fs.existsSync(claudeDir)) {
+      harnesses.push('.claude');
+      const claudeSkillsDir = path.join(claudeDir, 'skills');
+      fs.mkdirSync(claudeSkillsDir, { recursive: true });
+      for (const item of SKILLS) {
+        const src = path.join(rootDir, item);
+        if (fs.existsSync(src)) {
+          fs.cpSync(src, path.join(claudeSkillsDir, item), { recursive: true });
+        }
+      }
+    }
+
+    // 3. Codex CLI (detects .codex or ~/.codex or AGENTS.md)
+    const codexDir = path.join(cwd, '.codex');
+    const userCodex = path.join(os.homedir(), '.codex');
+    if (fs.existsSync(codexDir) || fs.existsSync(userCodex) || fs.existsSync(path.join(cwd, 'AGENTS.md'))) {
+      harnesses.push('.codex');
+      const codexSkillsDir = path.join(codexDir, 'skills');
+      fs.mkdirSync(codexSkillsDir, { recursive: true });
+      for (const item of SKILLS) {
+        const src = path.join(rootDir, item);
+        if (fs.existsSync(src)) {
+          fs.cpSync(src, path.join(codexSkillsDir, item), { recursive: true });
+        }
+      }
+
+      // Ensure AGENTS.md references the skills
+      const agentsMdPath = path.join(cwd, 'AGENTS.md');
+      if (!fs.existsSync(agentsMdPath)) {
+        fs.writeFileSync(
+          agentsMdPath,
+          '# Agent Instructions\n\nSkills are installed in `.codex/skills/` and `.agents/skills/`.\n'
+        );
+      }
+    }
+
+    // 4. Cursor Rules (.cursor/rules/*.mdc)
+    const cursorDir = path.join(cwd, '.cursor');
+    if (fs.existsSync(cursorDir)) {
+      harnesses.push('.cursor');
+      const rulesDir = path.join(cursorDir, 'rules');
+      fs.mkdirSync(rulesDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(rulesDir, 'universal-skill.mdc'),
+        '---\ndescription: Universal Agent Skills & MCP Rules\nglobs: *\n---\nUse universal-skill tools and CLI.\n'
+      );
+    }
+
+    // 5. VS Code
+    if (fs.existsSync(path.join(cwd, '.vscode'))) harnesses.push('.vscode');
+
+    // 6. Hermes
+    if (fs.existsSync(path.join(os.homedir(), '.hermes'))) harnesses.push('.hermes');
+  }
+
+  const mcpConfig = {
+    mcpServers: {
+      'universal-skill': {
+        url: endpoint,
+        headers: token ? { Authorization: 'Bearer ${MCP_TOKEN}' } : {},
+      },
+    },
+  };
+
+  if (flags?.['write-mcp'] || flags?.writeMcp) {
+    fs.writeFileSync(
+      path.join(destDir, 'mcp.json'),
+      JSON.stringify(mcpConfig, null, 2) + '\n'
+    );
+  }
+
+  const nodeMajor = parseInt(process.versions.node.split('.')[0], 10);
+  const nodeOk = nodeMajor >= 18;
+
+  let connected = false;
+  const start = Date.now();
+  try {
+    const health = await checkHealth({ endpoint, token, signal: AbortSignal.timeout(3000) });
+    connected = Boolean(health);
+  } catch {}
+  const latencyMs = Date.now() - start;
+
+  const report = {
+    status: nodeOk && connected ? 'ok' : 'degraded',
+    prerequisites: { node: { version: process.version, valid: nodeOk } },
+    connectivity: { endpoint, connected, latencyMs },
+    installation: { destination: destDir, installed },
+    harnesses,
+    mcpConfig,
+  };
+
+  if (flags?.json) {
+    console.log(JSON.stringify(report));
+  } else {
+    console.log(`Universal Skill Setup: ${report.status.toUpperCase()}`);
+    console.log(`- Node.js: ${process.version} (${nodeOk ? 'OK' : 'Requires >= 18'})`);
+    console.log(`- Connectivity: ${connected ? 'Connected' : 'Offline'} (${latencyMs}ms) to ${endpoint}`);
+    console.log(`- Installed ${installed.length} items to ${destDir}`);
+    if (harnesses.length) console.log(`- Harnesses detected: ${harnesses.join(', ')}`);
+  }
+  return report;
+}
+
+export default run;
