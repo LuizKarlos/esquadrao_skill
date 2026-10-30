@@ -2,7 +2,7 @@
 name: skill-tech-lead
 version: "1.0.0"
 description: "Arbitrate architectural disagreements, evaluate trade-offs between competing proposals, and govern technical standards."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Technical Lead

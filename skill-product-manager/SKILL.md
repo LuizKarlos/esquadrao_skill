@@ -2,7 +2,7 @@
 name: skill-product-manager
 version: "1.0.0"
 description: "Synthesize user intent and business needs into unambiguous requirements, scope boundaries, and acceptance criteria."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Product Manager

@@ -2,7 +2,7 @@
 name: skill-review
 version: "1.0.0"
 description: "Perform adversarial dual-blind code review, anti-slop pattern linting, and voice calibration."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Agent Review
@@ -23,17 +23,15 @@ Perform dual-blind peer review, filter out AI code slop, and enforce rigorous en
 
 ## Workflow & CLI
 
-Execute via `universal-skill call`:
+Execute via git and local test runners:
 
 ```bash
-# 1. Run dual-blind review
-universal-skill call review_diff '{"diff": "git diff main...", "strictness": "high"}'
+# 1. Review changed diff
+git diff main...HEAD
 
-# 2. Check for anti-slop patterns
-universal-skill call lint_slop '{"files": ["src/service.js"]}'
-
-# 3. Calibrate response tone
-universal-skill call calibrate_voice '{"text": "Draft PR description", "style": "concise"}'
+# 2. Run test suites and linting
+npm run lint
+npm test
 ```
 
 ## UX & Operational Rules

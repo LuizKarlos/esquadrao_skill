@@ -2,7 +2,7 @@
 name: skill-pipeline
 version: "1.0.0"
 description: "Decompose complex tasks into acyclic execution DAGs, compute topological waves, and auto-heal test failures."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Agent Pipeline
@@ -23,17 +23,11 @@ Decompose tasks into topological waves, enforce acyclic dependencies, and trigge
 
 ## Workflow & CLI
 
-Execute via `universal-skill call` or local script:
+Execute via local script:
 
 ```bash
-# 1. Validate DAG and compute topological waves
+# Validate DAG and compute topological waves
 node scripts/dag_validator.js tasks.json
-
-# 2. Decompose epic into execution tasks
-universal-skill call decompose_epic '{"epic": "Implement OAuth", "files": ["src/auth.js"]}'
-
-# 3. Auto-heal failing tests
-universal-skill call auto_heal '{"error_log": "AssertionError: expected 200 got 500", "test_file": "tests/auth.test.js"}'
 ```
 
 ## UX & Operational Rules

@@ -1,13 +1,13 @@
 ---
 name: skill-orchestrate
 version: "1.0.0"
-description: "Orchestrate autonomous multi-agent missions, manage checkpoints, and coordinate swarm execution via MCP."
-allowed-tools: ["terminal", "mcp__*"]
+description: "Orchestrate autonomous multi-agent missions, manage checkpoints, and coordinate execution."
+allowed-tools: ["terminal"]
 ---
 
 # Agent Orchestrate
 
-Orchestrate end-to-end missions, autonomous swarms, and checkpoint rollbacks via MCP tools or CLI.
+Orchestrate end-to-end missions, autonomous pipelines, and checkpoint rollbacks via CLI or git branches.
 
 ## When to Use
 
@@ -25,20 +25,17 @@ Orchestrate end-to-end missions, autonomous swarms, and checkpoint rollbacks via
 
 ## Workflow & CLI
 
-Execute via `universal-skill call`:
+Execute via local script and git commands:
 
 ```bash
-# 1. Orchestrate mission
-universal-skill call orchestrate '{"task": "Implement feature", "budget_tokens": 50000}'
+# 1. Validate DAG and execution waves
+node scripts/dag_validator.js tasks.json
 
-# 2. Coordinate multi-agent swarm across topological waves
-universal-skill call coordinate_mission_swarm '{"work_id": "wrk_01", "max_concurrency": 4}'
+# 2. Capture git checkpoint before mutation
+git checkout -b checkpoint/pre-mutation
 
-# 3. Create pre-mutation checkpoint
-universal-skill call create_checkpoint '{"work_id": "wrk_01", "label": "pre-mutation"}'
-
-# 4. Rollback to checkpoint on failure
-universal-skill call rollback_checkpoint '{"work_id": "wrk_01", "checkpoint_id": "chk_01"}'
+# 3. Rollback to checkpoint on failure
+git reset --hard HEAD
 ```
 
 ## UX & Operational Rules

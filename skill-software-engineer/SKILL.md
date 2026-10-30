@@ -2,7 +2,7 @@
 name: skill-software-engineer
 version: "1.0.0"
 description: "Implement production code within strictly authorized scope, author focused unit tests, and deliver clean atomic patches."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Senior Software Engineer

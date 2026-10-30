@@ -2,7 +2,7 @@
 name: skill-software-architect
 version: "1.0.0"
 description: "Decompose complex systems, define strict interface boundaries, establish invariants, and author implementation contracts."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Principal Software Architect

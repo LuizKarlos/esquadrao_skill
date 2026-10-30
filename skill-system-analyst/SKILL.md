@@ -2,7 +2,7 @@
 name: skill-system-analyst
 version: "1.0.0"
 description: "Navigate codebases, extract module dependency graphs, map architectural boundaries, and identify touchpoints."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Systems Analyst

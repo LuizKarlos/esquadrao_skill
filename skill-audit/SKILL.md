@@ -2,7 +2,7 @@
 name: skill-audit
 version: "1.0.0"
 description: "Verify cryptographic Merkle ledgers, validate execution receipts, and enable time-travel replays."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Agent Audit
@@ -23,17 +23,11 @@ Validate tamper-evident execution ledgers, check cryptographic receipts, and aud
 
 ## Workflow & CLI
 
-Execute via local script or CLI:
+Execute via local script:
 
 ```bash
-# 1. Verify ledger continuity and payload hashes
+# Verify ledger continuity and payload hashes
 node scripts/merkle_verify.js ledger.json
-
-# 2. Inspect cryptographic receipt
-universal-skill call inspect_receipt '{"receipt_id": "rcpt_1001"}'
-
-# 3. Replay mission events
-universal-skill call replay_mission '{"mission_id": "msn_01", "checkpoint": 3}'
 ```
 
 ## UX & Operational Rules

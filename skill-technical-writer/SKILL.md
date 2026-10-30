@@ -2,7 +2,7 @@
 name: skill-technical-writer
 version: "1.0.0"
 description: "Author technical documentation, API specs, architectural decision records (ADRs), and user guides."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Technical Writer
