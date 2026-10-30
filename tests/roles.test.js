@@ -11,6 +11,7 @@ import {
   listRoles,
   checkCommandExecution,
   checkFileWrite,
+  checkOutputWrite,
   mediaProducer,
   codeReviewer,
   softwareArchitect,
@@ -96,6 +97,46 @@ test('Roles: Structural Authority Matrix and Permission Enforcement', () => {
   // Safe read commands on read-only roles pass
   assert.doesNotThrow(() => checkCommandExecution('code-reviewer', 'git diff main...feature'));
   assert.doesNotThrow(() => checkCommandExecution('system-analyst', 'git status'));
+});
+
+test('Roles: Per-Role Allowed Outputs Enforcement', () => {
+  // Unknown role rejection
+  assert.throws(() => checkOutputWrite('nonexistent-role', 'docs/readme.txt'), /Unknown role/);
+
+  // Wildcard allowed for software-engineer
+  assert.doesNotThrow(() => checkOutputWrite('software-engineer', 'src/arbitrary.js'));
+  assert.doesNotThrow(() => checkOutputWrite('software-engineer', 'package.json'));
+
+  // Scoped prefix checks: software-architect (docs/, reports/, schemas/)
+  assert.doesNotThrow(() => checkOutputWrite('software-architect', 'docs/spec.md'));
+  assert.doesNotThrow(() => checkOutputWrite('software-architect', 'reports/analysis.json'));
+  assert.doesNotThrow(() => checkOutputWrite('software-architect', 'schemas/contract.json'));
+  assert.throws(() => checkOutputWrite('software-architect', 'src/code.js'), /violates allowed output prefixes/);
+  assert.throws(() => checkOutputWrite('software-architect', 'package.json'), /violates allowed output prefixes/);
+
+  // Technical writer specific file paths and prefixes (docs/, README.md, CHANGELOG.md, reports/)
+  assert.doesNotThrow(() => checkOutputWrite('technical-writer', 'docs/user-guide.md'));
+  assert.doesNotThrow(() => checkOutputWrite('technical-writer', 'README.md'));
+  assert.doesNotThrow(() => checkOutputWrite('technical-writer', 'CHANGELOG.md'));
+  assert.throws(() => checkOutputWrite('technical-writer', 'src/index.js'), /violates allowed output prefixes/);
+
+  // Media producer allowed prefixes (media/, reports/, packages/)
+  assert.doesNotThrow(() => checkOutputWrite('media-producer', 'media/output.mp4'));
+  assert.doesNotThrow(() => checkOutputWrite('media-producer', 'reports/qa.json'));
+  assert.throws(() => checkOutputWrite('media-producer', 'src/app.js'), /violates allowed output prefixes/);
+
+  // Legacy alias mapping works with checkOutputWrite
+  assert.doesNotThrow(() => checkOutputWrite('chief_architect', 'docs/spec.md'));
+  assert.throws(() => checkOutputWrite('chief_architect', 'src/code.js'), /violates allowed output prefixes/);
+
+  // checkFileWrite wiring: read/write roles must respect allowed outputs
+  assert.throws(() => checkFileWrite('software-architect', 'src/app.js'), /violates allowed output prefixes/);
+  assert.doesNotThrow(() => checkFileWrite('software-architect', 'docs/architecture.md'));
+  assert.throws(() => checkFileWrite('media-producer', 'bin/cli.js'), /violates allowed output prefixes/);
+  assert.doesNotThrow(() => checkFileWrite('media-producer', 'media/rendered.mp4'));
+
+  // Read-only roles still blocked with read-only violation even on their declared prefix
+  assert.throws(() => checkFileWrite('system-analyst', 'reports/analysis.json'), /strictly read-only/);
 });
 
 test('Roles: Anti-Self-Review Guard in Code Reviewer', () => {
