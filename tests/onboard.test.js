@@ -233,7 +233,22 @@ test('Onboard: existing workspace reuses saved profile without --mode', async (t
   }
 });
 
-test('Onboard: non-interactive flags validation and error handling', async () => {
+test('Onboard: buildOnboardPlan validates modes and asset requirements', () => {
+  const darkPlan = buildOnboardPlan({ mode: 'dark' });
+  assert.equal(darkPlan.mode, 'dark');
+  assert.equal(darkPlan.clips.length, 2);
+
+  assert.throws(() => buildOnboardPlan({ mode: 'edit_only', assets: [] }), /requires at least one imported asset/);
+  assert.throws(() => buildOnboardPlan({ mode: 'podcast_clip', assets: [] }), /requires at least one imported asset/);
+  assert.throws(() => buildOnboardPlan({ mode: 'invalid_mode' }), /Unsupported mode/);
+});
+
+test('Onboard: non-interactive flags validation and error handling', async (t) => {
+  if (!canRunFfmpeg) {
+    t.skip('ffmpeg/ffprobe not found on PATH');
+    return;
+  }
+
   const tmp = path.join(os.tmpdir(), `onboard-validation-${Date.now()}`);
   fs.mkdirSync(tmp, { recursive: true });
 
