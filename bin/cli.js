@@ -12,23 +12,14 @@ const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url),
 const { values: flags, positionals } = parseArgs({
   args: process.argv.slice(2),
   options: {
-    wait: { type: 'boolean' },
     json: { type: 'boolean' },
-    endpoint: { type: 'string' },
     dest: { type: 'string' },
-    'write-mcp': { type: 'boolean' },
-    writeMcp: { type: 'boolean' },
     help: { type: 'boolean', short: 'h' },
     version: { type: 'boolean', short: 'v' },
   },
   allowPositionals: true,
   strict: false,
 });
-
-if (flags.token !== undefined) {
-  console.error('--token is not supported via CLI flag to avoid process table exposure. Use MCP_TOKEN or config.');
-  process.exit(1);
-}
 
 const command = positionals[0];
 
@@ -37,7 +28,9 @@ if (flags.version || command === 'version' || flags.v) {
   process.exit(0);
 }
 
-if (flags.help || command === 'help' || !command) {
+const SUBCOMMANDS = new Set(['setup', 'role', 'studio']);
+
+if (!command || command === 'help' || (flags.help && !SUBCOMMANDS.has(command))) {
   console.log(`Universal Skill CLI v${pkg.version}
 
 Usage:
@@ -46,9 +39,7 @@ Usage:
 Commands:
   setup       Install skills into agent harnesses (.agents, .claude, .codex, .cursor)
   role        List, inspect, and generate prompts for industry roles
-  status      Check connection and server health
-  call        Execute an MCP tool or pipeline task
-  login       Persist authentication token and endpoint locally
+  studio      Video studio workspace, asset import, rendering, and QA
   version     Display CLI version
   help        Display help information
 
@@ -56,13 +47,10 @@ Options:
   -h, --help       Show help
   -v, --version    Show version
   --json           Output results in JSON format
-  --endpoint <url> MCP server endpoint (default: $MCP_ENDPOINT or config)
-  --dest <path>    Custom destination directory for skills
-  --write-mcp      Generate MCP server config file during setup`);
+  --dest <path>    Custom destination directory for skills`);
   process.exit(0);
 }
 
-const SUBCOMMANDS = new Set(['login', 'status', 'call', 'setup', 'role']);
 if (!SUBCOMMANDS.has(command)) {
   console.error(`Unknown command: '${command}'. Run 'universal-skill --help' for available commands.`);
   process.exit(1);

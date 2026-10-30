@@ -2,7 +2,7 @@
 name: skill-sre-engineer
 version: "1.0.0"
 description: "Perform deep root-cause analysis on failing test runs, runtime crashes, and synthesize targeted fix contracts."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Site Reliability Engineer

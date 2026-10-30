@@ -2,8 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { checkHealth } from '../client.js';
-import { getEndpoint, getToken } from '../config.js';
 
 const SKILLS = [
   'skill-orchestrate',
@@ -26,15 +24,13 @@ const SKILLS = [
   'skill-media-producer',
 ];
 
-// ponytail: synchronous copy and unary probe; upgrade to async workers when syncing >50 skills
+// ponytail: synchronous copy; upgrade to async workers when syncing >50 skills
 export async function run({ positionals = [], flags = {} } = {}) {
   if (flags?.help) {
-    console.log('Usage: universal-skill setup [--dest <path>] [--endpoint <url>] [--write-mcp] [--json]');
+    console.log('Usage: universal-skill setup [--dest <path>] [--json]');
     return;
   }
 
-  const endpoint = flags?.endpoint || getEndpoint();
-  const token = getToken();
   const rootDir = fileURLToPath(new URL('../../', import.meta.url));
   const cwd = process.cwd();
   const destArg = typeof flags?.dest === 'string' ? flags.dest : (positionals[0] || null);
@@ -105,7 +101,7 @@ export async function run({ positionals = [], flags = {} } = {}) {
       fs.mkdirSync(rulesDir, { recursive: true });
       fs.writeFileSync(
         path.join(rulesDir, 'universal-skill.mdc'),
-        '---\ndescription: Universal Agent Skills & MCP Rules\nglobs: *\n---\nUse universal-skill tools and CLI.\n'
+        '---\ndescription: Universal Agent Skills Rules\nglobs: *\n---\nUse universal-skill tools and CLI.\n'
       );
     }
 
@@ -116,40 +112,14 @@ export async function run({ positionals = [], flags = {} } = {}) {
     if (fs.existsSync(path.join(os.homedir(), '.hermes'))) harnesses.push('.hermes');
   }
 
-  const mcpConfig = {
-    mcpServers: {
-      'universal-skill': {
-        url: endpoint,
-        headers: token ? { Authorization: 'Bearer ${MCP_TOKEN}' } : {},
-      },
-    },
-  };
-
-  if (flags?.['write-mcp'] || flags?.writeMcp) {
-    fs.writeFileSync(
-      path.join(destDir, 'mcp.json'),
-      JSON.stringify(mcpConfig, null, 2) + '\n'
-    );
-  }
-
   const nodeMajor = parseInt(process.versions.node.split('.')[0], 10);
   const nodeOk = nodeMajor >= 18;
 
-  let connected = false;
-  const start = Date.now();
-  try {
-    const health = await checkHealth({ endpoint, token, signal: AbortSignal.timeout(3000) });
-    connected = Boolean(health);
-  } catch {}
-  const latencyMs = Date.now() - start;
-
   const report = {
-    status: nodeOk && connected ? 'ok' : 'degraded',
+    status: nodeOk ? 'ok' : 'degraded',
     prerequisites: { node: { version: process.version, valid: nodeOk } },
-    connectivity: { endpoint, connected, latencyMs },
     installation: { destination: destDir, installed },
     harnesses,
-    mcpConfig,
   };
 
   if (flags?.json) {
@@ -157,7 +127,6 @@ export async function run({ positionals = [], flags = {} } = {}) {
   } else {
     console.log(`Universal Skill Setup: ${report.status.toUpperCase()}`);
     console.log(`- Node.js: ${process.version} (${nodeOk ? 'OK' : 'Requires >= 18'})`);
-    console.log(`- Connectivity: ${connected ? 'Connected' : 'Offline'} (${latencyMs}ms) to ${endpoint}`);
     console.log(`- Installed ${installed.length} items to ${destDir}`);
     if (harnesses.length) console.log(`- Harnesses detected: ${harnesses.join(', ')}`);
   }

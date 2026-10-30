@@ -1,7 +1,7 @@
 {
   "name": "@universal-skill/cli",
   "version": "1.0.0",
-  "description": "Universal CLI and autonomous skill orchestration framework for AI agents and MCP",
+  "description": "Universal CLI and autonomous skill orchestration framework for AI agents",
   "type": "module",
   "bin": {
     "universal-skill": "bin/cli.js",
@@ -39,7 +39,6 @@
     "test": "node --test"
   },
   "keywords": [
-    "mcp",
     "skills",
     "agents",
     "claude",
@@ -47,6 +46,7 @@
     "codex",
     "cursor",
     "orchestration",
+    "studio",
     "cli"
   ],
   "license": "MIT",

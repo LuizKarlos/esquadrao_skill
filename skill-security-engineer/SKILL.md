@@ -2,7 +2,7 @@
 name: skill-security-engineer
 version: "1.0.0"
 description: "Conduct adversarial security audits, threat modeling, vulnerability assessments, and boundary validation."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Security Engineer

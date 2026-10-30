@@ -1,6 +1,6 @@
 # Swarm Coordination Specification
 
-Framework for coordinating autonomous multi-agent swarms, budgets, and concurrency locks via MCP and CLI.
+Framework for coordinating autonomous multi-agent swarms, budgets, and concurrency locks via CLI and filesystem locks.
 
 ## Autonomous Swarm Coordination (`coordinate_mission_swarm`)
 
@@ -28,5 +28,6 @@ Prevents file access collisions and deadlocks across concurrent subagents:
 - **Zombie Purging**: Expired leases (`expires_at < now()`) auto-evict, promoting waiters.
 
 ```bash
-universal-skill call arbitrate_concurrency '{"action": "acquire", "mode": "EXCLUSIVE", "paths": ["src/core.js"], "ttl_seconds": 30}'
+# Acquire path lockfile with atomic file write
+node -e "fs.writeFileSync('.lock-src-core', JSON.stringify({agent_id: 'agent-1', expires_at: Date.now() + 30000}), {flag: 'wx'})"
 ```

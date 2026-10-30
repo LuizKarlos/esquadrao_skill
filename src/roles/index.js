@@ -13,7 +13,7 @@ import * as qaEngineer from './qaEngineer.js';
 import * as technicalWriter from './technicalWriter.js';
 import * as engineeringManager from './engineeringManager.js';
 import * as mediaProducer from './mediaProducer.js';
-import { checkCommandExecution, checkFileWrite, READ_ONLY_ROLES, FORBIDDEN_COMMAND_PATTERNS } from './authority.js';
+import { checkCommandExecution, checkFileWrite, checkOutputWrite, READ_ONLY_ROLES, FORBIDDEN_COMMAND_PATTERNS } from './authority.js';
 
 export const ROLES = {
   'product-manager': productManager,
@@ -62,6 +62,7 @@ export function listRoles() {
 export {
   checkCommandExecution,
   checkFileWrite,
+  checkOutputWrite,
   READ_ONLY_ROLES,
   FORBIDDEN_COMMAND_PATTERNS,
   productManager,

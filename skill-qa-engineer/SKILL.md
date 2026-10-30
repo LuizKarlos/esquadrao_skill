@@ -2,7 +2,7 @@
 name: skill-qa-engineer
 version: "1.0.0"
 description: "Validate operational criteria, execute end-to-end acceptance gates, and certify releases."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # QA Engineer

@@ -1,6 +1,6 @@
 # Universal Skill CLI
 
-Universal CLI and autonomous skill orchestration framework for AI agents and Model Context Protocol (MCP) integrations.
+Universal CLI and autonomous skill orchestration framework for AI agents.
 
 ## Overview
 
@@ -29,19 +29,22 @@ universal-skill setup
 
 ```bash
 # Set up skills and rules in current workspace harnesses
-universal-skill setup [--dest <path>] [--endpoint <url>] [--write-mcp] [--json]
+universal-skill setup [--dest <path>] [--json]
 
 # Inspect and execute industry roles
 universal-skill role [list | info <id> | prompt <id> | matrix] [--json]
 
-# Check MCP server status and health
-universal-skill status [--endpoint <url>] [--json]
+# Initialize video studio workspace
+universal-skill studio init [--dest <path>]
 
-# Call an MCP tool directly from the terminal
-universal-skill call <tool_name> '[json_arguments]' [--endpoint <url>] [--json]
+# Import source media assets into studio
+universal-skill studio import <file>
 
-# Persist authentication credentials locally (~/.config/universal-skill/credentials.json)
-universal-skill login <token> [--endpoint <url>]
+# Render an EditPlan to MP4 artifact
+universal-skill studio render <editplan.json>
+
+# Run automated QA validation on a rendered artifact
+universal-skill studio qa <artifact.mp4>
 ```
 
 ## Industry Roles Matrix

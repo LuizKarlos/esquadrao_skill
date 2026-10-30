@@ -28,6 +28,9 @@ INIT ──> RUNNING ──┬──> CHECKPOINT ──> RUNNING
    - Appends signed rollback event to audit ledger.
 
 ```bash
-universal-skill call create_checkpoint '{"work_id": "wrk_01", "label": "pre-patch"}'
-universal-skill call rollback_checkpoint '{"work_id": "wrk_01", "checkpoint_id": "chk_01"}'
+# Capture checkpoint via git branch or stash
+git stash save "checkpoint-pre-patch"
+
+# Rollback checkpoint on failure
+git reset --hard HEAD
 ```

@@ -2,7 +2,7 @@
 name: skill-engineering-manager
 version: "1.0.0"
 description: "Synthesize completed project evidence into follow-up milestones, roadmap iterations, and next sprint tasks."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Engineering Manager

@@ -2,7 +2,7 @@
 name: skill-context
 version: "1.0.0"
 description: "Extract structural AST outlines, synthesize OpenAPI contracts, and condense context packets under 3k tokens."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Agent Context
@@ -23,7 +23,7 @@ Reduce token footprints by extracting structural AST signatures, synthesizing co
 
 ## Workflow & CLI
 
-Execute via local script or CLI:
+Execute via local script:
 
 ```bash
 # 1. Extract AST outline of file
@@ -31,9 +31,6 @@ node scripts/ast_slice.js src/server.js
 
 # 2. Extract AST outline in JSON format
 node scripts/ast_slice.js src/app.py --json
-
-# 3. Synthesize OpenAPI specification
-universal-skill call synthesize_openapi '{"routes_file": "src/routes.js"}'
 ```
 
 ## UX & Operational Rules

@@ -2,7 +2,7 @@
 name: skill-media-producer
 version: "1.0.0"
 description: "Author and validate short-form video edit plans, timeline cuts, audio gain parameters, NFC text normalization, and media QA contracts."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Media Producer

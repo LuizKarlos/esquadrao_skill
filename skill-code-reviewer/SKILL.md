@@ -2,7 +2,7 @@
 name: skill-code-reviewer
 version: "1.0.0"
 description: "Conduct independent peer code reviews, filter out boilerplate/slop, validate diff correctness, and enforce anti-self-review."
-allowed-tools: ["terminal", "mcp__*"]
+allowed-tools: ["terminal"]
 ---
 
 # Code Reviewer
