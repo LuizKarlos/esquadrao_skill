@@ -28,7 +28,9 @@ if (flags.version || command === 'version' || flags.v) {
   process.exit(0);
 }
 
-if (flags.help || command === 'help' || !command) {
+const SUBCOMMANDS = new Set(['setup', 'role', 'studio']);
+
+if (!command || command === 'help' || (flags.help && !SUBCOMMANDS.has(command))) {
   console.log(`Universal Skill CLI v${pkg.version}
 
 Usage:
@@ -37,6 +39,7 @@ Usage:
 Commands:
   setup       Install skills into agent harnesses (.agents, .claude, .codex, .cursor)
   role        List, inspect, and generate prompts for industry roles
+  studio      Video studio workspace, asset import, rendering, and QA
   version     Display CLI version
   help        Display help information
 
@@ -48,7 +51,6 @@ Options:
   process.exit(0);
 }
 
-const SUBCOMMANDS = new Set(['setup', 'role']);
 if (!SUBCOMMANDS.has(command)) {
   console.error(`Unknown command: '${command}'. Run 'universal-skill --help' for available commands.`);
   process.exit(1);
