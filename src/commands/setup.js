@@ -12,6 +12,18 @@ const SKILLS = [
   'skill-audit',
   'skill-context',
   'skill-ui',
+  'skill-product-manager',
+  'skill-system-analyst',
+  'skill-software-architect',
+  'skill-tech-lead',
+  'skill-security-engineer',
+  'skill-software-engineer',
+  'skill-code-reviewer',
+  'skill-sre-engineer',
+  'skill-qa-engineer',
+  'skill-technical-writer',
+  'skill-engineering-manager',
+  'skill-media-producer',
 ];
 
 // ponytail: synchronous copy and unary probe; upgrade to async workers when syncing >50 skills

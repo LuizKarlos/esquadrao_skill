@@ -81,6 +81,18 @@ test('Semantic Skills Discovery Oracle', () => {
     'skill-review',
     'skill-pipeline',
     'skill-orchestrate',
+    'skill-product-manager',
+    'skill-system-analyst',
+    'skill-software-architect',
+    'skill-tech-lead',
+    'skill-security-engineer',
+    'skill-software-engineer',
+    'skill-code-reviewer',
+    'skill-sre-engineer',
+    'skill-qa-engineer',
+    'skill-technical-writer',
+    'skill-engineering-manager',
+    'skill-media-producer',
   ];
 
   for (const skill of skills) {

@@ -45,6 +45,7 @@ Usage:
 
 Commands:
   setup       Install skills into agent harnesses (.agents, .claude, .codex, .cursor)
+  role        List, inspect, and generate prompts for industry roles
   status      Check connection and server health
   call        Execute an MCP tool or pipeline task
   login       Persist authentication token and endpoint locally
@@ -61,7 +62,7 @@ Options:
   process.exit(0);
 }
 
-const SUBCOMMANDS = new Set(['login', 'status', 'call', 'setup']);
+const SUBCOMMANDS = new Set(['login', 'status', 'call', 'setup', 'role']);
 if (!SUBCOMMANDS.has(command)) {
   console.error(`Unknown command: '${command}'. Run 'universal-skill --help' for available commands.`);
   process.exit(1);
