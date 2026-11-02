@@ -20,6 +20,13 @@ function hasTool(cmd) {
 
 const canRunFfmpeg = hasTool('ffmpeg') && hasTool('ffprobe');
 
+function skipOrDieInCI(t, reason = 'ffmpeg/ffprobe not found on PATH') {
+  if (process.env.CI) {
+    assert.fail(`${reason} (failing because process.env.CI is set)`);
+  }
+  t.skip(reason);
+}
+
 function runCliAsync(args, envOverrides = {}, cwd = repoRoot) {
   return new Promise((resolve) => {
     const env = { ...process.env, ...envOverrides };
@@ -75,7 +82,7 @@ test('Studio: render rejects invalid EditPlan schema before ffmpeg invocation', 
 
 test('Studio: import registers media asset with ffprobe metadata', async (t) => {
   if (!canRunFfmpeg) {
-    t.skip('ffmpeg/ffprobe not found on PATH');
+    skipOrDieInCI(t);
     return;
   }
 
@@ -122,7 +129,7 @@ test('Studio: import registers media asset with ffprobe metadata', async (t) => 
 
 test('Studio: render dark mode creates valid MP4 artifact', async (t) => {
   if (!canRunFfmpeg) {
-    t.skip('ffmpeg/ffprobe not found on PATH');
+    skipOrDieInCI(t);
     return;
   }
 
@@ -182,7 +189,7 @@ test('Studio: render dark mode creates valid MP4 artifact', async (t) => {
 
 test('Studio: render edit_only mode cuts and concatenates video clips', async (t) => {
   if (!canRunFfmpeg) {
-    t.skip('ffmpeg/ffprobe not found on PATH');
+    skipOrDieInCI(t);
     return;
   }
 
@@ -269,7 +276,7 @@ test('Studio: render edit_only mode cuts and concatenates video clips', async (t
 
 test('Studio: qa fails with exit code 1 on missing audio stream', async (t) => {
   if (!canRunFfmpeg) {
-    t.skip('ffmpeg/ffprobe not found on PATH');
+    skipOrDieInCI(t);
     return;
   }
 
@@ -299,7 +306,7 @@ test('Studio: qa fails with exit code 1 on missing audio stream', async (t) => {
 
 test('Studio: render handles special caption characters in dark, edit_only, and podcast_clip modes', async (t) => {
   if (!canRunFfmpeg) {
-    t.skip('ffmpeg/ffprobe not found on PATH');
+    skipOrDieInCI(t);
     return;
   }
 
@@ -375,7 +382,7 @@ test('Studio: render handles special caption characters in dark, edit_only, and 
 
 test('Studio: render succeeds when source footage has no audio track', async (t) => {
   if (!canRunFfmpeg) {
-    t.skip('ffmpeg/ffprobe not found on PATH');
+    skipOrDieInCI(t);
     return;
   }
 

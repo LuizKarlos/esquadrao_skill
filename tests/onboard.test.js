@@ -27,6 +27,13 @@ function hasTool(cmd) {
 
 const canRunFfmpeg = hasTool('ffmpeg') && hasTool('ffprobe');
 
+function skipOrDieInCI(t, reason = 'ffmpeg/ffprobe not found on PATH') {
+  if (process.env.CI) {
+    assert.fail(`${reason} (failing because process.env.CI is set)`);
+  }
+  t.skip(reason);
+}
+
 function runCliAsync(args, envOverrides = {}, cwd = repoRoot) {
   return new Promise((resolve) => {
     const env = { ...process.env, ...envOverrides };
@@ -94,7 +101,7 @@ test('Onboard: missing ffmpeg aborts early with actionable per-OS message', asyn
 
 test('Onboard: happy path dark mode (non-interactive, zero footage)', async (t) => {
   if (!canRunFfmpeg) {
-    t.skip('ffmpeg/ffprobe not found on PATH');
+    skipOrDieInCI(t);
     return;
   }
 
@@ -136,7 +143,7 @@ test('Onboard: happy path dark mode (non-interactive, zero footage)', async (t) 
 
 test('Onboard: happy path edit_only mode cuts two contiguous clips', async (t) => {
   if (!canRunFfmpeg) {
-    t.skip('ffmpeg/ffprobe not found on PATH');
+    skipOrDieInCI(t);
     return;
   }
 
@@ -175,7 +182,7 @@ test('Onboard: happy path edit_only mode cuts two contiguous clips', async (t) =
 
 test('Onboard: happy path podcast_clip mode renders video with captions', async (t) => {
   if (!canRunFfmpeg) {
-    t.skip('ffmpeg/ffprobe not found on PATH');
+    skipOrDieInCI(t);
     return;
   }
 
@@ -208,7 +215,7 @@ test('Onboard: happy path podcast_clip mode renders video with captions', async 
 
 test('Onboard: existing workspace reuses saved profile without --mode', async (t) => {
   if (!canRunFfmpeg) {
-    t.skip('ffmpeg/ffprobe not found on PATH');
+    skipOrDieInCI(t);
     return;
   }
 
@@ -245,7 +252,7 @@ test('Onboard: buildOnboardPlan validates modes and asset requirements', () => {
 
 test('Onboard: non-interactive flags validation and error handling', async (t) => {
   if (!canRunFfmpeg) {
-    t.skip('ffmpeg/ffprobe not found on PATH');
+    skipOrDieInCI(t);
     return;
   }
 
@@ -284,7 +291,7 @@ test('Onboard: non-interactive flags validation and error handling', async (t) =
 
 test('Onboard: interactive flow prompts user and reads from stdin', async (t) => {
   if (!canRunFfmpeg) {
-    t.skip('ffmpeg/ffprobe not found on PATH');
+    skipOrDieInCI(t);
     return;
   }
 
