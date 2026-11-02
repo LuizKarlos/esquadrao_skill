@@ -568,3 +568,43 @@ test('Studio & Onboard: ffmpeg errors capture concise stderr and verbose flag re
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test('Studio: corrupted studio.json causes commands to fail without overwriting manifest', async () => {
+  const tmp = path.join(os.tmpdir(), `studio-corrupt-manifest-${Date.now()}`);
+  fs.mkdirSync(tmp, { recursive: true });
+  const manifestPath = path.join(tmp, 'studio.json');
+  const corruptContent = '{"version": 1, "assets": [ INVALID_JSON ...';
+  fs.writeFileSync(manifestPath, corruptContent, 'utf8');
+
+  try {
+    // 1. studio init on corrupt manifest must fail
+    const initRes = await runCliAsync(['studio', 'init', '--dest', tmp]);
+    assert.equal(initRes.status, 1, 'Init must fail on corrupted manifest');
+    assert.match(initRes.stderr, /Corrupted studio manifest/);
+
+    // 2. verify studio.json was NOT overwritten
+    const contentAfter = fs.readFileSync(manifestPath, 'utf8');
+    assert.equal(contentAfter, corruptContent, 'Manifest must not be overwritten when corrupted');
+
+    // 3. if ffmpeg is available, studio import on corrupt manifest must also fail with manifest error
+    if (canRunFfmpeg) {
+      const sampleVideo = path.join(tmp, 'valid.mp4');
+      execFileSync('ffmpeg', [
+        '-y',
+        '-f', 'lavfi', '-i', 'testsrc=duration=1:size=320x240:rate=30',
+        '-c:v', 'libx264',
+        '-an',
+        sampleVideo,
+      ], { stdio: 'pipe' });
+
+      const importRes = await runCliAsync(['studio', 'import', sampleVideo, '--dest', tmp]);
+      assert.equal(importRes.status, 1, 'Import must fail on corrupted manifest');
+      assert.match(importRes.stderr, /Corrupted studio manifest/);
+
+      const contentAfterImport = fs.readFileSync(manifestPath, 'utf8');
+      assert.equal(contentAfterImport, corruptContent, 'Manifest must still not be overwritten');
+    }
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});

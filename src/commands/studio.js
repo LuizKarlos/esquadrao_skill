@@ -69,6 +69,25 @@ export function probeMedia(filePath) {
   return JSON.parse(stdout);
 }
 
+export function loadManifest(manifestPath) {
+  if (!fs.existsSync(manifestPath)) {
+    return { version: 1, name: 'universal-studio', assets: [], artifacts: [] };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch (err) {
+    console.error(`Error: Corrupted studio manifest at ${manifestPath}: ${err.message}`);
+    process.exit(1);
+  }
+}
+
+export function saveManifestAtomic(manifestPath, manifest) {
+  const dir = path.dirname(manifestPath);
+  const tmpPath = path.join(dir, `.studio.json.tmp-${crypto.randomBytes(4).toString('hex')}`);
+  fs.writeFileSync(tmpPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+  fs.renameSync(tmpPath, manifestPath);
+}
+
 export function resolveAsset(workspaceDir, clip) {
   const candidate = clip.asset_id || clip.file || clip.path || clip.source;
   if (!candidate) {
@@ -82,14 +101,12 @@ export function resolveAsset(workspaceDir, clip) {
 
   const manifestPath = path.join(workspaceDir, 'studio.json');
   if (fs.existsSync(manifestPath)) {
-    try {
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-      const found = manifest.assets?.find((a) => a.id === candidate || a.name === candidate);
-      if (found?.path) {
-        const p = path.resolve(workspaceDir, found.path);
-        if (fs.existsSync(p)) return p;
-      }
-    } catch {}
+    const manifest = loadManifest(manifestPath);
+    const found = manifest.assets?.find((a) => a.id === candidate || a.name === candidate);
+    if (found?.path) {
+      const p = path.resolve(workspaceDir, found.path);
+      if (fs.existsSync(p)) return p;
+    }
   }
 
   const assetsDir = path.join(workspaceDir, 'assets');
@@ -114,16 +131,14 @@ function hasAudio(wsDir, clipPath, clip) {
   const candidate = clip?.asset_id || clip?.source_asset || clip?.name;
   const manifestPath = path.join(wsDir, 'studio.json');
   if (fs.existsSync(manifestPath)) {
-    try {
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-      const found = manifest.assets?.find((a) =>
-        (candidate && (a.id === candidate || a.name === candidate)) ||
-        (a.path && path.resolve(wsDir, a.path) === path.resolve(clipPath))
-      );
-      if (found?.metadata && 'audio_codec' in found.metadata) {
-        return Boolean(found.metadata.audio_codec);
-      }
-    } catch {}
+    const manifest = loadManifest(manifestPath);
+    const found = manifest.assets?.find((a) =>
+      (candidate && (a.id === candidate || a.name === candidate)) ||
+      (a.path && path.resolve(wsDir, a.path) === path.resolve(clipPath))
+    );
+    if (found?.metadata && 'audio_codec' in found.metadata) {
+      return Boolean(found.metadata.audio_codec);
+    }
   }
   try {
     const probe = probeMedia(clipPath);
@@ -137,16 +152,14 @@ function getAssetDuration(wsDir, clipPath, clip) {
   const candidate = clip?.asset_id || clip?.source_asset || clip?.name;
   const manifestPath = path.join(wsDir, 'studio.json');
   if (fs.existsSync(manifestPath)) {
-    try {
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-      const found = manifest.assets?.find((a) =>
-        (candidate && (a.id === candidate || a.name === candidate)) ||
-        (a.path && path.resolve(wsDir, a.path) === path.resolve(clipPath))
-      );
-      if (found?.metadata?.duration_s !== undefined && found?.metadata?.duration_s !== null) {
-        return { durationSec: Number(found.metadata.duration_s), assetId: found.id || candidate };
-      }
-    } catch {}
+    const manifest = loadManifest(manifestPath);
+    const found = manifest.assets?.find((a) =>
+      (candidate && (a.id === candidate || a.name === candidate)) ||
+      (a.path && path.resolve(wsDir, a.path) === path.resolve(clipPath))
+    );
+    if (found?.metadata?.duration_s !== undefined && found?.metadata?.duration_s !== null) {
+      return { durationSec: Number(found.metadata.duration_s), assetId: found.id || candidate };
+    }
   }
   try {
     const probe = probeMedia(clipPath);
@@ -204,7 +217,7 @@ Options:
     const manifestPath = path.join(targetDir, 'studio.json');
     let manifest;
     if (fs.existsSync(manifestPath)) {
-      manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      manifest = loadManifest(manifestPath);
     } else {
       manifest = {
         version: 1,
@@ -213,7 +226,7 @@ Options:
         assets: [],
         artifacts: [],
       };
-      fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+      saveManifestAtomic(manifestPath, manifest);
     }
 
     if (flags.json) {
@@ -281,13 +294,10 @@ Options:
     };
 
     const manifestPath = path.join(wsDir, 'studio.json');
-    let manifest = { version: 1, name: 'universal-studio', assets: [], artifacts: [] };
-    if (fs.existsSync(manifestPath)) {
-      try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch {}
-    }
+    const manifest = loadManifest(manifestPath);
     manifest.assets = manifest.assets || [];
     manifest.assets.push(assetRecord);
-    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+    saveManifestAtomic(manifestPath, manifest);
 
     if (flags.json) {
       console.log(JSON.stringify(assetRecord, null, 2));
@@ -515,13 +525,10 @@ Options:
     };
 
     const manifestPath = path.join(wsDir, 'studio.json');
-    let manifest = { version: 1, name: 'universal-studio', assets: [], artifacts: [] };
-    if (fs.existsSync(manifestPath)) {
-      try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch {}
-    }
+    const manifest = loadManifest(manifestPath);
     manifest.artifacts = manifest.artifacts || [];
     manifest.artifacts.push(artifactRecord);
-    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+    saveManifestAtomic(manifestPath, manifest);
 
     if (flags.json) {
       console.log(JSON.stringify(artifactRecord, null, 2));

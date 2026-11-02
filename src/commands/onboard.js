@@ -355,7 +355,9 @@ Options:
         try {
           const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
           existingAssets = m.assets || [];
-        } catch {}
+        } catch (err) {
+          throw new Error(`Corrupted studio manifest at ${manifestPath}: ${err.message}`);
+        }
       }
 
       if (existingAssets.length === 0) {
@@ -397,7 +399,9 @@ Options:
         try {
           const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
           importedAssets.push(...(m.assets || []));
-        } catch {}
+        } catch (err) {
+          throw new Error(`Corrupted studio manifest at ${manifestPath}: ${err.message}`);
+        }
       }
     }
 
