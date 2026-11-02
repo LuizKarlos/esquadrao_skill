@@ -355,7 +355,9 @@ Options:
         try {
           const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
           existingAssets = m.assets || [];
-        } catch {}
+        } catch (err) {
+          throw new Error(`Corrupted studio manifest at ${manifestPath}: ${err.message}`);
+        }
       }
 
       if (existingAssets.length === 0) {
@@ -382,12 +384,12 @@ Options:
 
     // 5. Execution Pipeline
     if (!flags.json) console.log(`\n[1/4] Initializing studio workspace at ${targetDir}...`);
-    await runSilentIfJson(flags.json, () => studioRun({ positionals: ['init'], flags: { dest: targetDir, json: false } }));
+    await runSilentIfJson(flags.json, () => studioRun({ positionals: ['init'], flags: { dest: targetDir, json: false, verbose: flags.verbose } }));
 
     if (!flags.json) console.log(`[2/4] Importing media assets...`);
     const importedAssets = [];
     for (const f of files) {
-      const asset = await runSilentIfJson(flags.json, () => studioRun({ positionals: ['import', path.resolve(f)], flags: { dest: targetDir, json: false } }));
+      const asset = await runSilentIfJson(flags.json, () => studioRun({ positionals: ['import', path.resolve(f)], flags: { dest: targetDir, json: false, verbose: flags.verbose } }));
       if (asset) importedAssets.push(asset);
     }
 
@@ -397,7 +399,9 @@ Options:
         try {
           const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
           importedAssets.push(...(m.assets || []));
-        } catch {}
+        } catch (err) {
+          throw new Error(`Corrupted studio manifest at ${manifestPath}: ${err.message}`);
+        }
       }
     }
 
@@ -410,7 +414,7 @@ Options:
     fs.writeFileSync(planPath, JSON.stringify(plan, null, 2) + '\n');
 
     if (!flags.json) console.log(`[3/4] Rendering video artifact (${mode} mode)...`);
-    const artifact = await runSilentIfJson(flags.json, () => studioRun({ positionals: ['render', planPath], flags: { dest: targetDir, json: false } }));
+    const artifact = await runSilentIfJson(flags.json, () => studioRun({ positionals: ['render', planPath], flags: { dest: targetDir, json: false, verbose: flags.verbose } }));
     if (!artifact || !artifact.path) {
       throw new Error('Failed to render video artifact');
     }
@@ -418,7 +422,7 @@ Options:
     const artifactFullPath = path.resolve(targetDir, artifact.path);
 
     if (!flags.json) console.log(`[4/4] Running automated QA verification...`);
-    const qaReport = await runSilentIfJson(flags.json, () => studioRun({ positionals: ['qa', artifactFullPath], flags: { dest: targetDir, json: false } }));
+    const qaReport = await runSilentIfJson(flags.json, () => studioRun({ positionals: ['qa', artifactFullPath], flags: { dest: targetDir, plan: planPath, json: false, verbose: flags.verbose } }));
     if (!qaReport || !qaReport.passed) {
       throw new Error(`QA verification failed: ${qaReport?.errors?.join(', ') || 'QA check failed'}`);
     }
@@ -477,7 +481,11 @@ Next Commands:
     if (rl) {
       try { rl.close(); } catch {}
     }
-    console.error(`Error: ${err.message}`);
+    if (flags.verbose && err.stack) {
+      console.error(err.stack);
+    } else {
+      console.error(`Error: ${err.message}`);
+    }
     process.exit(1);
   }
 }

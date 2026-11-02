@@ -12,6 +12,14 @@ Universal CLI and autonomous skill orchestration framework for AI agents.
 - **Cursor** (`.cursor/rules/*.mdc`)
 - **Hermes / VS Code** (`~/.hermes/`, `.vscode/`)
 
+## Requisitos
+
+- **Node.js** >= 18.0.0
+- **FFmpeg & ffprobe** no PATH (obrigatório para renderização de vídeo e comandos de studio/onboard):
+  - **Windows**: `winget install Gyan.FFmpeg` ou `choco install ffmpeg`
+  - **macOS**: `brew install ffmpeg`
+  - **Linux (Debian/Ubuntu)**: `sudo apt update && sudo apt install -y ffmpeg`
+
 ## Installation
 
 ### Run directly via npx
@@ -28,6 +36,9 @@ universal-skill setup
 ## Commands
 
 ```bash
+# Guided onboarding agent: zero to first rendered video artifact
+universal-skill onboard [--mode <mode>] [--dest <path>] [--file <file>] [--verbose] [--json]
+
 # Set up skills and rules in current workspace harnesses
 universal-skill setup [--dest <path>] [--json]
 
@@ -45,6 +56,130 @@ universal-skill studio render <editplan.json>
 
 # Run automated QA validation on a rendered artifact
 universal-skill studio qa <artifact.mp4>
+```
+
+## Primeiro acesso
+
+O comando `onboard` conduz o cliente do zero até o primeiro vídeo renderizado com validação automatizada de QA:
+
+```bash
+# Fluxo guiado interativo:
+universal-skill onboard
+
+# Execução não interativa com flags:
+universal-skill onboard --mode dark --dest ./workspace
+universal-skill onboard --mode edit_only --file ./raw.mp4 --dest ./workspace
+universal-skill onboard --mode podcast_clip --file ./clip1.mp4 --file ./clip2.mp4 --dest ./workspace
+```
+
+### Flags do Onboard:
+- `--mode <dark | edit_only | podcast_clip>`: Modo de vídeo.
+- `--dest <path>`: Diretório do workspace (persiste no perfil para reuso).
+- `--file <path>`: Arquivo de vídeo fonte (pode ser repetido para múltiplos arquivos).
+- `--verbose`: Exibe logs detalhados do FFmpeg em caso de erro.
+- `--json`: Retorna resultado estruturado em formato JSON.
+
+## Exemplos de EditPlan por Modo
+
+### 1. Modo `dark` (zero footage, textos/overlays):
+```json
+{
+  "schema_version": 1,
+  "mode": "dark",
+  "clips": [
+    {
+      "kind": "text",
+      "text": "Universal Skill Onboarding",
+      "duration_ms": 1000,
+      "timeline_start_ms": 0
+    }
+  ],
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps_num": 30,
+    "fps_den": 1,
+    "video_codec": "h264",
+    "audio_codec": "aac"
+  }
+}
+```
+
+### 2. Modo `edit_only` (2 cortes contíguos de fontes de vídeo):
+```json
+{
+  "schema_version": 1,
+  "mode": "edit_only",
+  "clips": [
+    {
+      "kind": "video",
+      "asset_id": "AST-12345678",
+      "clip_id": "c1",
+      "in_ms": 0,
+      "out_ms": 500,
+      "timeline_start_ms": 0,
+      "speed": 1
+    },
+    {
+      "kind": "video",
+      "asset_id": "AST-12345678",
+      "clip_id": "c2",
+      "in_ms": 500,
+      "out_ms": 1000,
+      "timeline_start_ms": 500,
+      "speed": 1
+    }
+  ],
+  "audio_tracks": [
+    { "kind": "source", "clip_id": "c1", "gain_db": 0 },
+    { "kind": "source", "clip_id": "c2", "gain_db": 0 }
+  ],
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps_num": 30,
+    "fps_den": 1,
+    "video_codec": "h264",
+    "audio_codec": "aac"
+  }
+}
+```
+
+### 3. Modo `podcast_clip` (>= 1 corte com legendas visuais):
+```json
+{
+  "schema_version": 1,
+  "mode": "podcast_clip",
+  "clips": [
+    {
+      "kind": "video",
+      "asset_id": "AST-12345678",
+      "clip_id": "c1",
+      "in_ms": 0,
+      "out_ms": 1000,
+      "timeline_start_ms": 0,
+      "speed": 1
+    }
+  ],
+  "audio_tracks": [
+    { "kind": "source", "clip_id": "c1", "gain_db": 0 }
+  ],
+  "captions": [
+    {
+      "text": "Universal Podcast Clip",
+      "timeline_start_ms": 0,
+      "duration_ms": 1000
+    }
+  ],
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps_num": 30,
+    "fps_den": 1,
+    "video_codec": "h264",
+    "audio_codec": "aac"
+  }
+}
 ```
 
 ## Industry Roles Matrix

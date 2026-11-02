@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import os from 'node:os';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import process from 'node:process';
 import { validateEditPlan } from '../roles/mediaProducer.js';
 
@@ -69,6 +69,25 @@ export function probeMedia(filePath) {
   return JSON.parse(stdout);
 }
 
+export function loadManifest(manifestPath) {
+  if (!fs.existsSync(manifestPath)) {
+    return { version: 1, name: 'universal-studio', assets: [], artifacts: [] };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch (err) {
+    console.error(`Error: Corrupted studio manifest at ${manifestPath}: ${err.message}`);
+    process.exit(1);
+  }
+}
+
+export function saveManifestAtomic(manifestPath, manifest) {
+  const dir = path.dirname(manifestPath);
+  const tmpPath = path.join(dir, `.studio.json.tmp-${crypto.randomBytes(4).toString('hex')}`);
+  fs.writeFileSync(tmpPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+  fs.renameSync(tmpPath, manifestPath);
+}
+
 export function resolveAsset(workspaceDir, clip) {
   const candidate = clip.asset_id || clip.file || clip.path || clip.source;
   if (!candidate) {
@@ -82,14 +101,12 @@ export function resolveAsset(workspaceDir, clip) {
 
   const manifestPath = path.join(workspaceDir, 'studio.json');
   if (fs.existsSync(manifestPath)) {
-    try {
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-      const found = manifest.assets?.find((a) => a.id === candidate || a.name === candidate);
-      if (found?.path) {
-        const p = path.resolve(workspaceDir, found.path);
-        if (fs.existsSync(p)) return p;
-      }
-    } catch {}
+    const manifest = loadManifest(manifestPath);
+    const found = manifest.assets?.find((a) => a.id === candidate || a.name === candidate);
+    if (found?.path) {
+      const p = path.resolve(workspaceDir, found.path);
+      if (fs.existsSync(p)) return p;
+    }
   }
 
   const assetsDir = path.join(workspaceDir, 'assets');
@@ -114,16 +131,14 @@ function hasAudio(wsDir, clipPath, clip) {
   const candidate = clip?.asset_id || clip?.source_asset || clip?.name;
   const manifestPath = path.join(wsDir, 'studio.json');
   if (fs.existsSync(manifestPath)) {
-    try {
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-      const found = manifest.assets?.find((a) =>
-        (candidate && (a.id === candidate || a.name === candidate)) ||
-        (a.path && path.resolve(wsDir, a.path) === path.resolve(clipPath))
-      );
-      if (found?.metadata && 'audio_codec' in found.metadata) {
-        return Boolean(found.metadata.audio_codec);
-      }
-    } catch {}
+    const manifest = loadManifest(manifestPath);
+    const found = manifest.assets?.find((a) =>
+      (candidate && (a.id === candidate || a.name === candidate)) ||
+      (a.path && path.resolve(wsDir, a.path) === path.resolve(clipPath))
+    );
+    if (found?.metadata && 'audio_codec' in found.metadata) {
+      return Boolean(found.metadata.audio_codec);
+    }
   }
   try {
     const probe = probeMedia(clipPath);
@@ -131,6 +146,137 @@ function hasAudio(wsDir, clipPath, clip) {
   } catch {
     return false;
   }
+}
+
+function getAssetDuration(wsDir, clipPath, clip) {
+  const candidate = clip?.asset_id || clip?.source_asset || clip?.name;
+  const manifestPath = path.join(wsDir, 'studio.json');
+  if (fs.existsSync(manifestPath)) {
+    const manifest = loadManifest(manifestPath);
+    const found = manifest.assets?.find((a) =>
+      (candidate && (a.id === candidate || a.name === candidate)) ||
+      (a.path && path.resolve(wsDir, a.path) === path.resolve(clipPath))
+    );
+    if (found?.metadata?.duration_s !== undefined && found?.metadata?.duration_s !== null) {
+      return { durationSec: Number(found.metadata.duration_s), assetId: found.id || candidate };
+    }
+  }
+  try {
+    const probe = probeMedia(clipPath);
+    return { durationSec: parseFloat(probe.format?.duration || '0'), assetId: candidate || path.basename(clipPath) };
+  } catch {
+    return { durationSec: 0, assetId: candidate || path.basename(clipPath) };
+  }
+}
+
+export function computeExpectedDuration(plan) {
+  if (plan.mode === 'dark') {
+    return Math.max(
+      ...plan.clips.map((c) => ((c.timeline_start_ms || 0) + c.duration_ms) / 1000),
+      1
+    );
+  }
+  if (plan.mode === 'edit_only') {
+    const c0 = plan.clips?.[0] || {};
+    const c1 = plan.clips?.[1] || {};
+    return ((c0.out_ms - c0.in_ms) + (c1.out_ms - c1.in_ms)) / 1000;
+  }
+  if (plan.mode === 'podcast_clip') {
+    const videoClips = (plan.clips || []).filter((c) => c.kind === 'video' || !c.kind);
+    return videoClips.reduce((sum, c) => sum + ((c.out_ms || 0) - (c.in_ms || 0)) / 1000, 0);
+  }
+  return 0;
+}
+
+export function verifyArtifact(artifactPath, planPath = null) {
+  const probe = probeMedia(artifactPath);
+  const vStream = probe.streams?.find((s) => s.codec_type === 'video');
+  const aStream = probe.streams?.find((s) => s.codec_type === 'audio');
+  const duration = parseFloat(probe.format?.duration || '0');
+
+  const errors = [];
+  if (!vStream) errors.push('Missing video stream');
+  if (!aStream) errors.push('Missing audio stream');
+  if (duration <= 0) errors.push('Invalid duration (<= 0s)');
+
+  let planDetails = null;
+  if (planPath) {
+    const resolvedPlan = path.resolve(planPath);
+    if (!fs.existsSync(resolvedPlan)) {
+      throw new Error(`Plan file not found: ${planPath}`);
+    }
+    const plan = JSON.parse(fs.readFileSync(resolvedPlan, 'utf8'));
+
+    if (plan.output?.width && vStream && vStream.width !== plan.output.width) {
+      errors.push(`Width mismatch: expected ${plan.output.width}, got ${vStream.width}`);
+    }
+    if (plan.output?.height && vStream && vStream.height !== plan.output.height) {
+      errors.push(`Height mismatch: expected ${plan.output.height}, got ${vStream.height}`);
+    }
+
+    if (plan.output?.fps_num && vStream) {
+      const expectedFps = plan.output.fps_num / (plan.output.fps_den || 1);
+      const [num, den] = (vStream.r_frame_rate || '0/1').split('/').map(Number);
+      const actualFps = den ? num / den : num;
+      if (Math.abs(actualFps - expectedFps) > 0.5) {
+        errors.push(`FPS mismatch: expected ~${expectedFps}, got ${actualFps.toFixed(2)} (${vStream.r_frame_rate})`);
+      }
+    }
+
+    const expectedDuration = computeExpectedDuration(plan);
+    if (expectedDuration > 0) {
+      const tolerance = 0.35;
+      if (Math.abs(duration - expectedDuration) > tolerance) {
+        errors.push(`Duration mismatch: expected ${expectedDuration.toFixed(2)}s (±${tolerance}s), got ${duration.toFixed(2)}s`);
+      }
+    }
+
+    planDetails = {
+      plan_file: path.basename(resolvedPlan),
+      expected_duration_s: expectedDuration,
+      expected_width: plan.output?.width,
+      expected_height: plan.output?.height,
+      expected_fps: plan.output?.fps_num ? plan.output.fps_num / (plan.output.fps_den || 1) : null,
+    };
+  }
+
+  return {
+    artifact: path.basename(artifactPath),
+    path: artifactPath,
+    passed: errors.length === 0,
+    duration_s: duration,
+    streams: {
+      video: vStream ? {
+        codec: vStream.codec_name,
+        width: vStream.width,
+        height: vStream.height,
+        fps: vStream.r_frame_rate,
+      } : null,
+      audio: aStream ? {
+        codec: aStream.codec_name,
+        channels: aStream.channels,
+        sample_rate: aStream.sample_rate,
+      } : null,
+    },
+    plan_comparison: planDetails,
+    errors,
+  };
+}
+
+export function runFfmpeg(args, { verbose = false } = {}) {
+  const res = spawnSync('ffmpeg', args, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
+  if (res.status !== 0 || res.error) {
+    const rawStderr = res.stderr || res.error?.message || '';
+    if (verbose) {
+      console.error(`Error: ffmpeg execution failed (exit ${res.status}):\n${rawStderr}`);
+    } else {
+      const lines = rawStderr.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const tail = lines.slice(-10).join('\n');
+      console.error(`Error: ffmpeg rendering failed:\n${tail || rawStderr}`);
+    }
+    process.exit(1);
+  }
+  return res;
 }
 
 // ponytail: synchronous child_process calls; upgrade to worker pool when batch rendering >10 parallel plans
@@ -165,7 +311,7 @@ Options:
     const manifestPath = path.join(targetDir, 'studio.json');
     let manifest;
     if (fs.existsSync(manifestPath)) {
-      manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      manifest = loadManifest(manifestPath);
     } else {
       manifest = {
         version: 1,
@@ -174,7 +320,7 @@ Options:
         assets: [],
         artifacts: [],
       };
-      fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+      saveManifestAtomic(manifestPath, manifest);
     }
 
     if (flags.json) {
@@ -242,13 +388,10 @@ Options:
     };
 
     const manifestPath = path.join(wsDir, 'studio.json');
-    let manifest = { version: 1, name: 'universal-studio', assets: [], artifacts: [] };
-    if (fs.existsSync(manifestPath)) {
-      try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch {}
-    }
+    const manifest = loadManifest(manifestPath);
     manifest.assets = manifest.assets || [];
     manifest.assets.push(assetRecord);
-    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+    saveManifestAtomic(manifestPath, manifest);
 
     if (flags.json) {
       console.log(JSON.stringify(assetRecord, null, 2));
@@ -291,6 +434,27 @@ Options:
     }
 
     const wsDir = findWorkspaceDir(flags.dest);
+
+    const videoClipsToCheck = (plan.mode === 'edit_only' || plan.mode === 'podcast_clip')
+      ? (plan.clips || []).filter((c) => c.kind === 'video' || (!c.kind && c.asset_id))
+      : [];
+
+    for (let i = 0; i < videoClipsToCheck.length; i++) {
+      const c = videoClipsToCheck[i];
+      const clipPath = resolveAsset(wsDir, c);
+      const { durationSec, assetId } = getAssetDuration(wsDir, clipPath, c);
+      const assetDurMs = Math.round(durationSec * 1000);
+      const clipName = c.clip_id || `clip #${i}`;
+      if (c.out_ms > assetDurMs) {
+        console.error(`Error: Clip '${clipName}' out_ms (${c.out_ms}ms) exceeds asset '${assetId}' duration (${assetDurMs}ms / ${durationSec.toFixed(3)}s)`);
+        process.exit(1);
+      }
+      if (c.in_ms > assetDurMs) {
+        console.error(`Error: Clip '${clipName}' in_ms (${c.in_ms}ms) exceeds asset '${assetId}' duration (${assetDurMs}ms / ${durationSec.toFixed(3)}s)`);
+        process.exit(1);
+      }
+    }
+
     fs.mkdirSync(path.join(wsDir, 'artifacts'), { recursive: true });
     const artifactId = `ART-${crypto.randomBytes(4).toString('hex')}`;
     const artifactPath = path.join(wsDir, 'artifacts', `${artifactId}.mp4`);
@@ -324,7 +488,7 @@ Options:
           '-pix_fmt', 'yuv420p',
           artifactPath,
         ];
-        execFileSync('ffmpeg', args, { stdio: 'pipe' });
+        runFfmpeg(args, { verbose: flags.verbose });
       } else if (plan.mode === 'edit_only') {
         const clip0Path = resolveAsset(wsDir, plan.clips[0]);
         const clip1Path = resolveAsset(wsDir, plan.clips[1]);
@@ -380,7 +544,7 @@ Options:
           '-pix_fmt', 'yuv420p',
           artifactPath,
         ];
-        execFileSync('ffmpeg', args, { stdio: 'pipe' });
+        runFfmpeg(args, { verbose: flags.verbose });
       } else if (plan.mode === 'podcast_clip') {
         const videoClips = (plan.clips || []).filter((c) => c.kind === 'video' || !c.kind);
         const captions = plan.captions || (plan.clips || []).filter((c) => c.kind === 'text');
@@ -437,7 +601,7 @@ Options:
           '-pix_fmt', 'yuv420p',
           artifactPath,
         ];
-        execFileSync('ffmpeg', args, { stdio: 'pipe' });
+        runFfmpeg(args, { verbose: flags.verbose });
       }
     } finally {
       for (const f of tempFiles) {
@@ -455,13 +619,16 @@ Options:
     };
 
     const manifestPath = path.join(wsDir, 'studio.json');
-    let manifest = { version: 1, name: 'universal-studio', assets: [], artifacts: [] };
-    if (fs.existsSync(manifestPath)) {
-      try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch {}
-    }
+    const manifest = loadManifest(manifestPath);
     manifest.artifacts = manifest.artifacts || [];
     manifest.artifacts.push(artifactRecord);
-    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+    saveManifestAtomic(manifestPath, manifest);
+
+    const qaReport = verifyArtifact(artifactPath, resolvedPlanFile);
+    if (!qaReport.passed) {
+      console.error(`Error: Post-render QA validation failed:\n${qaReport.errors.map((e) => `  - ${e}`).join('\n')}`);
+      process.exit(1);
+    }
 
     if (flags.json) {
       console.log(JSON.stringify(artifactRecord, null, 2));
@@ -474,7 +641,7 @@ Options:
   if (sub === 'qa') {
     const artFile = positionals[1];
     if (!artFile) {
-      console.error('Error: Missing artifact file. Usage: universal-skill studio qa <artifact.mp4>');
+      console.error('Error: Missing artifact file. Usage: universal-skill studio qa <artifact.mp4> [--plan <editplan.json>]');
       process.exit(1);
     }
     const resolvedArt = path.resolve(artFile);
@@ -488,53 +655,31 @@ Options:
       process.exit(1);
     }
 
-    const probe = probeMedia(resolvedArt);
-    const vStream = probe.streams?.find((s) => s.codec_type === 'video');
-    const aStream = probe.streams?.find((s) => s.codec_type === 'audio');
-    const duration = parseFloat(probe.format?.duration || '0');
-
-    const errors = [];
-    if (!vStream) errors.push('Missing video stream');
-    if (!aStream) errors.push('Missing audio stream');
-    if (duration <= 0) errors.push('Invalid duration (<= 0s)');
-
-    const passed = errors.length === 0;
-
-    const report = {
-      artifact: path.basename(resolvedArt),
-      path: resolvedArt,
-      passed,
-      duration_s: duration,
-      streams: {
-        video: vStream ? {
-          codec: vStream.codec_name,
-          width: vStream.width,
-          height: vStream.height,
-          fps: vStream.r_frame_rate,
-        } : null,
-        audio: aStream ? {
-          codec: aStream.codec_name,
-          channels: aStream.channels,
-          sample_rate: aStream.sample_rate,
-        } : null,
-      },
-      errors,
-    };
+    let report;
+    try {
+      report = verifyArtifact(resolvedArt, flags.plan);
+    } catch (err) {
+      console.error(`Error: QA verification failed: ${err.message}`);
+      process.exit(1);
+    }
 
     if (flags.json) {
       console.log(JSON.stringify(report, null, 2));
     } else {
-      console.log(`Artifact QA: ${passed ? 'PASSED' : 'FAILED'}`);
+      console.log(`Artifact QA: ${report.passed ? 'PASSED' : 'FAILED'}`);
       console.log(`- File: ${report.artifact}`);
-      console.log(`- Duration: ${duration.toFixed(2)}s`);
-      if (vStream) console.log(`- Video: ${vStream.codec_name} (${vStream.width}x${vStream.height} @ ${vStream.r_frame_rate})`);
-      if (aStream) console.log(`- Audio: ${aStream.codec_name} (${aStream.channels}ch @ ${aStream.sample_rate}Hz)`);
-      if (!passed) {
-        console.error(`QA Failures:\n${errors.map((e) => `  - ${e}`).join('\n')}`);
+      console.log(`- Duration: ${report.duration_s.toFixed(2)}s`);
+      if (report.streams?.video) console.log(`- Video: ${report.streams.video.codec} (${report.streams.video.width}x${report.streams.video.height} @ ${report.streams.video.fps})`);
+      if (report.streams?.audio) console.log(`- Audio: ${report.streams.audio.codec} (${report.streams.audio.channels}ch @ ${report.streams.audio.sample_rate}Hz)`);
+      if (report.plan_comparison) {
+        console.log(`- Plan Comparison: ${report.plan_comparison.plan_file} (expected ${report.plan_comparison.expected_duration_s.toFixed(2)}s, ${report.plan_comparison.expected_width}x${report.plan_comparison.expected_height} @ ${report.plan_comparison.expected_fps}fps)`);
+      }
+      if (!report.passed) {
+        console.error(`QA Failures:\n${report.errors.map((e) => `  - ${e}`).join('\n')}`);
       }
     }
 
-    if (!passed) {
+    if (!report.passed) {
       process.exit(1);
     }
     return report;

@@ -454,3 +454,224 @@ test('Studio: render succeeds when source footage has no audio track', async (t)
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test('Studio: render rejects plan when out_ms exceeds asset duration', async (t) => {
+  if (!canRunFfmpeg) {
+    skipOrDieInCI(t);
+    return;
+  }
+
+  const tmp = path.join(os.tmpdir(), `studio-duration-val-${Date.now()}`);
+  fs.mkdirSync(tmp, { recursive: true });
+  const sampleVideo = path.join(tmp, 'short.mp4');
+
+  try {
+    execFileSync('ffmpeg', [
+      '-y',
+      '-f', 'lavfi', '-i', 'testsrc=duration=1:size=320x240:rate=30',
+      '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+      '-t', '1',
+      '-c:v', 'libx264',
+      '-c:a', 'aac',
+      '-pix_fmt', 'yuv420p',
+      sampleVideo,
+    ], { stdio: 'pipe' });
+
+    await runCliAsync(['studio', 'init', '--dest', tmp]);
+    const importRes = await runCliAsync(['studio', 'import', sampleVideo, '--dest', tmp, '--json']);
+    const asset = JSON.parse(importRes.stdout);
+
+    const editPlan = {
+      schema_version: 1,
+      mode: 'edit_only',
+      clips: [
+        { kind: 'video', asset_id: asset.id, clip_id: 'clip_invalid_cut', in_ms: 0, out_ms: 2500, timeline_start_ms: 0, speed: 1 },
+        { kind: 'video', asset_id: asset.id, clip_id: 'clip_2', in_ms: 500, out_ms: 1000, timeline_start_ms: 2500, speed: 1 },
+      ],
+      audio_tracks: [
+        { kind: 'source', clip_id: 'clip_invalid_cut', gain_db: 0 },
+        { kind: 'source', clip_id: 'clip_2', gain_db: 0 },
+      ],
+      output: { width: 1080, height: 1920, fps_num: 30, fps_den: 1, video_codec: 'h264', audio_codec: 'aac' },
+    };
+    const planPath = path.join(tmp, 'invalid-plan.json');
+    fs.writeFileSync(planPath, JSON.stringify(editPlan));
+
+    const renderRes = await runCliAsync(['studio', 'render', planPath, '--dest', tmp, '--json']);
+    assert.equal(renderRes.status, 1, 'Render must exit 1 when out_ms exceeds asset duration');
+    assert.match(renderRes.stderr, /clip_invalid_cut/, 'Error must name the clip');
+    assert.match(renderRes.stderr, new RegExp(asset.id), 'Error must name the asset');
+    assert.match(renderRes.stderr, /1000ms/, 'Error must name the real duration');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('Studio & Onboard: ffmpeg errors capture concise stderr and verbose flag reveals full log', async (t) => {
+  if (!canRunFfmpeg) {
+    skipOrDieInCI(t);
+    return;
+  }
+
+  const tmp = path.join(os.tmpdir(), `studio-ffmpeg-stderr-${Date.now()}`);
+  fs.mkdirSync(tmp, { recursive: true });
+  const sampleVideo = path.join(tmp, 'footage.mp4');
+
+  try {
+    execFileSync('ffmpeg', [
+      '-y',
+      '-f', 'lavfi', '-i', 'testsrc=duration=1:size=320x240:rate=30',
+      '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+      '-t', '1',
+      '-c:v', 'libx264',
+      '-c:a', 'aac',
+      '-pix_fmt', 'yuv420p',
+      sampleVideo,
+    ], { stdio: 'pipe' });
+
+    await runCliAsync(['studio', 'init', '--dest', tmp]);
+    const importRes = await runCliAsync(['studio', 'import', sampleVideo, '--dest', tmp, '--json']);
+    const asset = JSON.parse(importRes.stdout);
+
+    // Corrupt asset file after import so ffmpeg fails during render
+    const assetFile = path.join(tmp, asset.path);
+    fs.writeFileSync(assetFile, 'not-a-valid-mp4-content-header-corruption');
+
+    const editPlan = {
+      schema_version: 1,
+      mode: 'edit_only',
+      clips: [
+        { kind: 'video', asset_id: asset.id, clip_id: 'c1', in_ms: 0, out_ms: 500, timeline_start_ms: 0, speed: 1 },
+        { kind: 'video', asset_id: asset.id, clip_id: 'c2', in_ms: 500, out_ms: 1000, timeline_start_ms: 500, speed: 1 },
+      ],
+      audio_tracks: [
+        { kind: 'source', clip_id: 'c1', gain_db: 0 },
+        { kind: 'source', clip_id: 'c2', gain_db: 0 },
+      ],
+      output: { width: 1080, height: 1920, fps_num: 30, fps_den: 1, video_codec: 'h264', audio_codec: 'aac' },
+    };
+    const planPath = path.join(tmp, 'corrupt-plan.json');
+    fs.writeFileSync(planPath, JSON.stringify(editPlan));
+
+    // 1. Without --verbose: concise error without full config banner
+    const normalRes = await runCliAsync(['studio', 'render', planPath, '--dest', tmp]);
+    assert.equal(normalRes.status, 1);
+    assert.match(normalRes.stderr, /ffmpeg rendering failed/);
+    assert.doesNotMatch(normalRes.stderr, /configuration:/);
+
+    // 2. With --verbose: shows full ffmpeg log
+    const verboseRes = await runCliAsync(['studio', 'render', planPath, '--dest', tmp, '--verbose']);
+    assert.equal(verboseRes.status, 1);
+    assert.match(verboseRes.stderr, /ffmpeg execution failed/);
+    assert.match(verboseRes.stderr, /configuration:/);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('Studio: corrupted studio.json causes commands to fail without overwriting manifest', async () => {
+  const tmp = path.join(os.tmpdir(), `studio-corrupt-manifest-${Date.now()}`);
+  fs.mkdirSync(tmp, { recursive: true });
+  const manifestPath = path.join(tmp, 'studio.json');
+  const corruptContent = '{"version": 1, "assets": [ INVALID_JSON ...';
+  fs.writeFileSync(manifestPath, corruptContent, 'utf8');
+
+  try {
+    // 1. studio init on corrupt manifest must fail
+    const initRes = await runCliAsync(['studio', 'init', '--dest', tmp]);
+    assert.equal(initRes.status, 1, 'Init must fail on corrupted manifest');
+    assert.match(initRes.stderr, /Corrupted studio manifest/);
+
+    // 2. verify studio.json was NOT overwritten
+    const contentAfter = fs.readFileSync(manifestPath, 'utf8');
+    assert.equal(contentAfter, corruptContent, 'Manifest must not be overwritten when corrupted');
+
+    // 3. if ffmpeg is available, studio import on corrupt manifest must also fail with manifest error
+    if (canRunFfmpeg) {
+      const sampleVideo = path.join(tmp, 'valid.mp4');
+      execFileSync('ffmpeg', [
+        '-y',
+        '-f', 'lavfi', '-i', 'testsrc=duration=1:size=320x240:rate=30',
+        '-c:v', 'libx264',
+        '-an',
+        sampleVideo,
+      ], { stdio: 'pipe' });
+
+      const importRes = await runCliAsync(['studio', 'import', sampleVideo, '--dest', tmp]);
+      assert.equal(importRes.status, 1, 'Import must fail on corrupted manifest');
+      assert.match(importRes.stderr, /Corrupted studio manifest/);
+
+      const contentAfterImport = fs.readFileSync(manifestPath, 'utf8');
+      assert.equal(contentAfterImport, corruptContent, 'Manifest must still not be overwritten');
+    }
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('Studio: qa with --plan detects truncated artifact and resolution/fps mismatches', async (t) => {
+  if (!canRunFfmpeg) {
+    skipOrDieInCI(t);
+    return;
+  }
+
+  const tmp = path.join(os.tmpdir(), `studio-qa-plan-${Date.now()}`);
+  fs.mkdirSync(tmp, { recursive: true });
+
+  const plan = {
+    schema_version: 1,
+    mode: 'dark',
+    clips: [
+      { kind: 'text', text: 'Intro', duration_ms: 1000, timeline_start_ms: 0 },
+      { kind: 'text', text: 'Outro', duration_ms: 1000, timeline_start_ms: 1000 },
+    ],
+    output: {
+      width: 1080,
+      height: 1920,
+      fps_num: 30,
+      fps_den: 1,
+      video_codec: 'h264',
+      audio_codec: 'aac',
+    },
+  };
+  const planFile = path.join(tmp, 'target-plan.json');
+  fs.writeFileSync(planFile, JSON.stringify(plan));
+
+  // 1. Generate truncated artifact: 0.5s instead of 2.0s, resolution 320x240 instead of 1080x1920
+  const truncatedVideo = path.join(tmp, 'truncated.mp4');
+  execFileSync('ffmpeg', [
+    '-y',
+    '-f', 'lavfi', '-i', 'testsrc=duration=0.5:size=320x240:rate=30',
+    '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+    '-t', '0.5',
+    '-c:v', 'libx264',
+    '-c:a', 'aac',
+    '-pix_fmt', 'yuv420p',
+    truncatedVideo,
+  ], { stdio: 'pipe' });
+
+  try {
+    const qaRes = await runCliAsync(['studio', 'qa', truncatedVideo, '--plan', planFile, '--json']);
+    assert.equal(qaRes.status, 1, 'QA with --plan must fail for truncated artifact');
+    const report = JSON.parse(qaRes.stdout);
+    assert.equal(report.passed, false);
+    assert.ok(report.errors.some((e) => e.includes('Duration mismatch')), 'Must report duration mismatch');
+    assert.ok(report.errors.some((e) => e.includes('Width mismatch')), 'Must report width mismatch');
+    assert.ok(report.errors.some((e) => e.includes('Height mismatch')), 'Must report height mismatch');
+
+    // 2. Render actual plan via studio render (which internally validates with QA and matches plan)
+    const renderRes = await runCliAsync(['studio', 'render', planFile, '--dest', tmp, '--json']);
+    assert.equal(renderRes.status, 0);
+    const artifact = JSON.parse(renderRes.stdout);
+    const validArtFile = path.join(tmp, artifact.path);
+
+    // 3. QA with --plan on valid rendered artifact passes
+    const validQaRes = await runCliAsync(['studio', 'qa', validArtFile, '--plan', planFile, '--json']);
+    assert.equal(validQaRes.status, 0);
+    const validReport = JSON.parse(validQaRes.stdout);
+    assert.equal(validReport.passed, true);
+    assert.equal(validReport.errors.length, 0);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
