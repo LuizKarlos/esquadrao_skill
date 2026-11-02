@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import os from 'node:os';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync, spawn } from 'node:child_process';
 import process from 'node:process';
 import { validateEditPlan } from '../roles/mediaProducer.js';
 
@@ -263,20 +263,81 @@ export function verifyArtifact(artifactPath, planPath = null) {
   };
 }
 
-export function runFfmpeg(args, { verbose = false } = {}) {
-  const res = spawnSync('ffmpeg', args, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
-  if (res.status !== 0 || res.error) {
-    const rawStderr = res.stderr || res.error?.message || '';
-    if (verbose) {
-      console.error(`Error: ffmpeg execution failed (exit ${res.status}):\n${rawStderr}`);
-    } else {
-      const lines = rawStderr.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-      const tail = lines.slice(-10).join('\n');
-      console.error(`Error: ffmpeg rendering failed:\n${tail || rawStderr}`);
-    }
-    process.exit(1);
-  }
-  return res;
+export function runFfmpeg(args, { verbose = false, artifactPath = null } = {}) {
+  return new Promise((resolve) => {
+    const ffmpegArgs = ['-progress', 'pipe:1', ...args];
+    const child = spawn('ffmpeg', ffmpegArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+
+    let stderr = '';
+    let stdout = '';
+    let killed = false;
+
+    const onSigint = () => {
+      killed = true;
+      if (process.platform === 'win32' && child.pid) {
+        try {
+          execFileSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+        } catch {
+          try { child.kill('SIGKILL'); } catch {}
+        }
+      } else {
+        try { child.kill('SIGINT'); } catch {}
+        try { child.kill('SIGKILL'); } catch {}
+      }
+      for (let i = 0; i < 50; i++) {
+        if (artifactPath && fs.existsSync(artifactPath)) {
+          try {
+            fs.unlinkSync(artifactPath);
+            break;
+          } catch {
+            const start = Date.now();
+            while (Date.now() - start < 25) {}
+          }
+        } else {
+          break;
+        }
+      }
+      process.removeListener('SIGINT', onSigint);
+      process.exit(130);
+    };
+
+    process.on('SIGINT', onSigint);
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk;
+    });
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk;
+    });
+
+    child.on('close', (code, signal) => {
+      process.removeListener('SIGINT', onSigint);
+
+      if (killed || signal === 'SIGINT') {
+        if (artifactPath && fs.existsSync(artifactPath)) {
+          try { fs.unlinkSync(artifactPath); } catch {}
+        }
+        process.exit(130);
+      }
+
+      if (code !== 0) {
+        if (artifactPath && fs.existsSync(artifactPath)) {
+          try { fs.unlinkSync(artifactPath); } catch {}
+        }
+        if (verbose) {
+          console.error(`Error: ffmpeg execution failed (exit ${code}):\n${stderr}`);
+        } else {
+          const lines = stderr.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+          const tail = lines.slice(-10).join('\n');
+          console.error(`Error: ffmpeg rendering failed:\n${tail || stderr}`);
+        }
+        process.exit(1);
+      }
+
+      resolve({ code, stdout, stderr });
+    });
+  });
 }
 
 // ponytail: synchronous child_process calls; upgrade to worker pool when batch rendering >10 parallel plans
@@ -488,7 +549,7 @@ Options:
           '-pix_fmt', 'yuv420p',
           artifactPath,
         ];
-        runFfmpeg(args, { verbose: flags.verbose });
+        await runFfmpeg(args, { verbose: flags.verbose, artifactPath });
       } else if (plan.mode === 'edit_only') {
         const clip0Path = resolveAsset(wsDir, plan.clips[0]);
         const clip1Path = resolveAsset(wsDir, plan.clips[1]);
@@ -544,7 +605,7 @@ Options:
           '-pix_fmt', 'yuv420p',
           artifactPath,
         ];
-        runFfmpeg(args, { verbose: flags.verbose });
+        await runFfmpeg(args, { verbose: flags.verbose, artifactPath });
       } else if (plan.mode === 'podcast_clip') {
         const videoClips = (plan.clips || []).filter((c) => c.kind === 'video' || !c.kind);
         const captions = plan.captions || (plan.clips || []).filter((c) => c.kind === 'text');
@@ -601,7 +662,7 @@ Options:
           '-pix_fmt', 'yuv420p',
           artifactPath,
         ];
-        runFfmpeg(args, { verbose: flags.verbose });
+        await runFfmpeg(args, { verbose: flags.verbose, artifactPath });
       }
     } finally {
       for (const f of tempFiles) {
