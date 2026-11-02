@@ -78,16 +78,24 @@ function generateSampleVideo(filePath, durationSec = 2) {
 
 test('Onboard: missing ffmpeg aborts early with actionable per-OS message', async () => {
   const tmp = path.join(os.tmpdir(), `onboard-no-ffmpeg-${Date.now()}`);
+  const nodeDir = path.dirname(process.execPath);
   try {
     const res = await runCliAsync(['onboard', '--mode', 'dark', '--dest', tmp], {
-      PATH: '',
-      Path: '',
+      PATH: nodeDir,
+      Path: nodeDir,
     });
     assert.equal(res.status, 1, 'Process should exit with code 1 when ffmpeg is missing');
     assert.match(res.stderr, /ffmpeg/i);
     assert.match(res.stderr, /install/i);
 
-    // Verify actionable per-OS install instruction helper
+    // Verify actionable per-OS install instruction appears in stderr
+    const currentOsInstr = getFfmpegInstallInstructions(process.platform);
+    assert.ok(
+      res.stderr.includes(currentOsInstr),
+      `stderr must contain per-OS message for ${process.platform}: expected "${currentOsInstr}"`
+    );
+
+    // Verify actionable per-OS install instruction helper for all supported platforms
     const winInstr = getFfmpegInstallInstructions('win32');
     const macInstr = getFfmpegInstallInstructions('darwin');
     const linuxInstr = getFfmpegInstallInstructions('linux');
