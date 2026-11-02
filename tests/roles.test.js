@@ -224,6 +224,53 @@ test('Roles: Media Producer Short-Form Video Parameter Validation', () => {
   const nonContiguous = JSON.parse(JSON.stringify(validEditOnly));
   nonContiguous.clips[1].timeline_start_ms = 1200; // gap of 200ms
   assert.throws(() => mediaProducer.validateEditPlan(nonContiguous), /Clips must be contiguous/);
+
+  // 6. Valid podcast_clip EditPlan
+  const validPodcast = {
+    schema_version: 1,
+    mode: 'podcast_clip',
+    clips: [
+      { kind: 'video', clip_id: 'c1', asset_id: 'a1', in_ms: 0, out_ms: 1000, timeline_start_ms: 0, speed: 1 },
+      { kind: 'video', clip_id: 'c2', asset_id: 'a2', in_ms: 500, out_ms: 2000, timeline_start_ms: 1000, speed: 1 },
+    ],
+    audio_tracks: [
+      { kind: 'source', clip_id: 'c1', gain_db: 0 },
+      { kind: 'source', clip_id: 'c2', gain_db: 2 },
+    ],
+    captions: [
+      { text: 'Podcast subtitle', timeline_start_ms: 0, duration_ms: 1500 },
+    ],
+    output: {
+      width: 1080,
+      height: 1920,
+      fps_num: 30,
+      fps_den: 1,
+      video_codec: 'h264',
+      audio_codec: 'aac',
+    },
+  };
+  assert.equal(mediaProducer.validateEditPlan(validPodcast), true);
+
+  // 7. Invalid podcast_clip: zero clips
+  const emptyPodcast = JSON.parse(JSON.stringify(validPodcast));
+  emptyPodcast.clips = [];
+  emptyPodcast.audio_tracks = [];
+  assert.throws(() => mediaProducer.validateEditPlan(emptyPodcast), /at least 1 video clip/);
+
+  // 8. Invalid podcast_clip: non-contiguous
+  const nonContigPodcast = JSON.parse(JSON.stringify(validPodcast));
+  nonContigPodcast.clips[1].timeline_start_ms = 1500;
+  assert.throws(() => mediaProducer.validateEditPlan(nonContigPodcast), /Clips must be contiguous/);
+
+  // 9. Invalid podcast_clip: audio track mismatch
+  const audioMismatch = JSON.parse(JSON.stringify(validPodcast));
+  audioMismatch.audio_tracks.pop();
+  assert.throws(() => mediaProducer.validateEditPlan(audioMismatch), /accompanying source audio track/);
+
+  // 10. Invalid podcast_clip: invalid caption HTML
+  const badCaption = JSON.parse(JSON.stringify(validPodcast));
+  badCaption.captions = [{ text: '<b>Invalid HTML</b>', timeline_start_ms: 0, duration_ms: 500 }];
+  assert.throws(() => mediaProducer.validateEditPlan(badCaption), /Caption cannot contain HTML markup/);
 });
 
 test('Roles: CLI Commands execution', () => {

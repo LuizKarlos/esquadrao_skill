@@ -102,6 +102,45 @@ export function validateEditPlan(plan) {
     for (const c of plan.clips) {
       validateTextClip(c);
     }
+  } else if (plan.mode === 'podcast_clip') {
+    if (!Array.isArray(plan.clips) || plan.clips.length === 0) {
+      throw new Error('podcast_clip mode requires at least 1 video clip');
+    }
+    let timelinePos = 0;
+    for (let i = 0; i < plan.clips.length; i++) {
+      const c = plan.clips[i];
+      validateVideoClip(c);
+      if (c.timeline_start_ms !== timelinePos) {
+        throw new Error(`Clips must be contiguous: clip ${i} starts at ${c.timeline_start_ms}, expected ${timelinePos}`);
+      }
+      timelinePos += c.out_ms - c.in_ms;
+    }
+
+    if (!Array.isArray(plan.audio_tracks) || plan.audio_tracks.length !== plan.clips.length) {
+      throw new Error('Each video clip must have an accompanying source audio track');
+    }
+    for (let i = 0; i < plan.audio_tracks.length; i++) {
+      const a = plan.audio_tracks[i];
+      validateAudioTrack(a);
+      if (a.clip_id !== plan.clips[i].clip_id) {
+        throw new Error(`Audio track ${i} clip_id mismatch: expected ${plan.clips[i].clip_id}`);
+      }
+    }
+
+    if (plan.captions) {
+      if (!Array.isArray(plan.captions)) {
+        throw new Error('captions must be an array');
+      }
+      for (const cap of plan.captions) {
+        const norm = normalizeNfc(cap.text);
+        if (norm.length < 1 || norm.length > 200) {
+          throw new Error(`Caption text length must be between 1 and 200 NFC characters, got ${norm.length}`);
+        }
+        if (norm.includes('<') || norm.includes('>')) {
+          throw new Error('Caption cannot contain HTML markup');
+        }
+      }
+    }
   }
 
   // Output specification
@@ -136,6 +175,7 @@ ${assets.map((a) => `- ${a}`).join('\n') || '- None provided'}
 Rules:
 1. Mode edit_only requires exactly 2 contiguous video clips from source media, each >= 100ms.
 2. Mode dark requires TextClips with 1-200 NFC characters and zero HTML.
-3. Audio gain must stay between -60 dB and +12 dB.
-4. Output must be 1080x1920 vertical @ 30fps with h264/aac encoding.`;
+3. Mode podcast_clip requires >= 1 contiguous video clip(s) with accompanying source audio track(s) and optional captions.
+4. Audio gain must stay between -60 dB and +12 dB.
+5. Output must be 1080x1920 vertical @ 30fps with h264/aac encoding.`;
 }

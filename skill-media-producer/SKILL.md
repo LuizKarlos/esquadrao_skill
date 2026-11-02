@@ -39,7 +39,7 @@ universal-skill role prompt media-producer "Author 2-cut vertical video edit pla
 ### Modes
 - `edit_only`: Exactly 2 contiguous video clips from source footage; matching source audio tracks.
 - `dark`: Visual text overlays (`TextClip`) with no spoken TTS; 1–200 NFC characters, no HTML.
-- `podcast_clip`: Selective cuts from recorded live/podcast footage.
+- `podcast_clip`: >= 1 contiguous video clips with accompanying source audio tracks and optional text captions.
 
 ### Output Standard
 - Resolution: Vertical `1080x1920` or Horizontal `1920x1080`.
