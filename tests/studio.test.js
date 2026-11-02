@@ -4,7 +4,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 const binPath = path.join(repoRoot, 'bin', 'cli.js');
@@ -674,4 +674,70 @@ test('Studio: qa with --plan detects truncated artifact and resolution/fps misma
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
+});
+
+test('Studio: SIGINT cancels ffmpeg and removes partial artifact', async (t) => {
+  if (!canRunFfmpeg) {
+    skipOrDieInCI(t);
+    return;
+  }
+
+  const tmp = path.join(os.tmpdir(), `studio-cancel-${Date.now()}`);
+  fs.mkdirSync(tmp, { recursive: true });
+
+  const plan = {
+    schema_version: 1,
+    mode: 'dark',
+    clips: [
+      { kind: 'text', text: 'Long video to cancel', duration_ms: 10000, timeline_start_ms: 0 },
+    ],
+    output: { width: 1080, height: 1920, fps_num: 30, fps_den: 1, video_codec: 'h264', audio_codec: 'aac' },
+  };
+  const planFile = path.join(tmp, 'cancel-plan.json');
+  fs.writeFileSync(planFile, JSON.stringify(plan));
+
+  const runnerScript = path.join(tmp, 'runner.mjs');
+  const studioUrl = pathToFileURL(path.resolve(repoRoot, 'src/commands/studio.js')).href;
+  fs.writeFileSync(runnerScript, `
+    import fs from 'node:fs';
+    import path from 'node:path';
+    import { run } from '${studioUrl}';
+
+    const artifactsDir = path.join(${JSON.stringify(tmp)}, 'artifacts');
+    const interval = setInterval(() => {
+      if (fs.existsSync(artifactsDir)) {
+        const files = fs.readdirSync(artifactsDir).filter((f) => f.endsWith('.mp4'));
+        if (files.length > 0) {
+          clearInterval(interval);
+          process.emit('SIGINT');
+        }
+      }
+    }, 50);
+
+    try {
+      await run({ positionals: ['render', ${JSON.stringify(planFile)}], flags: { dest: ${JSON.stringify(tmp)} } });
+    } catch {}
+  `);
+
+  const child = spawn(process.execPath, [runnerScript], { cwd: repoRoot });
+  let exitCode = null;
+  let childStderr = '';
+  child.stderr.on('data', (d) => { childStderr += d; });
+  await new Promise((resolve) => {
+    child.on('close', (code) => {
+      exitCode = code;
+      resolve();
+    });
+  });
+
+  assert.equal(exitCode, 130, `Process must exit with 130 on SIGINT, stderr: ${childStderr}`);
+
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  const artifactsDir = path.join(tmp, 'artifacts');
+  if (fs.existsSync(artifactsDir)) {
+    const files = fs.readdirSync(artifactsDir).filter((f) => f.endsWith('.mp4'));
+    assert.equal(files.length, 0, 'Partial artifact must be removed on SIGINT cancellation');
+  }
+
+  fs.rmSync(tmp, { recursive: true, force: true });
 });

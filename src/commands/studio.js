@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import os from 'node:os';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync, spawn } from 'node:child_process';
 import process from 'node:process';
 import { validateEditPlan } from '../roles/mediaProducer.js';
 
@@ -119,12 +119,49 @@ export function resolveAsset(workspaceDir, clip) {
   throw new Error(`Asset '${candidate}' not found in workspace assets`);
 }
 
-function createDrawtextFilter(text, fontOpt, startSec, endSec, yExpr, tempFiles) {
+export function createDrawtextFilter(text, fontOpt, startSec, endSec, yExpr, tempFiles) {
   const tmpFile = path.join(os.tmpdir(), `usk-cap-${crypto.randomBytes(6).toString('hex')}.txt`);
   fs.writeFileSync(tmpFile, text, 'utf8');
   tempFiles.push(tmpFile);
   const escapedPath = tmpFile.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
   return `drawtext=textfile='${escapedPath}':expansion=none${fontOpt}:fontcolor=white:fontsize=48:x=(w-text_w)/2:y=${yExpr}:enable='between(t\\,${startSec}\\,${endSec})'`;
+}
+
+export function buildDarkTextFilters(clips, tempFiles) {
+  const font = findSystemFont();
+  const fontOpt = font ? `:fontfile='${font.replace(/\\/g, '/').replace(/:/g, '\\:')}'` : '';
+  return clips.map((c) => {
+    const start = ((c.timeline_start_ms || 0) / 1000).toFixed(3);
+    const end = (((c.timeline_start_ms || 0) + c.duration_ms) / 1000).toFixed(3);
+    return createDrawtextFilter(c.text, fontOpt, start, end, '(h-text_h)/2', tempFiles);
+  }).join(',');
+}
+
+export function buildCaptionFilters(captions, baseV, tempFiles) {
+  if (!captions || captions.length === 0) {
+    return `${baseV}null[outv]`;
+  }
+  const font = findSystemFont();
+  const fontOpt = font ? `:fontfile='${font.replace(/\\/g, '/').replace(/:/g, '\\:')}'` : '';
+  const textFilters = captions.map((c) => {
+    const start = ((c.timeline_start_ms || 0) / 1000).toFixed(3);
+    const end = (((c.timeline_start_ms || 0) + (c.duration_ms || 1000)) / 1000).toFixed(3);
+    return createDrawtextFilter(c.text, fontOpt, start, end, 'h-200', tempFiles);
+  }).join(',');
+  return `${baseV}${textFilters}[outv]`;
+}
+
+export function buildClipFilters(inputIndex, clip, clipPath, wsDir, width, height, gainDb = 0) {
+  const inSec = ((clip.in_ms || 0) / 1000).toFixed(3);
+  const outSec = ((clip.out_ms || (clip.in_ms || 0) + 1000) / 1000).toFixed(3);
+  const durSec = Math.max(0.001, ((clip.out_ms || (clip.in_ms || 0) + 1000) - (clip.in_ms || 0)) / 1000).toFixed(3);
+
+  const vFilter = `[${inputIndex}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v${inputIndex}]`;
+  const aFilter = hasAudio(wsDir, clipPath, clip)
+    ? `[${inputIndex}:a]atrim=start=${inSec}:end=${outSec},asetpts=PTS-STARTPTS,volume=${gainDb}dB[a${inputIndex}]`
+    : `anullsrc=channel_layout=stereo:sample_rate=44100,atrim=duration=${durSec}[a${inputIndex}]`;
+
+  return { vFilter, aFilter };
 }
 
 function hasAudio(wsDir, clipPath, clip) {
@@ -263,20 +300,81 @@ export function verifyArtifact(artifactPath, planPath = null) {
   };
 }
 
-export function runFfmpeg(args, { verbose = false } = {}) {
-  const res = spawnSync('ffmpeg', args, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
-  if (res.status !== 0 || res.error) {
-    const rawStderr = res.stderr || res.error?.message || '';
-    if (verbose) {
-      console.error(`Error: ffmpeg execution failed (exit ${res.status}):\n${rawStderr}`);
-    } else {
-      const lines = rawStderr.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-      const tail = lines.slice(-10).join('\n');
-      console.error(`Error: ffmpeg rendering failed:\n${tail || rawStderr}`);
-    }
-    process.exit(1);
-  }
-  return res;
+export function runFfmpeg(args, { verbose = false, artifactPath = null } = {}) {
+  return new Promise((resolve) => {
+    const ffmpegArgs = ['-progress', 'pipe:1', ...args];
+    const child = spawn('ffmpeg', ffmpegArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+
+    let stderr = '';
+    let stdout = '';
+    let killed = false;
+
+    const onSigint = () => {
+      killed = true;
+      if (process.platform === 'win32' && child.pid) {
+        try {
+          execFileSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+        } catch {
+          try { child.kill('SIGKILL'); } catch {}
+        }
+      } else {
+        try { child.kill('SIGINT'); } catch {}
+        try { child.kill('SIGKILL'); } catch {}
+      }
+      for (let i = 0; i < 50; i++) {
+        if (artifactPath && fs.existsSync(artifactPath)) {
+          try {
+            fs.unlinkSync(artifactPath);
+            break;
+          } catch {
+            const start = Date.now();
+            while (Date.now() - start < 25) {}
+          }
+        } else {
+          break;
+        }
+      }
+      process.removeListener('SIGINT', onSigint);
+      process.exit(130);
+    };
+
+    process.on('SIGINT', onSigint);
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk;
+    });
+
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk;
+    });
+
+    child.on('close', (code, signal) => {
+      process.removeListener('SIGINT', onSigint);
+
+      if (killed || signal === 'SIGINT') {
+        if (artifactPath && fs.existsSync(artifactPath)) {
+          try { fs.unlinkSync(artifactPath); } catch {}
+        }
+        process.exit(130);
+      }
+
+      if (code !== 0) {
+        if (artifactPath && fs.existsSync(artifactPath)) {
+          try { fs.unlinkSync(artifactPath); } catch {}
+        }
+        if (verbose) {
+          console.error(`Error: ffmpeg execution failed (exit ${code}):\n${stderr}`);
+        } else {
+          const lines = stderr.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+          const tail = lines.slice(-10).join('\n');
+          console.error(`Error: ffmpeg rendering failed:\n${tail || stderr}`);
+        }
+        process.exit(1);
+      }
+
+      resolve({ code, stdout, stderr });
+    });
+  });
 }
 
 // ponytail: synchronous child_process calls; upgrade to worker pool when batch rendering >10 parallel plans
@@ -463,18 +561,8 @@ Options:
     const tempFiles = [];
     try {
       if (plan.mode === 'dark') {
-        const totalDuration = Math.max(
-          ...plan.clips.map((c) => ((c.timeline_start_ms || 0) + c.duration_ms) / 1000),
-          1
-        );
-        const font = findSystemFont();
-        const fontOpt = font ? `:fontfile='${font.replace(/\\/g, '/').replace(/:/g, '\\:')}'` : '';
-        const textFilters = plan.clips.map((c) => {
-          const start = ((c.timeline_start_ms || 0) / 1000).toFixed(3);
-          const end = (((c.timeline_start_ms || 0) + c.duration_ms) / 1000).toFixed(3);
-          return createDrawtextFilter(c.text, fontOpt, start, end, '(h-text_h)/2', tempFiles);
-        });
-        const vf = textFilters.join(',');
+        const totalDuration = computeExpectedDuration(plan);
+        const vf = buildDarkTextFilters(plan.clips, tempFiles);
         const args = [
           '-y',
           '-f', 'lavfi',
@@ -488,49 +576,21 @@ Options:
           '-pix_fmt', 'yuv420p',
           artifactPath,
         ];
-        runFfmpeg(args, { verbose: flags.verbose });
+        await runFfmpeg(args, { verbose: flags.verbose, artifactPath });
       } else if (plan.mode === 'edit_only') {
         const clip0Path = resolveAsset(wsDir, plan.clips[0]);
         const clip1Path = resolveAsset(wsDir, plan.clips[1]);
-        const c0 = plan.clips[0];
-        const c1 = plan.clips[1];
-        const a0 = plan.audio_tracks[0] || { gain_db: 0 };
-        const a1 = plan.audio_tracks[1] || { gain_db: 0 };
-        const in0 = (c0.in_ms / 1000).toFixed(3);
-        const out0 = (c0.out_ms / 1000).toFixed(3);
-        const in1 = (c1.in_ms / 1000).toFixed(3);
-        const out1 = (c1.out_ms / 1000).toFixed(3);
-        const dur0Sec = Math.max(0.001, (c0.out_ms - c0.in_ms) / 1000).toFixed(3);
-        const dur1Sec = Math.max(0.001, (c1.out_ms - c1.in_ms) / 1000).toFixed(3);
-
-        const aFilter0 = hasAudio(wsDir, clip0Path, c0)
-          ? `[0:a]atrim=start=${in0}:end=${out0},asetpts=PTS-STARTPTS,volume=${a0.gain_db}dB[a0]`
-          : `anullsrc=channel_layout=stereo:sample_rate=44100,atrim=duration=${dur0Sec}[a0]`;
-        const aFilter1 = hasAudio(wsDir, clip1Path, c1)
-          ? `[1:a]atrim=start=${in1}:end=${out1},asetpts=PTS-STARTPTS,volume=${a1.gain_db}dB[a1]`
-          : `anullsrc=channel_layout=stereo:sample_rate=44100,atrim=duration=${dur1Sec}[a1]`;
+        const f0 = buildClipFilters(0, plan.clips[0], clip0Path, wsDir, width, height, plan.audio_tracks?.[0]?.gain_db || 0);
+        const f1 = buildClipFilters(1, plan.clips[1], clip1Path, wsDir, width, height, plan.audio_tracks?.[1]?.gain_db || 0);
 
         const filterParts = [
-          `[0:v]trim=start=${in0}:end=${out0},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v0]`,
-          aFilter0,
-          `[1:v]trim=start=${in1}:end=${out1},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v1]`,
-          aFilter1,
+          f0.vFilter,
+          f0.aFilter,
+          f1.vFilter,
+          f1.aFilter,
           `[v0][a0][v1][a1]concat=n=2:v=1:a=1[basev][outa]`,
+          buildCaptionFilters(plan.captions || [], '[basev]', tempFiles),
         ];
-
-        const captions = plan.captions || [];
-        if (captions.length > 0) {
-          const font = findSystemFont();
-          const fontOpt = font ? `:fontfile='${font.replace(/\\/g, '/').replace(/:/g, '\\:')}'` : '';
-          const capFilters = captions.map((c) => {
-            const start = ((c.timeline_start_ms || 0) / 1000).toFixed(3);
-            const end = (((c.timeline_start_ms || 0) + (c.duration_ms || 1000)) / 1000).toFixed(3);
-            return createDrawtextFilter(c.text, fontOpt, start, end, 'h-200', tempFiles);
-          }).join(',');
-          filterParts.push(`[basev]${capFilters}[outv]`);
-        } else {
-          filterParts.push(`[basev]null[outv]`);
-        }
 
         const args = [
           '-y',
@@ -544,7 +604,7 @@ Options:
           '-pix_fmt', 'yuv420p',
           artifactPath,
         ];
-        runFfmpeg(args, { verbose: flags.verbose });
+        await runFfmpeg(args, { verbose: flags.verbose, artifactPath });
       } else if (plan.mode === 'podcast_clip') {
         const videoClips = (plan.clips || []).filter((c) => c.kind === 'video' || !c.kind);
         const captions = plan.captions || (plan.clips || []).filter((c) => c.kind === 'text');
@@ -556,16 +616,9 @@ Options:
           const c = videoClips[i];
           const clipPath = resolveAsset(wsDir, c);
           inputArgs.push('-i', clipPath);
-          const inSec = ((c.in_ms || 0) / 1000).toFixed(3);
-          const outSec = ((c.out_ms || (c.in_ms || 0) + 1000) / 1000).toFixed(3);
-          const durSec = Math.max(0.001, ((c.out_ms || (c.in_ms || 0) + 1000) - (c.in_ms || 0)) / 1000).toFixed(3);
           const gain = plan.audio_tracks?.[i]?.gain_db || 0;
-          filterParts.push(`[${i}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v${i}]`);
-          if (hasAudio(wsDir, clipPath, c)) {
-            filterParts.push(`[${i}:a]atrim=start=${inSec}:end=${outSec},asetpts=PTS-STARTPTS,volume=${gain}dB[a${i}]`);
-          } else {
-            filterParts.push(`anullsrc=channel_layout=stereo:sample_rate=44100,atrim=duration=${durSec}[a${i}]`);
-          }
+          const { vFilter, aFilter } = buildClipFilters(i, c, clipPath, wsDir, width, height, gain);
+          filterParts.push(vFilter, aFilter);
           concatInputs.push(`[v${i}][a${i}]`);
         }
 
@@ -577,18 +630,7 @@ Options:
           filterParts.push(`${concatInputs.join('')}concat=n=${videoClips.length}:v=1:a=1[concatv][outa]`);
         }
 
-        if (captions.length > 0) {
-          const font = findSystemFont();
-          const fontOpt = font ? `:fontfile='${font.replace(/\\/g, '/').replace(/:/g, '\\:')}'` : '';
-          const textFilters = captions.map((c) => {
-            const start = ((c.timeline_start_ms || 0) / 1000).toFixed(3);
-            const end = (((c.timeline_start_ms || 0) + (c.duration_ms || 1000)) / 1000).toFixed(3);
-            return createDrawtextFilter(c.text, fontOpt, start, end, 'h-200', tempFiles);
-          }).join(',');
-          filterParts.push(`${baseV}${textFilters}[outv]`);
-        } else {
-          filterParts.push(`${baseV}null[outv]`);
-        }
+        filterParts.push(buildCaptionFilters(captions, baseV, tempFiles));
 
         const args = [
           '-y',
@@ -601,7 +643,7 @@ Options:
           '-pix_fmt', 'yuv420p',
           artifactPath,
         ];
-        runFfmpeg(args, { verbose: flags.verbose });
+        await runFfmpeg(args, { verbose: flags.verbose, artifactPath });
       }
     } finally {
       for (const f of tempFiles) {

@@ -6,7 +6,14 @@ import path from 'node:path';
 import process from 'node:process';
 import readline from 'node:readline/promises';
 import { stdin as defaultInput, stdout as defaultOutput } from 'node:process';
-import { checkBinary, findSystemFont, run as studioRun } from './studio.js';
+import {
+  checkBinary,
+  findSystemFont,
+  run as studioRun,
+  buildCaptionFilters,
+  buildClipFilters,
+  buildDarkTextFilters,
+} from './studio.js';
 import { validateEditPlan } from '../roles/mediaProducer.js';
 
 export function getFfmpegInstallInstructions(platform = process.platform) {
