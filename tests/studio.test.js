@@ -296,3 +296,79 @@ test('Studio: qa fails with exit code 1 on missing audio stream', async (t) => {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test('Studio: render handles special caption characters in dark, edit_only, and podcast_clip modes', async (t) => {
+  if (!canRunFfmpeg) {
+    t.skip('ffmpeg/ffprobe not found on PATH');
+    return;
+  }
+
+  const tmp = path.join(os.tmpdir(), `studio-caption-escape-${Date.now()}`);
+  fs.mkdirSync(tmp, { recursive: true });
+  const sampleVideo = path.join(tmp, 'footage.mp4');
+  const specialText = "100% d'ouro %{pts} : \\ , ; [ ]";
+
+  try {
+    execFileSync('ffmpeg', [
+      '-y',
+      '-f', 'lavfi', '-i', 'testsrc=duration=1:size=320x240:rate=30',
+      '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+      '-t', '1',
+      '-c:v', 'libx264',
+      '-c:a', 'aac',
+      '-pix_fmt', 'yuv420p',
+      sampleVideo,
+    ], { stdio: 'pipe' });
+
+    await runCliAsync(['studio', 'init', '--dest', tmp]);
+    const importRes = await runCliAsync(['studio', 'import', sampleVideo, '--dest', tmp, '--json']);
+    const asset = JSON.parse(importRes.stdout);
+
+    // 1. dark mode
+    const darkPlan = {
+      schema_version: 1,
+      mode: 'dark',
+      clips: [{ kind: 'text', text: specialText, duration_ms: 1000, timeline_start_ms: 0 }],
+      output: { width: 1080, height: 1920, fps_num: 30, fps_den: 1, video_codec: 'h264', audio_codec: 'aac' },
+    };
+    const darkPlanPath = path.join(tmp, 'dark-plan.json');
+    fs.writeFileSync(darkPlanPath, JSON.stringify(darkPlan));
+    const darkRes = await runCliAsync(['studio', 'render', darkPlanPath, '--dest', tmp, '--json']);
+    assert.equal(darkRes.status, 0, `Dark mode render failed: ${darkRes.stderr}`);
+
+    // 2. edit_only mode
+    const editPlan = {
+      schema_version: 1,
+      mode: 'edit_only',
+      clips: [
+        { kind: 'video', asset_id: asset.id, clip_id: 'c1', in_ms: 0, out_ms: 500, timeline_start_ms: 0, speed: 1 },
+        { kind: 'video', asset_id: asset.id, clip_id: 'c2', in_ms: 500, out_ms: 1000, timeline_start_ms: 500, speed: 1 },
+      ],
+      audio_tracks: [{ kind: 'source', clip_id: 'c1', gain_db: 0 }, { kind: 'source', clip_id: 'c2', gain_db: 0 }],
+      captions: [{ text: specialText, timeline_start_ms: 0, duration_ms: 1000 }],
+      output: { width: 1080, height: 1920, fps_num: 30, fps_den: 1, video_codec: 'h264', audio_codec: 'aac' },
+    };
+    const editPlanPath = path.join(tmp, 'edit-plan.json');
+    fs.writeFileSync(editPlanPath, JSON.stringify(editPlan));
+    const editRes = await runCliAsync(['studio', 'render', editPlanPath, '--dest', tmp, '--json']);
+    assert.equal(editRes.status, 0, `Edit_only mode render failed: ${editRes.stderr}`);
+
+    // 3. podcast_clip mode
+    const podcastPlan = {
+      schema_version: 1,
+      mode: 'podcast_clip',
+      clips: [
+        { kind: 'video', asset_id: asset.id, clip_id: 'c1', in_ms: 0, out_ms: 1000, timeline_start_ms: 0, speed: 1 },
+      ],
+      audio_tracks: [{ kind: 'source', clip_id: 'c1', gain_db: 0 }],
+      captions: [{ text: specialText, timeline_start_ms: 0, duration_ms: 1000 }],
+      output: { width: 1080, height: 1920, fps_num: 30, fps_den: 1, video_codec: 'h264', audio_codec: 'aac' },
+    };
+    const podcastPlanPath = path.join(tmp, 'podcast-plan.json');
+    fs.writeFileSync(podcastPlanPath, JSON.stringify(podcastPlan));
+    const podcastRes = await runCliAsync(['studio', 'render', podcastPlanPath, '--dest', tmp, '--json']);
+    assert.equal(podcastRes.status, 0, `Podcast_clip mode render failed: ${podcastRes.stderr}`);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
