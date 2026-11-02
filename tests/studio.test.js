@@ -506,3 +506,65 @@ test('Studio: render rejects plan when out_ms exceeds asset duration', async (t)
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test('Studio & Onboard: ffmpeg errors capture concise stderr and verbose flag reveals full log', async (t) => {
+  if (!canRunFfmpeg) {
+    skipOrDieInCI(t);
+    return;
+  }
+
+  const tmp = path.join(os.tmpdir(), `studio-ffmpeg-stderr-${Date.now()}`);
+  fs.mkdirSync(tmp, { recursive: true });
+  const sampleVideo = path.join(tmp, 'footage.mp4');
+
+  try {
+    execFileSync('ffmpeg', [
+      '-y',
+      '-f', 'lavfi', '-i', 'testsrc=duration=1:size=320x240:rate=30',
+      '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+      '-t', '1',
+      '-c:v', 'libx264',
+      '-c:a', 'aac',
+      '-pix_fmt', 'yuv420p',
+      sampleVideo,
+    ], { stdio: 'pipe' });
+
+    await runCliAsync(['studio', 'init', '--dest', tmp]);
+    const importRes = await runCliAsync(['studio', 'import', sampleVideo, '--dest', tmp, '--json']);
+    const asset = JSON.parse(importRes.stdout);
+
+    // Corrupt asset file after import so ffmpeg fails during render
+    const assetFile = path.join(tmp, asset.path);
+    fs.writeFileSync(assetFile, 'not-a-valid-mp4-content-header-corruption');
+
+    const editPlan = {
+      schema_version: 1,
+      mode: 'edit_only',
+      clips: [
+        { kind: 'video', asset_id: asset.id, clip_id: 'c1', in_ms: 0, out_ms: 500, timeline_start_ms: 0, speed: 1 },
+        { kind: 'video', asset_id: asset.id, clip_id: 'c2', in_ms: 500, out_ms: 1000, timeline_start_ms: 500, speed: 1 },
+      ],
+      audio_tracks: [
+        { kind: 'source', clip_id: 'c1', gain_db: 0 },
+        { kind: 'source', clip_id: 'c2', gain_db: 0 },
+      ],
+      output: { width: 1080, height: 1920, fps_num: 30, fps_den: 1, video_codec: 'h264', audio_codec: 'aac' },
+    };
+    const planPath = path.join(tmp, 'corrupt-plan.json');
+    fs.writeFileSync(planPath, JSON.stringify(editPlan));
+
+    // 1. Without --verbose: concise error without full config banner
+    const normalRes = await runCliAsync(['studio', 'render', planPath, '--dest', tmp]);
+    assert.equal(normalRes.status, 1);
+    assert.match(normalRes.stderr, /ffmpeg rendering failed/);
+    assert.doesNotMatch(normalRes.stderr, /configuration:/);
+
+    // 2. With --verbose: shows full ffmpeg log
+    const verboseRes = await runCliAsync(['studio', 'render', planPath, '--dest', tmp, '--verbose']);
+    assert.equal(verboseRes.status, 1);
+    assert.match(verboseRes.stderr, /ffmpeg execution failed/);
+    assert.match(verboseRes.stderr, /configuration:/);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});

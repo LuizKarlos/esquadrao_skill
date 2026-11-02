@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import os from 'node:os';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import process from 'node:process';
 import { validateEditPlan } from '../roles/mediaProducer.js';
 
@@ -154,6 +154,22 @@ function getAssetDuration(wsDir, clipPath, clip) {
   } catch {
     return { durationSec: 0, assetId: candidate || path.basename(clipPath) };
   }
+}
+
+export function runFfmpeg(args, { verbose = false } = {}) {
+  const res = spawnSync('ffmpeg', args, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
+  if (res.status !== 0 || res.error) {
+    const rawStderr = res.stderr || res.error?.message || '';
+    if (verbose) {
+      console.error(`Error: ffmpeg execution failed (exit ${res.status}):\n${rawStderr}`);
+    } else {
+      const lines = rawStderr.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const tail = lines.slice(-10).join('\n');
+      console.error(`Error: ffmpeg rendering failed:\n${tail || rawStderr}`);
+    }
+    process.exit(1);
+  }
+  return res;
 }
 
 // ponytail: synchronous child_process calls; upgrade to worker pool when batch rendering >10 parallel plans
@@ -368,7 +384,7 @@ Options:
           '-pix_fmt', 'yuv420p',
           artifactPath,
         ];
-        execFileSync('ffmpeg', args, { stdio: 'pipe' });
+        runFfmpeg(args, { verbose: flags.verbose });
       } else if (plan.mode === 'edit_only') {
         const clip0Path = resolveAsset(wsDir, plan.clips[0]);
         const clip1Path = resolveAsset(wsDir, plan.clips[1]);
@@ -424,7 +440,7 @@ Options:
           '-pix_fmt', 'yuv420p',
           artifactPath,
         ];
-        execFileSync('ffmpeg', args, { stdio: 'pipe' });
+        runFfmpeg(args, { verbose: flags.verbose });
       } else if (plan.mode === 'podcast_clip') {
         const videoClips = (plan.clips || []).filter((c) => c.kind === 'video' || !c.kind);
         const captions = plan.captions || (plan.clips || []).filter((c) => c.kind === 'text');
@@ -481,7 +497,7 @@ Options:
           '-pix_fmt', 'yuv420p',
           artifactPath,
         ];
-        execFileSync('ffmpeg', args, { stdio: 'pipe' });
+        runFfmpeg(args, { verbose: flags.verbose });
       }
     } finally {
       for (const f of tempFiles) {
