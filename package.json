@@ -35,7 +35,7 @@
     "node": ">=\u00318.0.0"
   },
   "scripts": {
-    "lint": "node --check bin/cli.js",
+    "lint": "node scripts/lint.js",
     "test": "node --test"
   },
   "keywords": [
