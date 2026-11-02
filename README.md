@@ -79,6 +79,10 @@ universal-skill onboard --mode podcast_clip --file ./clip1.mp4 --file ./clip2.mp
 - `--verbose`: Exibe logs detalhados do FFmpeg em caso de erro.
 - `--json`: Retorna resultado estruturado em formato JSON.
 
+### Configurar proporção, legendas e áudio
+
+Siga o [guia completo de configuração inicial para Windows / PowerShell](skill-media-producer/references/configuracao-inicial.md): preparação do projeto, importação, plano de edição, formatos vertical/horizontal, legendas, áudio, renderização e QA. A referência acompanha a instalação da `skill-media-producer` e documenta as opções disponíveis e os limites atuais.
+
 ## Exemplos de EditPlan por Modo
 
 ### 1. Modo `dark` (zero footage, textos/overlays):
