@@ -454,3 +454,55 @@ test('Studio: render succeeds when source footage has no audio track', async (t)
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test('Studio: render rejects plan when out_ms exceeds asset duration', async (t) => {
+  if (!canRunFfmpeg) {
+    skipOrDieInCI(t);
+    return;
+  }
+
+  const tmp = path.join(os.tmpdir(), `studio-duration-val-${Date.now()}`);
+  fs.mkdirSync(tmp, { recursive: true });
+  const sampleVideo = path.join(tmp, 'short.mp4');
+
+  try {
+    execFileSync('ffmpeg', [
+      '-y',
+      '-f', 'lavfi', '-i', 'testsrc=duration=1:size=320x240:rate=30',
+      '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+      '-t', '1',
+      '-c:v', 'libx264',
+      '-c:a', 'aac',
+      '-pix_fmt', 'yuv420p',
+      sampleVideo,
+    ], { stdio: 'pipe' });
+
+    await runCliAsync(['studio', 'init', '--dest', tmp]);
+    const importRes = await runCliAsync(['studio', 'import', sampleVideo, '--dest', tmp, '--json']);
+    const asset = JSON.parse(importRes.stdout);
+
+    const editPlan = {
+      schema_version: 1,
+      mode: 'edit_only',
+      clips: [
+        { kind: 'video', asset_id: asset.id, clip_id: 'clip_invalid_cut', in_ms: 0, out_ms: 2500, timeline_start_ms: 0, speed: 1 },
+        { kind: 'video', asset_id: asset.id, clip_id: 'clip_2', in_ms: 500, out_ms: 1000, timeline_start_ms: 2500, speed: 1 },
+      ],
+      audio_tracks: [
+        { kind: 'source', clip_id: 'clip_invalid_cut', gain_db: 0 },
+        { kind: 'source', clip_id: 'clip_2', gain_db: 0 },
+      ],
+      output: { width: 1080, height: 1920, fps_num: 30, fps_den: 1, video_codec: 'h264', audio_codec: 'aac' },
+    };
+    const planPath = path.join(tmp, 'invalid-plan.json');
+    fs.writeFileSync(planPath, JSON.stringify(editPlan));
+
+    const renderRes = await runCliAsync(['studio', 'render', planPath, '--dest', tmp, '--json']);
+    assert.equal(renderRes.status, 1, 'Render must exit 1 when out_ms exceeds asset duration');
+    assert.match(renderRes.stderr, /clip_invalid_cut/, 'Error must name the clip');
+    assert.match(renderRes.stderr, new RegExp(asset.id), 'Error must name the asset');
+    assert.match(renderRes.stderr, /1000ms/, 'Error must name the real duration');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});

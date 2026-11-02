@@ -133,6 +133,29 @@ function hasAudio(wsDir, clipPath, clip) {
   }
 }
 
+function getAssetDuration(wsDir, clipPath, clip) {
+  const candidate = clip?.asset_id || clip?.source_asset || clip?.name;
+  const manifestPath = path.join(wsDir, 'studio.json');
+  if (fs.existsSync(manifestPath)) {
+    try {
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      const found = manifest.assets?.find((a) =>
+        (candidate && (a.id === candidate || a.name === candidate)) ||
+        (a.path && path.resolve(wsDir, a.path) === path.resolve(clipPath))
+      );
+      if (found?.metadata?.duration_s !== undefined && found?.metadata?.duration_s !== null) {
+        return { durationSec: Number(found.metadata.duration_s), assetId: found.id || candidate };
+      }
+    } catch {}
+  }
+  try {
+    const probe = probeMedia(clipPath);
+    return { durationSec: parseFloat(probe.format?.duration || '0'), assetId: candidate || path.basename(clipPath) };
+  } catch {
+    return { durationSec: 0, assetId: candidate || path.basename(clipPath) };
+  }
+}
+
 // ponytail: synchronous child_process calls; upgrade to worker pool when batch rendering >10 parallel plans
 export async function run({ positionals = [], flags = {} } = {}) {
   const sub = positionals[0];
@@ -291,6 +314,27 @@ Options:
     }
 
     const wsDir = findWorkspaceDir(flags.dest);
+
+    const videoClipsToCheck = (plan.mode === 'edit_only' || plan.mode === 'podcast_clip')
+      ? (plan.clips || []).filter((c) => c.kind === 'video' || (!c.kind && c.asset_id))
+      : [];
+
+    for (let i = 0; i < videoClipsToCheck.length; i++) {
+      const c = videoClipsToCheck[i];
+      const clipPath = resolveAsset(wsDir, c);
+      const { durationSec, assetId } = getAssetDuration(wsDir, clipPath, c);
+      const assetDurMs = Math.round(durationSec * 1000);
+      const clipName = c.clip_id || `clip #${i}`;
+      if (c.out_ms > assetDurMs) {
+        console.error(`Error: Clip '${clipName}' out_ms (${c.out_ms}ms) exceeds asset '${assetId}' duration (${assetDurMs}ms / ${durationSec.toFixed(3)}s)`);
+        process.exit(1);
+      }
+      if (c.in_ms > assetDurMs) {
+        console.error(`Error: Clip '${clipName}' in_ms (${c.in_ms}ms) exceeds asset '${assetId}' duration (${assetDurMs}ms / ${durationSec.toFixed(3)}s)`);
+        process.exit(1);
+      }
+    }
+
     fs.mkdirSync(path.join(wsDir, 'artifacts'), { recursive: true });
     const artifactId = `ART-${crypto.randomBytes(4).toString('hex')}`;
     const artifactPath = path.join(wsDir, 'artifacts', `${artifactId}.mp4`);
