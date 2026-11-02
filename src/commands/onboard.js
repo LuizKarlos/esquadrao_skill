@@ -422,7 +422,7 @@ Options:
     const artifactFullPath = path.resolve(targetDir, artifact.path);
 
     if (!flags.json) console.log(`[4/4] Running automated QA verification...`);
-    const qaReport = await runSilentIfJson(flags.json, () => studioRun({ positionals: ['qa', artifactFullPath], flags: { dest: targetDir, json: false, verbose: flags.verbose } }));
+    const qaReport = await runSilentIfJson(flags.json, () => studioRun({ positionals: ['qa', artifactFullPath], flags: { dest: targetDir, plan: planPath, json: false, verbose: flags.verbose } }));
     if (!qaReport || !qaReport.passed) {
       throw new Error(`QA verification failed: ${qaReport?.errors?.join(', ') || 'QA check failed'}`);
     }

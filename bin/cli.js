@@ -16,6 +16,7 @@ const { values: flags, positionals } = parseArgs({
     dest: { type: 'string' },
     mode: { type: 'string' },
     file: { type: 'string', multiple: true },
+    plan: { type: 'string' },
     verbose: { type: 'boolean' },
     help: { type: 'boolean', short: 'h' },
     version: { type: 'boolean', short: 'v' },

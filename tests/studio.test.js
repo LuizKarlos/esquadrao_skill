@@ -608,3 +608,70 @@ test('Studio: corrupted studio.json causes commands to fail without overwriting 
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test('Studio: qa with --plan detects truncated artifact and resolution/fps mismatches', async (t) => {
+  if (!canRunFfmpeg) {
+    skipOrDieInCI(t);
+    return;
+  }
+
+  const tmp = path.join(os.tmpdir(), `studio-qa-plan-${Date.now()}`);
+  fs.mkdirSync(tmp, { recursive: true });
+
+  const plan = {
+    schema_version: 1,
+    mode: 'dark',
+    clips: [
+      { kind: 'text', text: 'Intro', duration_ms: 1000, timeline_start_ms: 0 },
+      { kind: 'text', text: 'Outro', duration_ms: 1000, timeline_start_ms: 1000 },
+    ],
+    output: {
+      width: 1080,
+      height: 1920,
+      fps_num: 30,
+      fps_den: 1,
+      video_codec: 'h264',
+      audio_codec: 'aac',
+    },
+  };
+  const planFile = path.join(tmp, 'target-plan.json');
+  fs.writeFileSync(planFile, JSON.stringify(plan));
+
+  // 1. Generate truncated artifact: 0.5s instead of 2.0s, resolution 320x240 instead of 1080x1920
+  const truncatedVideo = path.join(tmp, 'truncated.mp4');
+  execFileSync('ffmpeg', [
+    '-y',
+    '-f', 'lavfi', '-i', 'testsrc=duration=0.5:size=320x240:rate=30',
+    '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+    '-t', '0.5',
+    '-c:v', 'libx264',
+    '-c:a', 'aac',
+    '-pix_fmt', 'yuv420p',
+    truncatedVideo,
+  ], { stdio: 'pipe' });
+
+  try {
+    const qaRes = await runCliAsync(['studio', 'qa', truncatedVideo, '--plan', planFile, '--json']);
+    assert.equal(qaRes.status, 1, 'QA with --plan must fail for truncated artifact');
+    const report = JSON.parse(qaRes.stdout);
+    assert.equal(report.passed, false);
+    assert.ok(report.errors.some((e) => e.includes('Duration mismatch')), 'Must report duration mismatch');
+    assert.ok(report.errors.some((e) => e.includes('Width mismatch')), 'Must report width mismatch');
+    assert.ok(report.errors.some((e) => e.includes('Height mismatch')), 'Must report height mismatch');
+
+    // 2. Render actual plan via studio render (which internally validates with QA and matches plan)
+    const renderRes = await runCliAsync(['studio', 'render', planFile, '--dest', tmp, '--json']);
+    assert.equal(renderRes.status, 0);
+    const artifact = JSON.parse(renderRes.stdout);
+    const validArtFile = path.join(tmp, artifact.path);
+
+    // 3. QA with --plan on valid rendered artifact passes
+    const validQaRes = await runCliAsync(['studio', 'qa', validArtFile, '--plan', planFile, '--json']);
+    assert.equal(validQaRes.status, 0);
+    const validReport = JSON.parse(validQaRes.stdout);
+    assert.equal(validReport.passed, true);
+    assert.equal(validReport.errors.length, 0);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
