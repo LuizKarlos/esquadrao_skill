@@ -44,6 +44,14 @@ node $cli studio init --dest $projeto
 if ($LASTEXITCODE -ne 0) { throw "Falha ao inicializar o Studio." }
 ```
 
+Para Claude Code em um projeto novo, prepare a integração e execute novamente o setup:
+
+```powershell
+New-Item -ItemType Directory -Force -Path (Join-Path $projeto ".claude") | Out-Null
+node $cli setup
+if ($LASTEXITCODE -ne 0) { throw "Falha ao instalar as skills para Claude Code." }
+```
+
 Abra o agente nessa pasta em uma nova sessão para carregar `skill-media-producer`. `assets/` guarda cópias das fontes, `packages/` guarda os planos, `artifacts/` recebe os MP4 e `studio.json` registra as importações e resultados.
 
 Para experimentar o fluxo guiado com valores padrão, use `node $cli onboard`. Para controlar proporção, cortes e legendas explicitamente, siga os próximos passos.
