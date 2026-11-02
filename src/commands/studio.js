@@ -110,6 +110,29 @@ function createDrawtextFilter(text, fontOpt, startSec, endSec, yExpr, tempFiles)
   return `drawtext=textfile='${escapedPath}':expansion=none${fontOpt}:fontcolor=white:fontsize=48:x=(w-text_w)/2:y=${yExpr}:enable='between(t\\,${startSec}\\,${endSec})'`;
 }
 
+function hasAudio(wsDir, clipPath, clip) {
+  const candidate = clip?.asset_id || clip?.source_asset || clip?.name;
+  const manifestPath = path.join(wsDir, 'studio.json');
+  if (fs.existsSync(manifestPath)) {
+    try {
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      const found = manifest.assets?.find((a) =>
+        (candidate && (a.id === candidate || a.name === candidate)) ||
+        (a.path && path.resolve(wsDir, a.path) === path.resolve(clipPath))
+      );
+      if (found?.metadata && 'audio_codec' in found.metadata) {
+        return Boolean(found.metadata.audio_codec);
+      }
+    } catch {}
+  }
+  try {
+    const probe = probeMedia(clipPath);
+    return Boolean(probe.streams?.some((s) => s.codec_type === 'audio'));
+  } catch {
+    return false;
+  }
+}
+
 // ponytail: synchronous child_process calls; upgrade to worker pool when batch rendering >10 parallel plans
 export async function run({ positionals = [], flags = {} } = {}) {
   const sub = positionals[0];
@@ -313,12 +336,21 @@ Options:
         const out0 = (c0.out_ms / 1000).toFixed(3);
         const in1 = (c1.in_ms / 1000).toFixed(3);
         const out1 = (c1.out_ms / 1000).toFixed(3);
+        const dur0Sec = Math.max(0.001, (c0.out_ms - c0.in_ms) / 1000).toFixed(3);
+        const dur1Sec = Math.max(0.001, (c1.out_ms - c1.in_ms) / 1000).toFixed(3);
+
+        const aFilter0 = hasAudio(wsDir, clip0Path, c0)
+          ? `[0:a]atrim=start=${in0}:end=${out0},asetpts=PTS-STARTPTS,volume=${a0.gain_db}dB[a0]`
+          : `anullsrc=channel_layout=stereo:sample_rate=44100,atrim=duration=${dur0Sec}[a0]`;
+        const aFilter1 = hasAudio(wsDir, clip1Path, c1)
+          ? `[1:a]atrim=start=${in1}:end=${out1},asetpts=PTS-STARTPTS,volume=${a1.gain_db}dB[a1]`
+          : `anullsrc=channel_layout=stereo:sample_rate=44100,atrim=duration=${dur1Sec}[a1]`;
 
         const filterParts = [
           `[0:v]trim=start=${in0}:end=${out0},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v0]`,
-          `[0:a]atrim=start=${in0}:end=${out0},asetpts=PTS-STARTPTS,volume=${a0.gain_db}dB[a0]`,
+          aFilter0,
           `[1:v]trim=start=${in1}:end=${out1},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v1]`,
-          `[1:a]atrim=start=${in1}:end=${out1},asetpts=PTS-STARTPTS,volume=${a1.gain_db}dB[a1]`,
+          aFilter1,
           `[v0][a0][v1][a1]concat=n=2:v=1:a=1[basev][outa]`,
         ];
 
@@ -362,9 +394,14 @@ Options:
           inputArgs.push('-i', clipPath);
           const inSec = ((c.in_ms || 0) / 1000).toFixed(3);
           const outSec = ((c.out_ms || (c.in_ms || 0) + 1000) / 1000).toFixed(3);
+          const durSec = Math.max(0.001, ((c.out_ms || (c.in_ms || 0) + 1000) - (c.in_ms || 0)) / 1000).toFixed(3);
           const gain = plan.audio_tracks?.[i]?.gain_db || 0;
           filterParts.push(`[${i}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v${i}]`);
-          filterParts.push(`[${i}:a]atrim=start=${inSec}:end=${outSec},asetpts=PTS-STARTPTS,volume=${gain}dB[a${i}]`);
+          if (hasAudio(wsDir, clipPath, c)) {
+            filterParts.push(`[${i}:a]atrim=start=${inSec}:end=${outSec},asetpts=PTS-STARTPTS,volume=${gain}dB[a${i}]`);
+          } else {
+            filterParts.push(`anullsrc=channel_layout=stereo:sample_rate=44100,atrim=duration=${durSec}[a${i}]`);
+          }
           concatInputs.push(`[v${i}][a${i}]`);
         }
 

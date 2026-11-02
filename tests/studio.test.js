@@ -372,3 +372,78 @@ test('Studio: render handles special caption characters in dark, edit_only, and 
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+test('Studio: render succeeds when source footage has no audio track', async (t) => {
+  if (!canRunFfmpeg) {
+    t.skip('ffmpeg/ffprobe not found on PATH');
+    return;
+  }
+
+  const tmp = path.join(os.tmpdir(), `studio-no-audio-${Date.now()}`);
+  fs.mkdirSync(tmp, { recursive: true });
+  const noAudioVideo = path.join(tmp, 'silent.mp4');
+
+  try {
+    // Generate 1-second video with no audio track
+    execFileSync('ffmpeg', [
+      '-y',
+      '-f', 'lavfi', '-i', 'testsrc=duration=1:size=320x240:rate=30',
+      '-c:v', 'libx264',
+      '-an',
+      '-pix_fmt', 'yuv420p',
+      noAudioVideo,
+    ], { stdio: 'pipe' });
+
+    await runCliAsync(['studio', 'init', '--dest', tmp]);
+    const importRes = await runCliAsync(['studio', 'import', noAudioVideo, '--dest', tmp, '--json']);
+    assert.equal(importRes.status, 0);
+    const asset = JSON.parse(importRes.stdout);
+    assert.equal(asset.metadata.audio_codec, null, 'audio_codec must be null when stream is absent');
+
+    // Test edit_only with silent asset
+    const editPlan = {
+      schema_version: 1,
+      mode: 'edit_only',
+      clips: [
+        { kind: 'video', asset_id: asset.id, clip_id: 'c1', in_ms: 0, out_ms: 500, timeline_start_ms: 0, speed: 1 },
+        { kind: 'video', asset_id: asset.id, clip_id: 'c2', in_ms: 500, out_ms: 1000, timeline_start_ms: 500, speed: 1 },
+      ],
+      audio_tracks: [
+        { kind: 'source', clip_id: 'c1', gain_db: 0 },
+        { kind: 'source', clip_id: 'c2', gain_db: 0 },
+      ],
+      output: { width: 1080, height: 1920, fps_num: 30, fps_den: 1, video_codec: 'h264', audio_codec: 'aac' },
+    };
+    const editPlanPath = path.join(tmp, 'edit-plan.json');
+    fs.writeFileSync(editPlanPath, JSON.stringify(editPlan));
+    const editRes = await runCliAsync(['studio', 'render', editPlanPath, '--dest', tmp, '--json']);
+    assert.equal(editRes.status, 0, `edit_only render failed with no-audio source: ${editRes.stderr}`);
+    const editArt = JSON.parse(editRes.stdout);
+    const editArtFile = path.join(tmp, editArt.path);
+    const qaEdit = await runCliAsync(['studio', 'qa', editArtFile, '--json']);
+    assert.equal(qaEdit.status, 0);
+    assert.equal(JSON.parse(qaEdit.stdout).passed, true);
+
+    // Test podcast_clip with silent asset
+    const podcastPlan = {
+      schema_version: 1,
+      mode: 'podcast_clip',
+      clips: [
+        { kind: 'video', asset_id: asset.id, clip_id: 'c1', in_ms: 0, out_ms: 1000, timeline_start_ms: 0, speed: 1 },
+      ],
+      audio_tracks: [{ kind: 'source', clip_id: 'c1', gain_db: 0 }],
+      output: { width: 1080, height: 1920, fps_num: 30, fps_den: 1, video_codec: 'h264', audio_codec: 'aac' },
+    };
+    const podcastPlanPath = path.join(tmp, 'podcast-plan.json');
+    fs.writeFileSync(podcastPlanPath, JSON.stringify(podcastPlan));
+    const podRes = await runCliAsync(['studio', 'render', podcastPlanPath, '--dest', tmp, '--json']);
+    assert.equal(podRes.status, 0, `podcast_clip render failed with no-audio source: ${podRes.stderr}`);
+    const podArt = JSON.parse(podRes.stdout);
+    const podArtFile = path.join(tmp, podArt.path);
+    const qaPod = await runCliAsync(['studio', 'qa', podArtFile, '--json']);
+    assert.equal(qaPod.status, 0);
+    assert.equal(JSON.parse(qaPod.stdout).passed, true);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
