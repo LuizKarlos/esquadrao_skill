@@ -1,7 +1,7 @@
 ---
 name: skill-media-producer
 version: "1.0.0"
-description: "Author and validate short-form video edit plans, timeline cuts, audio gain parameters, NFC text normalization, and media QA contracts."
+description: "Set up Universal Skill Studio and configure video aspect ratio, captions, cuts, audio gain, EditPlan validation, rendering, and QA. Use for initial setup and video configuration requests."
 allowed-tools: ["terminal"]
 ---
 
@@ -14,7 +14,7 @@ Author and validate deterministic short-form video specifications, cut intervals
 - Generating structured EditPlan contracts for short-form video pipelines (`edit_only`, `dark`, `podcast_clip`).
 - Validating timeline clip contiguity, boundary intervals (minimum 100ms), and audio stream gains (-60 dB to +12 dB).
 - Enforcing NFC text normalization (1–200 characters, zero HTML markup) for visual caption and text overlays.
-- Setting up automated media QA verification for black frames, audio sync, and duration compliance.
+- Running technical media QA against an EditPlan, followed by visual and listening review.
 
 ## NOT for
 
@@ -24,7 +24,11 @@ Author and validate deterministic short-form video specifications, cut intervals
 
 ## Workflow & CLI
 
-Execute via `universal-skill role`:
+For initial setup, aspect ratio, captions, or a complete render workflow, read [Configuração inicial (Windows / PowerShell)](references/configuracao-inicial.md). It includes commands, an EditPlan template, supported settings, and current rendering limits.
+
+Collect the source file, desired format, cut intervals, caption text/timing, and audio gain. Ask only for missing choices. Show the final timeline and duration before rendering; obtain approval for execution. Use `studio qa <artifact.mp4> --plan <editplan.json>` and report its result separately from visual/listening review. Offer caption appearance settings only when the renderer supports them, as documented in the guide.
+
+Inspect the role or generate an authoring prompt via `universal-skill role`:
 
 ```bash
 # 1. View media producer parameters and schema constraints
