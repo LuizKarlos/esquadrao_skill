@@ -58,6 +58,9 @@ esquadrao studio auto-clip <video.mp4> [--silence-thresh -30dB] [--silence-durat
 # Detector rápido de silêncio e pausas mortas
 esquadrao studio detect-silence <video.mp4> [--json]
 
+# Transcrição estruturada para análise de copy (exporta transcript.json e transcript.srt)
+esquadrao studio transcribe <video.mp4> [--json]
+
 # Configurar skills nos harnesses locais do usuário (.agents, .claude, .codex, .cursor)
 esquadrao setup [--dest <path>] [--json]
 
@@ -191,6 +194,61 @@ Siga o [guia completo de configuração inicial para Windows / PowerShell](skill
       "text": "Universal Podcast Clip",
       "timeline_start_ms": 0,
       "duration_ms": 1000
+    }
+  ],
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps_num": 30,
+    "fps_den": 1,
+    "video_codec": "h264",
+    "audio_codec": "aac"
+  }
+}
+```
+
+### 4. Modo `podcast_clip` dinâmico (com B-Rolls, Trilha Sonora e Ducking):
+```json
+{
+  "schema_version": 1,
+  "mode": "podcast_clip",
+  "clips": [
+    {
+      "kind": "video",
+      "clip_id": "orador-01",
+      "asset_id": "AST-PODCAST01",
+      "in_ms": 15000,
+      "out_ms": 45000,
+      "timeline_start_ms": 0,
+      "speed": 1
+    }
+  ],
+  "audio_tracks": [
+    { "kind": "source", "clip_id": "orador-01", "gain_db": 0 }
+  ],
+  "overlays": [
+    {
+      "asset_id": "AST-BROLL01",
+      "layout": "fullscreen",
+      "in_ms": 0,
+      "out_ms": 3000,
+      "timeline_start_ms": 5000,
+      "duration_ms": 3000
+    }
+  ],
+  "music_tracks": [
+    {
+      "asset_id": "AST-TRILHA01",
+      "gain_db": -22,
+      "ducking": true
+    }
+  ],
+  "captions": [
+    {
+      "text": "O MAIOR SEGREDO",
+      "timeline_start_ms": 0,
+      "duration_ms": 1500,
+      "style": "impact"
     }
   ],
   "output": {
