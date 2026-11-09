@@ -1,6 +1,18 @@
-# Universal Skill CLI
+# Esquadrão de Conteúdo CLI (`@universal-skill/cli`)
 
-Universal CLI and autonomous skill orchestration framework for AI agents.
+Framework autônomo local e CLI de orquestração de skills, execução de papéis técnicos e produção automatizada de vídeo vertical (9:16) via FFmpeg.
+
+---
+
+## Documentação Canônica
+
+Este repositório adota engenharia rigorosa centrada no código:
+
+- **[`SPEC.md`](./SPEC.md)**: Especificação técnica canônica contendo arquitetura zero-dependency, contratos dos comandos `onboard` e `studio`, esquema do EditPlan v1 e matriz de papéis.
+- **[`GLOSSARY.md`](./GLOSSARY.md)**: Fonte canônica de terminologia, equivalências técnicas, códigos de saída e matriz anti-delírio.
+- **[`ROADMAP.md`](./ROADMAP.md)**: Esteira viva de engenharia estruturada em 5 fases vinculadas às issues do repositório.
+
+---
 
 ## Overview
 
