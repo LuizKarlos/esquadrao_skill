@@ -98,6 +98,27 @@ Fornece o pipeline operacional de criação, importação de mídias, renderiza�
   6. Geração atômica de `EditPlan v1` e renderização final via FFmpeg.
   7. Verificação técnica de QA (`resolution`, `fps`, `audio`) sobre o arquivo MP4 entregue.
 
+#### 2.2.7. `esquadrao studio transcribe <video.mp4> [opções]`
+- Extrai áudio de gravações longas (podcasts de 30min a 2h) e executa transcrição completa estruturada com Whisper.
+- Gera `workspace/packages/transcript.json` com segmentos temporais exatos (`start_s`, `end_s`, `text`) e marcações de palavras, além de exportar `.srt`.
+- Permite que a LLM leia o conteúdo textual e aplique a metodologia de Copywriting para encontrar os trechos de maior potencial viral.
+
+#### 2.2.8. Overlays de B-Roll e Layouts Visuais Dinâmicos
+O contrato `EditPlan v1` estende o suporte a cenas de apoio (`overlays`) aplicadas sobre a timeline contígua:
+- **`layout: "fullscreen"` (Padrão):** O B-roll preenche 100% da tela durante 2 a 4 segundos enquanto o áudio da voz principal continua ativo sem interrupção.
+- **`layout: "pip"` (Picture-in-Picture):** O B-roll é renderizado em janela flutuante centralizada sobre o orador.
+- **`layout: "split_bottom"` / `"split_top"`:** Tela dividida para retenção dupla (orador em um quadrante e B-roll/pack de apoio no outro).
+
+#### 2.2.9. Trilha Sonora de Fundo e Audio Ducking Inteligente
+- O estúdio aceita arquivos de música de fundo via catálogo de áudio ou arquivos importados pelo usuário (`music_tracks`).
+- Aplica filtro de mixagem de áudio com atenuação de volume (`amix` / sidechain ducking de -20dB a -24dB), rebaixando suavemente a trilha musical durante a fala para manter a clareza e inteligibilidade da voz.
+
+#### 2.2.10. Metodologia de Copy para Agentes de IA em Vídeos Longos
+Orienta a LLM a selecionar cortes de 30s a 60s (flexíveis conforme a ideia) com 3 pilares:
+1. **Gancho (0s-3s):** Frase de abertura de impacto imediato (pergunta contraintuitiva, revelação ou dor).
+2. **Desenvolvimento (4s-50s):** Explicação da ideia com inserção de B-roll a cada 4-7 segundos para manter a retenção visual.
+3. **Punchline (50s-60s):** Fechamento conclusivo sem despedidas vazias, finalizando no ápice da resposta.
+
 ### 2.3. Configuração Multi-Harness (`universal-skill setup`)
 Distribui as 18 skills empacotadas para os diretórios locais dos diferentes agentes de IA presentes no workspace do usuário:
 - **Grok Build:** `.agents/skills/`

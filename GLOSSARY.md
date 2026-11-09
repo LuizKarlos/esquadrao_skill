@@ -30,6 +30,10 @@ A tabela a seguir estabelece as equivalências obrigatórias entre os conceitos 
 | `universal-skill onboard` | **Primeiro Vídeo Guiado** | Agente interativo que conduz o usuário até o primeiro arquivo `.mp4` validado. |
 | `esquadrao` / `universal-skill` | **Esquadrão CLI** | Comando de linha unificado para orquestração de papéis e estúdio de vídeo. |
 | `esquadrao studio auto-clip` | **Esteira de Auto-Corte** | Pipeline completo: detecção de silêncio, transcrição Whisper, legendas e renderização. |
+| `esquadrao studio transcribe` | **Transcrição Estruturada** | Extração de áudio e transcrição Whisper com timestamps para análise de copy. |
+| `B-Roll Overlay` | **Cena de Apoio Dinâmica** | Imagem ou vídeo sobreposto à fala em tela cheia (`fullscreen`), janela (`pip`) ou tela dividida (`split`). |
+| `Audio Ducking` | **Atenuação Inteligente de Trilha** | Rebaixamento automático do volume da música de fundo para dar destaque à voz. |
+| `Gancho de Retenção` | **Hook de Abertura (0-3s)** | Primeiro trecho selecionado pela copy para prender a atenção e maximizar a retenção. |
 | `esquadrao studio detect-silence` | **Detector de Silêncios** | Análise por FFmpeg silencedetect para identificar pausas e duração de fala ativa. |
 | `universal-skill studio` | **Estúdio Local de Produção** | Pipeline de decupagem, junção de fontes e aplicação de filtros de áudio/vídeo. |
 | `EditPlan v1` | **Plano de Corte e Edição** | Esquema JSON determinístico com trilhas, cortes milimétricos e textos. |

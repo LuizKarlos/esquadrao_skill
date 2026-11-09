@@ -143,6 +143,39 @@ export function validateEditPlan(plan) {
     }
   }
 
+  // B-roll overlays validation
+  if (plan.overlays) {
+    if (!Array.isArray(plan.overlays)) {
+      throw new Error('overlays must be an array');
+    }
+    for (const ov of plan.overlays) {
+      if (!ov || typeof ov !== 'object') throw new Error('Overlay must be an object');
+      if (!ov.asset_id && !ov.source_asset) throw new Error('Overlay requires asset_id');
+      if (typeof ov.in_ms !== 'number' || ov.in_ms < 0) throw new Error('Overlay in_ms must be >= 0');
+      if (typeof ov.out_ms !== 'number' || ov.out_ms <= ov.in_ms) throw new Error('Overlay out_ms must be > in_ms');
+      if (typeof ov.timeline_start_ms !== 'number' || ov.timeline_start_ms < 0) {
+        throw new Error('Overlay timeline_start_ms must be >= 0');
+      }
+      if (ov.layout && !['fullscreen', 'pip', 'split_bottom', 'split_top'].includes(ov.layout)) {
+        throw new Error(`Unsupported overlay layout: ${ov.layout}`);
+      }
+    }
+  }
+
+  // Background music tracks validation
+  if (plan.music_tracks) {
+    if (!Array.isArray(plan.music_tracks)) {
+      throw new Error('music_tracks must be an array');
+    }
+    for (const m of plan.music_tracks) {
+      if (!m || typeof m !== 'object') throw new Error('music_track must be an object');
+      if (!m.asset_id && !m.source_asset) throw new Error('music_track requires asset_id');
+      if (m.gain_db !== undefined && (typeof m.gain_db !== 'number' || m.gain_db < -60 || m.gain_db > 12)) {
+        throw new Error('music_track gain_db must be between -60 and +12');
+      }
+    }
+  }
+
   // Output specification
   const output = plan.output || {};
   const validDimensions =

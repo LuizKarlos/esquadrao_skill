@@ -6,6 +6,23 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 
 ---
 
+## [1.2.0] - 2026-11-09
+
+### Adicionado
+- **Transcrição Estruturada para Vídeos Longos (`studio transcribe`)**:
+  - Extração de áudio e transcrição Whisper (30min a 2h de gravação) gerando `transcript.json` com marcações de início/fim e exportando `transcript.srt`.
+- **Playbook de Copywriting para LLMs (Corte de Vídeos Longos)**:
+  - Ensina agentes de IA a identificar ganchos de alta retenção (0-3s), janela de raciocínio de 30s a 60s (flexível) e punchlines conclusivas.
+- **Overlays Visuais Dinâmicos (B-Rolls)**:
+  - Suporte a `overlays` no contrato `EditPlan v1` e renderização no FFmpeg.
+  - Layouts suportados: `fullscreen` (padrão, corte de apoio cobrindo a tela mantendo a voz ininterrupta), `pip` (janela flutuante) e `split_bottom` (dupla retenção / tela dividida).
+- **Trilha Sonora com Audio Ducking**:
+  - Suporte a `music_tracks` com atenuação inteligente de volume (`amix` e ducking de -22dB durante falas ativas).
+- **Suíte de Testes Dinâmicos**:
+  - Adicionado `tests/studio_dynamic.test.js` com validação de contrato, transcrição e renderização de vídeo dinâmico com QA (69/69 testes passando).
+
+---
+
 ## [1.1.0] - 2026-11-09
 
 ### Adicionado

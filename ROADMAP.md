@@ -71,6 +71,12 @@
   - [x] Comando `esquadrao studio detect-silence <video>` com filtros nativos FFmpeg (`silencedetect`).
   - [x] Comando `esquadrao studio auto-clip <video.mp4>` integrando fatiamento de silêncios, Whisper e legendas dinâmicas estilo impacto viral (Opção A por padrão).
   - [x] Suporte dual a Whisper: gratuito local (padrão) e API oficial OpenAI (opcional via autorização do usuário).
+- [x] **3.6. Transcrição Estruturada e Copy para Vídeos Longos:**
+  - [x] Comando `esquadrao studio transcribe <video.mp4>` exportando `transcript.json` com timestamps exatos de fala.
+  - [x] Playbook e heurísticas de Copywriting ensinando agentes LLM a identificar ganchos (0-3s), miolo de retenção e punchlines (30-60s flexíveis).
+- [x] **3.7. Vídeos Dinâmicos com B-Rolls e Trilha Ducking:**
+  - [x] Suporte a `overlays` no `EditPlan v1` com layouts dinâmicos (`fullscreen`, `pip`, `split_bottom`, `split_top`).
+  - [x] Suporte a `music_tracks` com ducking suave de áudio (-20dB a -24dB) e mixagem sonora equilibrada.
 
 ---
 

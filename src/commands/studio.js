@@ -739,6 +739,7 @@ Subcommands:
   import <file>                 Register source footage into assets/ with AST-xxxxxxxx id and ffprobe metadata
   detect-silence <video>        Detect silent intervals and compute active speech segments
   auto-clip <video>             Full pipeline: detect silence, cut pauses, transcribe, and render
+  transcribe <video>            Extract audio and export structured transcript.json with timestamps
   render <editplan.json>        Validate EditPlan contract and execute cuts/captions via ffmpeg
   qa <artifact.mp4>             Run automated ffprobe QA verification on rendered video artifact
 
@@ -795,6 +796,129 @@ Options:
     console.log(`- Silences Detected: ${report.silences_count} (${report.total_silence_s.toFixed(2)}s removed)`);
     console.log(`- Speech Segments: ${report.speech_segments_count} (${report.speech_duration_s.toFixed(2)}s active)`);
     return report;
+  }
+
+  if (sub === 'transcribe') {
+    const srcFile = positionals[1];
+    if (!srcFile) {
+      console.error('Error: Missing video file. Usage: esquadrao studio transcribe <video.mp4> [options]');
+      process.exit(1);
+    }
+    const resolvedSrc = path.resolve(srcFile);
+    if (!fs.existsSync(resolvedSrc)) {
+      console.error(`Error: Source file not found: ${srcFile}`);
+      process.exit(1);
+    }
+    if (!checkBinary('ffmpeg') || !checkBinary('ffprobe')) {
+      console.error('Error: ffmpeg/ffprobe not found. Install ffmpeg to use video studio features.');
+      process.exit(1);
+    }
+
+    const wsDir = findWorkspaceDir(flags.dest);
+    fs.mkdirSync(path.join(wsDir, 'packages'), { recursive: true });
+
+    const probe = probeMedia(resolvedSrc);
+    const duration = parseFloat(probe.format?.duration || '0');
+
+    const openAiKey = process.env.OPENAI_API_KEY;
+    let useOpenAi = Boolean(flags.openai);
+    if (openAiKey && !flags.local && !flags.openai && process.stdin.isTTY && !flags.json) {
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      const answer = await new Promise((resolve) => {
+        rl.question(`Chave OPENAI_API_KEY detectada no ambiente. Deseja usar OpenAI Whisper para transcrição rápida? [S/n]: `, resolve);
+      });
+      rl.close();
+      useOpenAi = !answer.trim() || answer.trim().toLowerCase().startsWith('s');
+    } else if (openAiKey && !flags.local && !flags.openai) {
+      useOpenAi = true;
+    }
+
+    const tmpAudio = path.join(os.tmpdir(), `usk-transcribe-${crypto.randomBytes(4).toString('hex')}.mp3`);
+    let words = [];
+    try {
+      execFileSync('ffmpeg', ['-y', '-i', resolvedSrc, '-vn', '-ar', '16000', '-ac', '1', '-b:a', '64k', tmpAudio], { stdio: 'ignore' });
+      words = await transcribeAudio(tmpAudio, {
+        apiKey: openAiKey,
+        useOpenai: useOpenAi,
+        srtPath: flags.captions,
+      });
+    } finally {
+      if (fs.existsSync(tmpAudio)) fs.unlinkSync(tmpAudio);
+    }
+
+    const segments = [];
+    let segId = 1;
+    let currentWords = [];
+    let segStart = null;
+    let segEnd = null;
+
+    for (const w of words) {
+      const text = (w.word || w.text || '').trim();
+      if (!text) continue;
+      if (segStart === null) segStart = w.start;
+      if (segEnd !== null && (w.start - segEnd > 1.0 || segEnd - segStart > 7.0)) {
+        segments.push({
+          id: segId++,
+          start_s: parseFloat(segStart.toFixed(2)),
+          end_s: parseFloat(segEnd.toFixed(2)),
+          duration_s: parseFloat((segEnd - segStart).toFixed(2)),
+          text: currentWords.join(' '),
+        });
+        currentWords = [];
+        segStart = w.start;
+      }
+      currentWords.push(text);
+      segEnd = w.end;
+    }
+
+    if (currentWords.length > 0 && segStart !== null) {
+      segments.push({
+        id: segId++,
+        start_s: parseFloat(segStart.toFixed(2)),
+        end_s: parseFloat(segEnd.toFixed(2)),
+        duration_s: parseFloat((segEnd - segStart).toFixed(2)),
+        text: currentWords.join(' '),
+      });
+    }
+
+    const fullText = segments.map((s) => s.text).join(' ');
+    const transcriptReport = {
+      file: path.basename(resolvedSrc),
+      duration_s: duration,
+      words_count: words.length,
+      segments_count: segments.length,
+      full_text: fullText,
+      segments,
+      words,
+    };
+
+    const outJsonPath = path.join(wsDir, 'packages', 'transcript.json');
+    fs.writeFileSync(outJsonPath, JSON.stringify(transcriptReport, null, 2) + '\n');
+
+    const outSrtPath = path.join(wsDir, 'packages', 'transcript.srt');
+    const srtLines = segments.map((s) => {
+      const fmtTime = (sec) => {
+        const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+        const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+        const sRem = sec % 60;
+        const sInt = String(Math.floor(sRem)).padStart(2, '0');
+        const ms = String(Math.round((sRem - Math.floor(sRem)) * 1000)).padStart(3, '0');
+        return `${h}:${m}:${sInt},${ms}`;
+      };
+      return `${s.id}\n${fmtTime(s.start_s)} --> ${fmtTime(s.end_s)}\n${s.text}\n`;
+    }).join('\n');
+    fs.writeFileSync(outSrtPath, srtLines);
+
+    if (flags.json) {
+      console.log(JSON.stringify(transcriptReport, null, 2));
+      return transcriptReport;
+    }
+    console.log(`Transcrição concluída para ${transcriptReport.file}:`);
+    console.log(`- Duração Total: ${duration.toFixed(2)}s`);
+    console.log(`- Palavras Reconhecidas: ${words.length}`);
+    console.log(`- Segmentos para Análise de Copy: ${segments.length}`);
+    console.log(`- Salvo em: packages/transcript.json e packages/transcript.srt`);
+    return transcriptReport;
   }
 
   if (sub === 'auto-clip') {
@@ -1147,14 +1271,67 @@ Options:
         }
 
         let baseV = '[concatv]';
+        let speechA = '[outa]';
         if (videoClips.length === 1) {
           baseV = '[v0]';
-          filterParts.push(`[a0]anull[outa]`);
+          filterParts.push(`[a0]anull[outa_speech]`);
+          speechA = '[outa_speech]';
         } else {
-          filterParts.push(`${concatInputs.join('')}concat=n=${videoClips.length}:v=1:a=1[concatv][outa]`);
+          filterParts.push(`${concatInputs.join('')}concat=n=${videoClips.length}:v=1:a=1[concatv][outa_speech]`);
+          speechA = '[outa_speech]';
         }
 
-        filterParts.push(buildCaptionFilters(captions, baseV, tempFiles));
+        // B-Roll Overlays
+        let currentV = baseV;
+        let nextInputIdx = videoClips.length;
+        if (plan.overlays && Array.isArray(plan.overlays) && plan.overlays.length > 0) {
+          for (let k = 0; k < plan.overlays.length; k++) {
+            const ov = plan.overlays[k];
+            const ovPath = resolveAsset(wsDir, ov);
+            inputArgs.push('-i', ovPath);
+            const inSec = ((ov.in_ms || 0) / 1000).toFixed(3);
+            const outSec = ((ov.out_ms || (ov.in_ms || 0) + 3000) / 1000).toFixed(3);
+            const startSec = ((ov.timeline_start_ms || 0) / 1000).toFixed(3);
+            const durMs = ov.duration_ms || (ov.out_ms - ov.in_ms);
+            const endSec = (((ov.timeline_start_ms || 0) + durMs) / 1000).toFixed(3);
+            const layout = ov.layout || 'fullscreen';
+
+            if (layout === 'pip') {
+              const pipW = Math.round(width * 0.7);
+              const pipH = Math.round(height * 0.35);
+              filterParts.push(`[${nextInputIdx}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${pipW}:${pipH}:force_original_aspect_ratio=decrease,pad=${pipW}:${pipH}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[ov_${k}]`);
+              filterParts.push(`${currentV}[ov_${k}]overlay=(W-w)/2:(H-h)/2:enable='between(t\\,${startSec}\\,${endSec})'[v_ov_${k}]`);
+            } else if (layout === 'split_bottom') {
+              const splitH = Math.round(height / 2);
+              filterParts.push(`[${nextInputIdx}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${splitH}:force_original_aspect_ratio=decrease,pad=${width}:${splitH}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[ov_${k}]`);
+              filterParts.push(`${currentV}[ov_${k}]overlay=0:${splitH}:enable='between(t\\,${startSec}\\,${endSec})'[v_ov_${k}]`);
+            } else {
+              // Fullscreen default
+              filterParts.push(`[${nextInputIdx}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[ov_${k}]`);
+              filterParts.push(`${currentV}[ov_${k}]overlay=0:0:enable='between(t\\,${startSec}\\,${endSec})'[v_ov_${k}]`);
+            }
+            currentV = `[v_ov_${k}]`;
+            nextInputIdx++;
+          }
+        }
+
+        filterParts.push(buildCaptionFilters(captions, currentV, tempFiles));
+
+        // Background Music Tracks with Ducking
+        let finalA = speechA;
+        if (plan.music_tracks && Array.isArray(plan.music_tracks) && plan.music_tracks.length > 0) {
+          for (let m = 0; m < plan.music_tracks.length; m++) {
+            const track = plan.music_tracks[m];
+            const trackPath = resolveAsset(wsDir, track);
+            inputArgs.push('-i', trackPath);
+            const mGain = track.gain_db !== undefined ? track.gain_db : -22;
+            filterParts.push(`[${nextInputIdx}:a]volume=${mGain}dB,aloop=loop=-1:size=2e+09[mus_${m}]`);
+            filterParts.push(`${finalA}[mus_${m}]amix=inputs=2:duration=first:dropout_transition=2[outa_mix_${m}]`);
+            finalA = `[outa_mix_${m}]`;
+            nextInputIdx++;
+          }
+        }
+        filterParts.push(`${finalA}anull[outa]`);
 
         const args = [
           '-y',
