@@ -106,3 +106,95 @@ O comando emite o resumo com total de silêncio expurgado, quantidade de cortes 
 | `Missing audio stream in artifact` | Fonte sem áudio ou falha de mix | Garantir `anullsrc` para vídeo mudo ou verificar se o arquivo original tem áudio. |
 | `Caption special characters error` | Caracteres `%` ou `'` na legenda | O motor trata com `\%` e `\'`. Não usar tags HTML em legendas. |
 | `QA duration mismatch > 250ms` | Cortes inconsistentes com a timeline | Alinhar `timeline_start_ms` com o somatório dos cortes anteriores. |
+
+
+---
+
+## 4. Playbook Avançado: Corte de Vídeo Longo, Copy Viral, B-Rolls e Música
+
+Quando o usuário fornecer uma gravação longa (podcast, aula, live ou entrevista de 30min a 2h), siga este roteiro de 5 passos para entregar um corte viral de alto nível:
+
+### Passo 1: Transcrição Estruturada
+Extraia o mapa textual completo com marcações de tempo:
+```bash
+esquadrao studio transcribe /caminho/do/video_longo.mp4 --dest ./workspace --json
+```
+O arquivo `./workspace/packages/transcript.json` conterá todos os blocos com `start_s`, `end_s` e `text`.
+
+### Passo 2: Análise de Copy e Seleção dos Melhores Trechos
+A LLM deve ler a transcrição e aplicar a **Fórmula Tripartite de Retenção Viral**:
+1. **O Gancho (0 a 3 segundos):** Identifique o momento em que o orador faz uma pergunta contraintuitiva, revela um segredo ou expõe um erro comum. O corte DEVE começar exatamente na primeira palavra do gancho (ex: *"O maior erro de quem tenta vender..."*).
+2. **Janela de Retenção (30s a 60s flexível):** A ideia central precisa ser explicada com clareza sem prolixidade. Se o raciocínio exigir 45s ou 55s, respeite a conclusão natural da ideia. Permita ajuste se o usuário solicitar cortes mais curtos ou mais longos.
+3. **Punchline de Fechamento:** O corte encerra no clímax da resposta ou conclusão, cortando antes de transições vazias ("é isso", "então pessoal", "deixa o like").
+
+### Passo 3: Escolha Dinâmica dos B-Rolls e Layouts
+Para evitar que o corte fique monótono ("cabeça falante"), a LLM insere B-rolls (`overlays`) e escolhe o layout ideal:
+- **`layout: "fullscreen"` (Padrão):** Insira a cada 5 a 8 segundos cenas de apoio temáticas (ex: dinheiro, mansões, carros, trabalho) cobrindo 100% da tela durante 2 a 3 segundos, mantendo a voz do orador contínua.
+- **`layout: "split_bottom"` (Dupla Retenção):** Para canais de alta velocidade (TikTok/Shorts), divida a tela com o orador em cima e o vídeo de apoio/pack embaixo.
+- **`layout: "pip"` (Picture-in-Picture):** Quando o orador estiver apontando para um objeto ou reagindo a algo.
+
+### Passo 4: Trilha Sonora com Ducking
+Importe a música de fundo e configure atenuação automática de volume (`ducking`):
+- Volume de fundo da música: `-22dB` durante a fala (suave, sem abafar a voz).
+
+### Passo 5: Geração do EditPlan Completo e Renderização
+Exemplo canônico de EditPlan com cortes, B-rolls, música e legendas estilo impacto:
+```json
+{
+  "schema_version": 1,
+  "mode": "podcast_clip",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps_num": 30,
+    "fps_den": 1,
+    "video_codec": "h264",
+    "audio_codec": "aac"
+  },
+  "clips": [
+    {
+      "kind": "video",
+      "clip_id": "fala-principal",
+      "asset_id": "AST-PODCAST01",
+      "in_ms": 124000,
+      "out_ms": 168000,
+      "timeline_start_ms": 0,
+      "speed": 1
+    }
+  ],
+  "audio_tracks": [
+    { "kind": "source", "clip_id": "fala-principal", "gain_db": 0 }
+  ],
+  "overlays": [
+    {
+      "kind": "video",
+      "asset_id": "AST-BROLL-DINHEIRO",
+      "layout": "fullscreen",
+      "in_ms": 0,
+      "out_ms": 3000,
+      "timeline_start_ms": 6000,
+      "duration_ms": 3000
+    }
+  ],
+  "music_tracks": [
+    {
+      "asset_id": "AST-TRILHA01",
+      "gain_db": -22,
+      "ducking": true
+    }
+  ],
+  "captions": [
+    {
+      "text": "O MAIOR ERRO",
+      "timeline_start_ms": 0,
+      "duration_ms": 1200,
+      "style": "impact"
+    }
+  ]
+}
+```
+Renderize e verifique com:
+```bash
+esquadrao studio render ./workspace/packages/editplan.json --dest ./workspace
+esquadrao studio qa ./workspace/artifacts/video.mp4 --plan ./workspace/packages/editplan.json
+```
