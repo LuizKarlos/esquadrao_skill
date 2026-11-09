@@ -4,13 +4,14 @@ Framework autônomo local e CLI de orquestração de skills, execução de papé
 
 ---
 
-## Documentação Canônica
+## Documentação Canônica e Sincronia de Desenvolvimento
 
-Este repositório adota engenharia rigorosa centrada no código:
+Este repositório (`LuizKarlos/esquadrao_skill`) adota engenharia rigorosa centrada no código e opera sincronizado com o funil de vendas e área de membros (`LuizKarlos/esquadrao_funil`):
 
-- **[`SPEC.md`](./SPEC.md)**: Especificação técnica canônica contendo arquitetura zero-dependency, contratos dos comandos `onboard` e `studio`, esquema do EditPlan v1 e matriz de papéis.
+- **[`SPEC.md`](./SPEC.md)**: Especificação técnica canônica contendo arquitetura zero-dependency, contratos dos comandos `onboard` e `studio`, soberania de escolha de formato pelo usuário e matriz de papéis.
 - **[`GLOSSARY.md`](./GLOSSARY.md)**: Fonte canônica de terminologia, equivalências técnicas, códigos de saída e matriz anti-delírio.
 - **[`ROADMAP.md`](./ROADMAP.md)**: Esteira viva de engenharia estruturada em 5 fases vinculadas às issues do repositório.
+- **[`Guia Operacional para LLMs`](./skill-media-producer/references/llm-agent-guide.md)**: Playbook completo para agentes inteligentes (Claude, Cursor, Codex, Grok, Hermes) conduzirem onboarding sem alucinações.
 
 ---
 
@@ -85,11 +86,14 @@ universal-skill onboard --mode podcast_clip --file ./clip1.mp4 --file ./clip2.mp
 ```
 
 ### Flags do Onboard:
-- `--mode <dark | edit_only | podcast_clip>`: Modo de vídeo.
+- `--mode <podcast_clip | edit_only | dark>`: Modo de vídeo (cortes com legendas, decupagem ou tipografia).
+- `--format <9:16 | 16:9>`: Proporção de tela definida pelo usuário (Vertical 9:16 para mobile ou Widescreen 16:9 para desktop).
 - `--dest <path>`: Diretório do workspace (persiste no perfil para reuso).
 - `--file <path>`: Arquivo de vídeo fonte (pode ser repetido para múltiplos arquivos).
 - `--verbose`: Exibe logs detalhados do FFmpeg em caso de erro.
 - `--json`: Retorna resultado estruturado em formato JSON.
+
+> **Importante — Soberania do Usuário:** Nem fundo preto (`dark`) nem widescreen (`16:9`) são impostos como padrão. O usuário escolhe a proporção e o estilo de edição.
 
 ### Configurar proporção, legendas e áudio
 

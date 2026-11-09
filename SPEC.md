@@ -1,5 +1,7 @@
 # Especificação Técnica Canônica — Esquadrão de Conteúdo CLI (`@universal-skill/cli`)
 
+> **Repositório:** `LuizKarlos/esquadrao_skill`  
+> **Funil Integrado:** `LuizKarlos/esquadrao_funil`  
 > **Versão:** 1.0.0  
 > **Status:** Ativo / Homologado  
 > **Pacote npm:** `@universal-skill/cli`  

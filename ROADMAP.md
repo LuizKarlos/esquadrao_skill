@@ -1,5 +1,7 @@
 # Roadmap de Engenharia — Esquadrão de Conteúdo CLI (`@universal-skill/cli`)
 
+> **Repositório:** `LuizKarlos/esquadrao_skill`  
+> **Funil Integrado:** `LuizKarlos/esquadrao_funil`  
 > **Esteira Viva:** Este roadmap governa o ciclo de desenvolvimento, os testes contínuos e os marcos de entrega do pacote `@universal-skill/cli`.  
 > **Autoridades Canônicas:** [`SPEC.md`](./SPEC.md), [`GLOSSARY.md`](./GLOSSARY.md), [`README.md`](./README.md)
 
@@ -87,7 +89,7 @@
 ## Fase 5: Publicação no Registro npm e Homologação de Entrega
 > **Status:** Em Andamento  
 > **Objetivo:** Tornar o repositório público, publicar o pacote `@universal-skill/cli` no registro oficial do npm e validar execução em ambiente limpo.  
-> **Issue GitHub Ativa:** [#26 — Publicar @universal-skill/cli no npm](https://github.com/LuizKarlos/universal-skill-cli/issues/26)
+> **Issue GitHub Ativa:** [#26 — Publicar @universal-skill/cli no npm](https://github.com/LuizKarlos/esquadrao_skill/issues/26)
 
 - [ ] **5.1. Homologação da Publicação:**
   - [x] Testes unitários com cobertura total de 55 testes verdes.

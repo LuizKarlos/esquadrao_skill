@@ -1,5 +1,7 @@
 # Glossário Terminológico e Matriz Anti-Delírio — Esquadrão de Conteúdo CLI
 
+> **Repositório:** `LuizKarlos/esquadrao_skill`  
+> **Funil Integrado:** `LuizKarlos/esquadrao_funil`  
 > **Documento Canônico:** Governa a nomenclatura, equivalências técnicas e limites conceituais do pacote `@universal-skill/cli`.  
 > **Autoridade Vinculada:** [`SPEC.md`](./SPEC.md), [`ROADMAP.md`](./ROADMAP.md)
 
