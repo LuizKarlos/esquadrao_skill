@@ -67,6 +67,10 @@
   - [x] Comando `universal-skill studio qa <artifact.mp4> [--plan <editplan.json>]`.
   - [x] Verificação obrigatória de presença de stream de áudio.
   - [x] Validação de resolução (1080x1920 / 1920x1080) e conformidade de duração contra o plano.
+- [x] **3.5. Detecção de Silêncio e Auto-Clip Integrado:**
+  - [x] Comando `esquadrao studio detect-silence <video>` com filtros nativos FFmpeg (`silencedetect`).
+  - [x] Comando `esquadrao studio auto-clip <video.mp4>` integrando fatiamento de silêncios, Whisper e legendas dinâmicas estilo impacto viral (Opção A por padrão).
+  - [x] Suporte dual a Whisper: gratuito local (padrão) e API oficial OpenAI (opcional via autorização do usuário).
 
 ---
 

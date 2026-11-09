@@ -49,26 +49,28 @@ universal-skill setup
 ## Commands
 
 ```bash
-# Guided onboarding agent: zero to first rendered video artifact
-universal-skill onboard [--mode <mode>] [--dest <path>] [--file <file>] [--verbose] [--json]
+# Comando principal canônico: esquadrao (ou universal-skill)
+esquadrao onboard [--mode <mode>] [--dest <path>] [--file <file>] [--verbose] [--json]
 
-# Set up skills and rules in current workspace harnesses
-universal-skill setup [--dest <path>] [--json]
+# Auto-corte integrado: detecta silêncio, corta pausas, transcreve com Whisper e renderiza com QA
+esquadrao studio auto-clip <video.mp4> [--silence-thresh -30dB] [--silence-duration 0.8] [--format 9:16] [--caption-style impact]
 
-# Inspect and execute industry roles
-universal-skill role [list | info <id> | prompt <id> | matrix] [--json]
+# Detector rápido de silêncio e pausas mortas
+esquadrao studio detect-silence <video.mp4> [--json]
 
-# Initialize video studio workspace
-universal-skill studio init [--dest <path>]
+# Configurar skills nos harnesses locais do usuário (.agents, .claude, .codex, .cursor)
+esquadrao setup [--dest <path>] [--json]
 
-# Import source media assets into studio
-universal-skill studio import <file>
+# Inspecionar e executar papéis canônicos
+esquadrao role [list | info <id> | prompt <id> | matrix] [--json]
 
-# Render an EditPlan to MP4 artifact
-universal-skill studio render <editplan.json>
+# Inicializar workspace e importar mídia
+esquadrao studio init [--dest <path>]
+esquadrao studio import <file>
 
-# Run automated QA validation on a rendered artifact
-universal-skill studio qa <artifact.mp4>
+# Renderizar plano manual ou executar QA
+esquadrao studio render <editplan.json>
+esquadrao studio qa <artifact.mp4> [--plan <editplan.json>]
 ```
 
 ## Primeiro acesso

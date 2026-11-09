@@ -20,6 +20,13 @@ const { values: flags, positionals } = parseArgs({
     verbose: { type: 'boolean' },
     help: { type: 'boolean', short: 'h' },
     version: { type: 'boolean', short: 'v' },
+    format: { type: 'string' },
+    'silence-thresh': { type: 'string' },
+    'silence-duration': { type: 'string' },
+    'caption-style': { type: 'string' },
+    openai: { type: 'boolean' },
+    local: { type: 'boolean' },
+    captions: { type: 'string' },
   },
   allowPositionals: true,
   strict: false,
@@ -35,26 +42,34 @@ if (flags.version || command === 'version' || flags.v) {
 const SUBCOMMANDS = new Set(['setup', 'role', 'studio', 'onboard']);
 
 if (!command || command === 'help' || (flags.help && !SUBCOMMANDS.has(command))) {
-  console.log(`Universal Skill CLI v${pkg.version}
+  console.log(`Esquadrão CLI / Universal Skill CLI v${pkg.version}
 
 Usage:
+  esquadrao <command> [options]
   universal-skill <command> [options]
 
 Commands:
-  setup       Install skills into agent harnesses (.agents, .claude, .codex, .cursor)
-  role        List, inspect, and generate prompts for industry roles
-  studio      Video studio workspace, asset import, rendering, and QA
-  onboard     Guided onboarding agent: zero to first rendered video
-  version     Display CLI version
-  help        Display help information
+  setup       Instala os skills nos ambientes de agentes (.agents, .claude, .codex, .cursor)
+  role        Lista, inspeciona e executa papéis canônicos da esteira
+  studio      Estúdio local de vídeo: init, import, render, qa, auto-clip
+  onboard     Guia interativo: da mídia bruta ao primeiro corte renderizado
+  version     Exibe a versão do CLI
+  help        Exibe mensagens de ajuda
 
 Options:
-  -h, --help       Show help
-  -v, --version    Show version
-  --json           Output results in JSON format
-  --dest <path>    Custom destination directory for skills or workspace
-  --mode <mode>    Video mode for onboarding (edit_only, dark, podcast_clip)
-  --file <path>    Source media file for onboarding (can be repeated)`);
+  -h, --help                Show help
+  -v, --version             Show version
+  --json                    Output results in JSON format
+  --dest <path>             Custom destination directory for skills or workspace
+  --mode <mode>             Video mode for onboarding (edit_only, dark, podcast_clip)
+  --file <path>             Source media file for onboarding (can be repeated)
+  --format <9:16|16:9>      Aspect ratio (padrão: 9:16)
+  --silence-thresh <dB>     Sensibilidade de silêncio (padrão: -30dB)
+  --silence-duration <sec>  Pausa mínima para corte (padrão: 0.8s)
+  --caption-style <style>   Estilo de legendas: impact (padrão), word, full
+  --openai                  Usar API OpenAI Whisper para transcrição
+  --local                   Usar Whisper local (offline)
+  --captions <file.srt>     Arquivo de legendas externo`);
   process.exit(0);
 }
 

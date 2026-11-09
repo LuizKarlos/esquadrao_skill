@@ -83,6 +83,21 @@ Fornece o pipeline operacional de criação, importação de mídias, renderiza�
   - Compara a duração real do artefato com o esperado pelo plano (tolerância máxima de 250ms).
   - Valida conformidade estrita de resolução (ex: 1080x1920) e framerate.
 
+#### 2.2.5. `esquadrao studio detect-silence <video>`
+- Executa análise de áudio via filtro FFmpeg `silencedetect=noise=-30dB:d=0.8` (customizável via `--silence-thresh` e `--silence-duration`).
+- Mapeia intervalos exatos de silêncio e calcula os segmentos de fala contígua (`computeSpeechIntervals`).
+- Emite relatório detalhado em texto ou JSON com contagem de pausas e tempo ativo de fala.
+
+#### 2.2.6. `esquadrao studio auto-clip <video.mp4> [opções]`
+- Executa o pipeline automatizado completo:
+  1. Ingestão e probe do vídeo original (`ffprobe`).
+  2. Detecção e remoção de silêncios maiores que 0.8s (ou valor configurado).
+  3. Transcrição com Whisper (gratuito local via ONNX / `@xenova/transformers`, com suporte opcional à API OpenAI se `OPENAI_API_KEY` for fornecida e autorizada pelo usuário).
+  4. Agrupamento de legendas: Estilo A (impacto viral com 2 a 4 palavras em caixa alta, centralizadas e fundo contrastante por padrão), Estilo B (palavra única) ou Estilo C (frase completa).
+  5. Remapeamento temporal exato das legendas sobre a linha de tempo sem pausas (`remapCaptionsToSpeechTimeline`).
+  6. Geração atômica de `EditPlan v1` e renderização final via FFmpeg.
+  7. Verificação técnica de QA (`resolution`, `fps`, `audio`) sobre o arquivo MP4 entregue.
+
 ### 2.3. Configuração Multi-Harness (`universal-skill setup`)
 Distribui as 18 skills empacotadas para os diretórios locais dos diferentes agentes de IA presentes no workspace do usuário:
 - **Grok Build:** `.agents/skills/`

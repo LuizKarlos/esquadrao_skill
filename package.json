@@ -4,6 +4,8 @@
   "description": "Universal CLI and autonomous skill orchestration framework for AI agents",
   "type": "module",
   "bin": {
+    "esquadrao": "bin/cli.js",
+    "esquadrao-skill": "bin/cli.js",
     "universal-skill": "bin/cli.js",
     "agent-skill": "bin/cli.js"
   },
@@ -32,13 +34,15 @@
     "README.md"
   ],
   "engines": {
-    "node": ">=\u00318.0.0"
+    "node": ">=18.0.0"
   },
   "scripts": {
     "lint": "node scripts/lint.js",
     "test": "node --test"
   },
   "keywords": [
+    "esquadrao",
+    "esquadrao-de-conteudo",
     "skills",
     "agents",
     "claude",

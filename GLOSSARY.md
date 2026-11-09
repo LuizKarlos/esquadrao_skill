@@ -28,6 +28,9 @@ A tabela a seguir estabelece as equivalências obrigatórias entre os conceitos 
 | :--- | :--- | :--- |
 | `@universal-skill/cli` | **Esquadrão de Conteúdo** | Pacote executável em Node.js com stdlib pura e comandos de terminal. |
 | `universal-skill onboard` | **Primeiro Vídeo Guiado** | Agente interativo que conduz o usuário até o primeiro arquivo `.mp4` validado. |
+| `esquadrao` / `universal-skill` | **Esquadrão CLI** | Comando de linha unificado para orquestração de papéis e estúdio de vídeo. |
+| `esquadrao studio auto-clip` | **Esteira de Auto-Corte** | Pipeline completo: detecção de silêncio, transcrição Whisper, legendas e renderização. |
+| `esquadrao studio detect-silence` | **Detector de Silêncios** | Análise por FFmpeg silencedetect para identificar pausas e duração de fala ativa. |
 | `universal-skill studio` | **Estúdio Local de Produção** | Pipeline de decupagem, junção de fontes e aplicação de filtros de áudio/vídeo. |
 | `EditPlan v1` | **Plano de Corte e Edição** | Esquema JSON determinístico com trilhas, cortes milimétricos e textos. |
 | `mode: "dark"` | **Canais Dark / Vídeo Rápido** | Renderização sem necessidade de gravação prévia, usando fundos e tipografia. |
