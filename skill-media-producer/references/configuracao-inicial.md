@@ -24,11 +24,11 @@ Abra um novo PowerShell após instalar para atualizar o PATH.
 Se você já tem o repositório clonado, defina o caminho absoluto para `bin\cli.js`:
 
 ```powershell
-$cli = "C:\caminho\universal-skill-cli\bin\cli.js"
+$cli = "C:\caminho\esquadrao-cli\bin\cli.js"
 node $cli studio --help
 ```
 
-Alternativamente, após a publicação do pacote no npm, instale com `npm install -g @universal-skill/cli` e substitua `node $cli` por `universal-skill` nos comandos deste guia.
+Alternativamente, após a publicação do pacote no npm, instale com `npm install -g @esquadrao/cli` e substitua `node $cli` por `esquadrao` nos comandos deste guia.
 
 ## 2. Criar o projeto e instalar as skills
 
@@ -214,3 +214,17 @@ O QA compara dimensões, fps e duração com o plano e verifica os streams. Assi
 ## Pedido pronto para o agente
 
 > Use skill-media-producer e o guia de configuração inicial. Pergunte o arquivo de origem, formato vertical ou horizontal, dois trechos, frases e horários das legendas e ganho do áudio. Prepare packages/editplan.json com as opções disponíveis. Antes de renderizar, mostre os cortes e a duração final para aprovação. Depois execute render e qa com --plan e informe o caminho do MP4.
+
+## 8. Esteira rápida de auto-corte de silêncios e legendas (`auto-clip`)
+
+Se você possui um vídeo falado (ex.: podcast, aula ou gravação direta) e deseja cortar automaticamente pausas e silêncios maiores que 0.8s aplicando legendas dinâmicas estilo impacto viral (Opção A):
+
+```powershell
+# Auto-corte completo com detecção de silêncio, Whisper e QA:
+node $cli studio auto-clip .\originais\meu-video.mp4 --dest .
+
+# Ou apenas analisar silêncios e pausas mortas antes de renderizar:
+node $cli studio detect-silence .\originais\meu-video.mp4
+```
+
+O comando expurga as pausas, transcreve com Whisper, remapeia as legendas com sincronia labial e valida o arquivo MP4 final.
