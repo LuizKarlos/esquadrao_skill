@@ -42,16 +42,16 @@ Execute no terminal:
 npm install -g @universal-skill/cli
 
 # 2. Configurar o workspace atual
-universal-skill setup
+esquadrao setup
 
 # 3. Inicializar o estúdio
-universal-skill studio init --dest ./workspace
+esquadrao studio init --dest ./workspace
 ```
 
 ### Fase 4: Importação da Mídia e Leitura dos Metadados
 Importe o arquivo do usuário e anote o ID do asset:
 ```bash
-universal-skill studio import /caminho/do/video.mp4 --dest ./workspace --json
+esquadrao studio import /caminho/do/video.mp4 --dest ./workspace --json
 ```
 A resposta retorna:
 ```json
@@ -82,10 +82,18 @@ Com base nas escolhas do usuário, crie `./workspace/packages/editplan.json`.
 ### Fase 6: Renderização e QA
 Após a confirmação:
 ```bash
-universal-skill studio render ./workspace/packages/editplan.json --dest ./workspace --json
-universal-skill studio qa ./workspace/artifacts/video.mp4 --plan ./workspace/packages/editplan.json
+esquadrao studio render ./workspace/packages/editplan.json --dest ./workspace --json
+esquadrao studio qa ./workspace/artifacts/video.mp4 --plan ./workspace/packages/editplan.json
 ```
 Entregue o caminho do vídeo final gerado e confirme que a checagem técnica passou com sucesso.
+
+### Fase Alternativa Rápida: Pipeline Integrado de Auto-Corte (`auto-clip`)
+Quando o usuário deseja fatiar pausas mortas e aplicar legendas automáticas a partir de um vídeo longo sem montar o `editplan.json` manualmente:
+```bash
+# Executa corte de silêncios (0.8s), transcrição Whisper, legendas dinâmicas e renderização com QA:
+esquadrao studio auto-clip /caminho/do/video.mp4 --dest ./workspace --json
+```
+O comando emite o resumo com total de silêncio expurgado, quantidade de cortes contíguos e o artefato renderizado aprovado.
 
 ---
 
