@@ -1,53 +1,299 @@
 ---
 name: skill-media-producer
-version: "1.0.0"
+version: "1.2.0"
 description: "Set up Universal Skill Studio and configure video aspect ratio, captions, cuts, audio gain, EditPlan validation, rendering, and QA. Use for initial setup and video configuration requests."
 allowed-tools: ["terminal"]
 ---
 
-# Media Producer
+# Media Producer — Esquadrão de Conteúdo
 
-Author and validate deterministic short-form video specifications, cut intervals, audio leveling, and media QA rules.
+Guia canônico e motor de execução para agentes de IA e LLMs produzirem vídeos automatizados via `@universal-skill/cli` e FFmpeg local.
 
 ## When to Use
 
-- Generating structured EditPlan contracts for short-form video pipelines (`edit_only`, `dark`, `podcast_clip`).
-- Validating timeline clip contiguity, boundary intervals (minimum 100ms), and audio stream gains (-60 dB to +12 dB).
-- Enforcing NFC text normalization (1–200 characters, zero HTML markup) for visual caption and text overlays.
-- Running technical media QA against an EditPlan, followed by visual and listening review.
+- Configuração inicial do estúdio de vídeo e setup do ambiente local.
+- Criação de planos de corte e edição estruturados (`EditPlan v1`) sem alucinações.
+- Fatiamento de podcasts e gravações longas com legendas sincronizadas (`podcast_clip`).
+- Decupagem e junção contígua de trechos de vídeo (`edit_only`).
+- Vídeos com tipografia destacada (`dark`), exclusivamente sob demanda expressa do usuário.
+- Inspeção técnica automatizada de qualidade (`studio qa`) e validação de conformidade.
 
 ## NOT for
 
-- Merkle cryptographic chain validation (`skill-audit`).
-- Multi-agent swarm leasing locks (`skill-orchestrate`).
-- Code syntax AST slicing (`skill-context`).
+- Validação de ledgers Merkle criptográficos (`skill-audit`).
+- Orquestração de enxames e bloqueios de leasing (`skill-orchestrate`).
+- Fatiamento sintático de AST (`skill-context`).
+- Auditorias visuais WCAG de páginas web (`skill-ui`).
 
-## Workflow & CLI
+---
 
-For initial setup, aspect ratio, captions, or a complete render workflow, read [Configuração inicial (Windows / PowerShell)](references/configuracao-inicial.md). It includes commands, an EditPlan template, supported settings, and current rendering limits.
+## 1. Princípio Fundamental de Escolha do Usuário (Anti-Padrão Forçado)
 
-Collect the source file, desired format, cut intervals, caption text/timing, and audio gain. Ask only for missing choices. Show the final timeline and duration before rendering; obtain approval for execution. Use `studio qa <artifact.mp4> --plan <editplan.json>` and report its result separately from visual/listening review. Offer caption appearance settings only when the renderer supports them, as documented in the guide.
+> **REGRA MANDATÓRIA PARA A LLM:**
+> **A forma de edição com fundo preto e widescreen NÃO é o padrão do sistema.**
+> Quem escolhe a proporção e o estilo visual é SEMPRE o usuário. A LLM NUNCA deve assumir proporção 16:9 ou fundo escuro sem perguntar explicitamente.
 
-Inspect the role or generate an authoring prompt via `universal-skill role`:
+A LLM deve obter a confirmação do usuário para dois eixos decisórios fundamentais:
 
+1. **Proporção de Tela / Formato:**
+   - **Vertical 9:16 (`1080x1920`):** Ideal para TikTok, Instagram Reels, YouTube Shorts e consumo mobile.
+   - **Widescreen 16:9 (`1920x1080`):** Ideal para YouTube padrão, desktop, apresentações e TV.
+2. **Estilo de Edição / Mídia de Fundo:**
+   - **`podcast_clip` (Cortes com Legendas):** Fatiamento de falas longas com áudio balanceado e queima gráfica de legendas dinâmicas.
+   - **`edit_only` (Decupagem de Vídeo):** Junção contígua de 2 cortes a partir de filmagens do usuário ou packs de vídeos e imagens cinematográficas.
+   - **`dark` (Fundo Escuro Tipográfico):** Animação tipográfica de texto centralizado sobre fundo escuro com silêncio ou trilha sintética (usar apenas se o usuário pedir explicitamente).
+
+---
+
+## 2. Guia de Conversação e Setup Passo a Passo para LLMs
+
+Quando o usuário solicitar ajuda para produzir vídeos ou configurar a esteira, a LLM deve seguir exatamente esta sequência:
+
+### Passo 1: Sondagem Inicial de Preferências
+A LLM pergunta de forma direta e objetiva:
+1. *"Qual formato você prefere para o seu vídeo? (1) Vertical 9:16 para Reels/Shorts/TikTok ou (2) Widescreen 16:9 para YouTube?"*
+2. *"Qual estilo você quer aplicar? (1) Cortar uma gravação com legendas automáticas, (2) Decupar e unir trechos de vídeos/packs, ou (3) Vídeo tipográfico sobre fundo escuro?"*
+
+### Passo 2: Verificação de Pré-requisitos
+A LLM orienta ou executa a checagem no terminal:
 ```bash
-# 1. View media producer parameters and schema constraints
-universal-skill role info media-producer
+node -v      # Deve ser >= 18.0.0
+ffmpeg -version
+ffprobe -version
+```
+Se o FFmpeg não estiver instalado, a LLM fornece o comando exato para o sistema:
+- **Windows:** `winget install Gyan.FFmpeg` ou `choco install ffmpeg`
+- **macOS:** `brew install ffmpeg`
+- **Linux:** `sudo apt update && sudo apt install -y ffmpeg`
 
-# 2. Generate edit plan authoring prompt
-universal-skill role prompt media-producer "Author 2-cut vertical video edit plan for 1080x1920 @ 30fps"
+### Passo 3: Instalação e Configuração das Skills
+```bash
+# Instalação global do CLI oficial
+npm install -g @universal-skill/cli
+
+# Configuração e distribuição das skills para o workspace atual
+universal-skill setup
 ```
 
-## Specifications & Parameters
+### Passo 4: Inicialização do Estúdio
+```bash
+# Inicializa a estrutura atômica de pastas do workspace
+universal-skill studio init --dest ./workspace
+```
 
-### Modes
-- `edit_only`: Exactly 2 contiguous video clips from source footage; matching source audio tracks.
-- `dark`: Visual text overlays (`TextClip`) with no spoken TTS; 1–200 NFC characters, no HTML.
-- `podcast_clip`: >= 1 contiguous video clips with accompanying source audio tracks and optional text captions.
+### Passo 5: Importação das Fontes de Mídia (se aplicável)
+```bash
+# Importa o arquivo de vídeo e inspeciona duração, codecs e áudio
+universal-skill studio import ./caminho/meu-video.mp4 --dest ./workspace --json
+```
 
-### Output Standard
-- Resolution: Vertical `1080x1920` or Horizontal `1920x1080`.
-- Frame Rate: `30/1` FPS.
-- Encoding: `h264` (video) and `aac` (audio).
-- Cut Intervals: Integer bounds in milliseconds, each clip >= 100ms.
-- Audio Gain: Bound between `-60` and `+12` dB.
+### Passo 6: Criação do EditPlan e Aprovação do Usuário
+A LLM gera o arquivo `./workspace/packages/editplan.json` com base nos modelos canônicos abaixo.
+**A LLM deve exibir os cortes, a duração final e as legendas para o usuário aprovar antes de renderizar.**
+
+### Passo 7: Renderização e Verificação de Qualidade (QA)
+```bash
+# Renderiza o artefato final em MP4
+universal-skill studio render ./workspace/packages/editplan.json --dest ./workspace --json
+
+# Valida conformidade técnica (áudio, resolução e duração)
+universal-skill studio qa ./workspace/artifacts/video.mp4 --plan ./workspace/packages/editplan.json
+```
+
+---
+
+## 3. Modelos Canônicos de EditPlan v1 (Prontos para LLM sem Alucinação)
+
+### Modelo 1: Vertical 9:16 (`1080x1920`) — `podcast_clip` (Cortes com Legendas)
+```json
+{
+  "schema_version": 1,
+  "mode": "podcast_clip",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps_num": 30,
+    "fps_den": 1,
+    "video_codec": "h264",
+    "audio_codec": "aac"
+  },
+  "clips": [
+    {
+      "kind": "video",
+      "clip_id": "clip-01",
+      "asset_id": "AST-12345678",
+      "in_ms": 1000,
+      "out_ms": 7000,
+      "timeline_start_ms": 0,
+      "speed": 1
+    }
+  ],
+  "audio_tracks": [
+    {
+      "kind": "source",
+      "clip_id": "clip-01",
+      "gain_db": 0
+    }
+  ],
+  "captions": [
+    {
+      "text": "Vídeo longo parado não dá visualização.",
+      "timeline_start_ms": 0,
+      "duration_ms": 3000
+    },
+    {
+      "text": "A esteira local corta silêncios e gera legendas.",
+      "timeline_start_ms": 3000,
+      "duration_ms": 3000
+    }
+  ]
+}
+```
+
+### Modelo 2: Widescreen 16:9 (`1920x1080`) — `edit_only` (Decupagem Contígua)
+```json
+{
+  "schema_version": 1,
+  "mode": "edit_only",
+  "output": {
+    "width": 1920,
+    "height": 1080,
+    "fps_num": 30,
+    "fps_den": 1,
+    "video_codec": "h264",
+    "audio_codec": "aac"
+  },
+  "clips": [
+    {
+      "kind": "video",
+      "clip_id": "corte-01",
+      "asset_id": "AST-12345678",
+      "in_ms": 0,
+      "out_ms": 4000,
+      "timeline_start_ms": 0,
+      "speed": 1
+    },
+    {
+      "kind": "video",
+      "clip_id": "corte-02",
+      "asset_id": "AST-12345678",
+      "in_ms": 4000,
+      "out_ms": 8000,
+      "timeline_start_ms": 4000,
+      "speed": 1
+    }
+  ],
+  "audio_tracks": [
+    {
+      "kind": "source",
+      "clip_id": "corte-01",
+      "gain_db": 0
+    },
+    {
+      "kind": "source",
+      "clip_id": "corte-02",
+      "gain_db": 0
+    }
+  ]
+}
+```
+
+### Modelo 3: Vertical 9:16 (`1080x1920`) — `edit_only` (Dois Cortes com Cenas de Fundo)
+```json
+{
+  "schema_version": 1,
+  "mode": "edit_only",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps_num": 30,
+    "fps_den": 1,
+    "video_codec": "h264",
+    "audio_codec": "aac"
+  },
+  "clips": [
+    {
+      "kind": "video",
+      "clip_id": "take-01",
+      "asset_id": "AST-CENA0001",
+      "in_ms": 0,
+      "out_ms": 3000,
+      "timeline_start_ms": 0,
+      "speed": 1
+    },
+    {
+      "kind": "video",
+      "clip_id": "take-02",
+      "asset_id": "AST-CENA0002",
+      "in_ms": 0,
+      "out_ms": 3500,
+      "timeline_start_ms": 3000,
+      "speed": 1
+    }
+  ],
+  "audio_tracks": [
+    {
+      "kind": "source",
+      "clip_id": "take-01",
+      "gain_db": 0
+    },
+    {
+      "kind": "source",
+      "clip_id": "take-02",
+      "gain_db": 0
+    }
+  ]
+}
+```
+
+### Modelo 4: Fundo Escuro Tipográfico — `dark` (Sob Solicitação Expressa do Usuário)
+```json
+{
+  "schema_version": 1,
+  "mode": "dark",
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "fps_num": 30,
+    "fps_den": 1,
+    "video_codec": "h264",
+    "audio_codec": "aac"
+  },
+  "clips": [
+    {
+      "kind": "text",
+      "text": "Ideia Principal em Destaque",
+      "duration_ms": 2000,
+      "timeline_start_ms": 0
+    },
+    {
+      "kind": "text",
+      "text": "Conclusão e Próximo Passo",
+      "duration_ms": 2500,
+      "timeline_start_ms": 2000
+    }
+  ]
+}
+```
+
+---
+
+## 4. Fronteiras Rígidas e Regras Anti-Alucinação para LLMs
+
+1. **Resoluções Válidas:** Estritamente `1080x1920` (Vertical 9:16) ou `1920x1080` (Widescreen 16:9). Qualquer outro valor causa falha na validação de QA.
+2. **Taxa de Quadros e Codecs:** Sempre `fps_num: 30`, `fps_den: 1`, `video_codec: "h264"`, `audio_codec: "aac"`.
+3. **Cortes de Vídeo:** Mínimo de 100 milissegundos por corte. O ponto de término `out_ms` não pode exceder a duração real do asset importado.
+4. **Legendas:**
+   - 1 a 200 caracteres por frase.
+   - Normalização NFC sem caracteres invisíveis.
+   - Zero tags HTML (`<b>`, `<font>`, `<br>`).
+   - Caracteres especiais são tratados pelo motor: `%` vira `\%`, `'` vira `\'`, `\` vira `\\`.
+5. **Ganho de Áudio:** Intervalo restrito entre `-60` dB e `+12` dB. `0` dB preserva o volume original.
+6. **Verificação Técnica Independente:** Sempre execute `studio qa` com `--plan` para validar integridade antes de concluir a tarefa.
+
+---
+
+## 5. Referências Adicionais
+
+- [`references/llm-agent-guide.md`](references/llm-agent-guide.md): Guia de conversação completo com fluxos de tratamento de erro.
+- [`references/configuracao-inicial.md`](references/configuracao-inicial.md): Guia passo a passo para execução via PowerShell / Windows.

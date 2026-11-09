@@ -16,8 +16,9 @@ O **Esquadrão de Conteúdo CLI** (`@universal-skill/cli`) é um framework autô
 1. **Zero Dependências Externas em Runtime (`dependencies: {}`):** O projeto utiliza estritamente as bibliotecas nativas do Node.js (`node:fs`, `node:path`, `node:child_process`, `node:crypto`, `node:readline`, `node:os`).
 2. **Execução 100% Local:** Todo o processamento de áudio, decupagem, queima de legendas e renderização em lote ocorre na CPU/GPU da máquina do usuário. Proibido envio de gravações para servidores externos ou taxímetro de créditos por minuto.
 3. **Soberania Digital e Posse Vitalícia:** Sem DRM, sem validação periódica de chaves em nuvem, sem restrição de dispositivos e sem telemetria oculta. O cliente é dono definitivo do seu ambiente e dos seus arquivos.
-4. **Resiliência a Falhas do FFmpeg:** Todo comando FFmpeg é executado com captura de streams e sanitização de logs. Falhas de execução limpam artefatos temporários parciais (`SIGINT`) e exibem diagnósticos objetivos sem despejar comandos quilométricos por padrão.
-5. **Compatibilidade Multi-Plataforma:** Suporte homogêneo a Windows, macOS e Linux, detectando nativamente binários de `ffmpeg` e `ffprobe` no PATH com mensagens de instalação acionáveis por sistema operacional.
+4. **Decisão do Usuário sobre Formato e Fundo (Anti-Padrão Forçado):** O sistema e os agentes de IA NUNCA forçam fundo preto (`dark`) ou widescreen (`16:9`) como padrão. O usuário define ativamente o formato (Vertical 9:16 para mobile ou Widescreen 16:9 para desktop) e o estilo de edição (cortes com legendas `podcast_clip`, decupagem `edit_only` com packs/fontes ou tipografia `dark`).
+5. **Resiliência a Falhas do FFmpeg:** Todo comando FFmpeg é executado com captura de streams e sanitização de logs. Falhas de execução limpam artefatos temporários parciais (`SIGINT`) e exibem diagnósticos objetivos sem despejar comandos quilométricos por padrão.
+6. **Compatibilidade Multi-Plataforma:** Suporte homogêneo a Windows, macOS e Linux, detectando nativamente binários de `ffmpeg` e `ffprobe` no PATH com mensagens de instalação acionáveis por sistema operacional.
 
 ---
 
@@ -30,7 +31,7 @@ Conduz o usuário do zero absoluto até a renderização do seu primeiro vídeo 
 
 - **Sintaxe:**
   ```bash
-  universal-skill onboard [--mode <dark|edit_only|podcast_clip>] [--dest <path>] [--file <file>] [--verbose] [--json]
+  universal-skill onboard [--mode <dark|edit_only|podcast_clip>] [--format <9:16|16:9>] [--dest <path>] [--file <file>] [--verbose] [--json]
   ```
 - **Modos de Operação:**
   - `dark`: Renderização de vídeo vertical sem necessidade de footage prévio, utilizando overlays de texto centralizados, fundo escuro e áudio sintetizado ou de apoio.

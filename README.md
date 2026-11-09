@@ -1,6 +1,6 @@
 # Esquadrão de Conteúdo CLI (`@universal-skill/cli`)
 
-Framework autônomo local e CLI de orquestração de skills, execução de papéis técnicos e produção automatizada de vídeo vertical (9:16) via FFmpeg.
+Framework autônomo local e CLI de orquestração de skills, execução de papéis técnicos e produção automatizada de vídeo vertical (9:16) e widescreen (16:9) via FFmpeg, com formato e estilo definidos pelo usuário.
 
 ---
 

@@ -79,7 +79,11 @@ export function saveProfile(targetDir, profileData) {
 }
 
 // ponytail: minimal 2-clip / text templates; upgrade when interactive storyboard editing or custom caption styling is needed.
-export function buildOnboardPlan({ mode, assets = [] }) {
+export function buildOnboardPlan({ mode, assets = [], format = '9:16' }) {
+  const isWidescreen = format === '16:9';
+  const width = isWidescreen ? 1920 : 1080;
+  const height = isWidescreen ? 1080 : 1920;
+
   if (mode === 'dark') {
     return {
       schema_version: 1,
@@ -99,8 +103,8 @@ export function buildOnboardPlan({ mode, assets = [] }) {
         },
       ],
       output: {
-        width: 1080,
-        height: 1920,
+        width,
+        height,
         fps_num: 30,
         fps_den: 1,
         video_codec: 'h264',
@@ -175,8 +179,8 @@ export function buildOnboardPlan({ mode, assets = [] }) {
         { kind: 'source', clip_id: 'c2', gain_db: 0 },
       ],
       output: {
-        width: 1080,
-        height: 1920,
+        width,
+        height,
         fps_num: 30,
         fps_den: 1,
         video_codec: 'h264',
@@ -226,8 +230,8 @@ export function buildOnboardPlan({ mode, assets = [] }) {
         },
       ],
       output: {
-        width: 1080,
-        height: 1920,
+        width,
+        height,
         fps_num: 30,
         fps_den: 1,
         video_codec: 'h264',
@@ -260,11 +264,12 @@ Usage:
 Guided onboarding agent that takes a client from zero to their first rendered video.
 
 Options:
-  --mode <mode>     Video mode: dark | edit_only | podcast_clip
-  --dest <path>     Workspace destination directory (defaults to cwd or saved profile)
-  --file <path>     Media file to import for edit_only or podcast_clip (can repeat)
-  --json            Output results in JSON format
-  -h, --help        Show help message`);
+  --mode <mode>       Video mode: podcast_clip | edit_only | dark (chosen by user)
+  --format <format>   Aspect ratio: 9:16 (vertical mobile) | 16:9 (widescreen) (default: 9:16)
+  --dest <path>       Workspace destination directory (defaults to cwd or saved profile)
+  --file <path>       Media file to import for edit_only or podcast_clip (can repeat)
+  --json              Output results in JSON format
+  -h, --help          Show help message`);
     return;
   }
 
@@ -300,10 +305,14 @@ Options:
   };
 
   const ask = async (promptMsg, defaultVal = '') => {
-    const promptStr = defaultVal ? `${promptMsg} [${defaultVal}]: ` : `${promptMsg}: `;
-    const r = getRl();
-    const answer = (await r.question(promptStr)).trim();
-    return answer || defaultVal;
+    try {
+      const promptStr = defaultVal ? `${promptMsg} [${defaultVal}]: ` : `${promptMsg}: `;
+      const r = getRl();
+      const answer = (await r.question(promptStr)).trim();
+      return answer || defaultVal;
+    } catch {
+      return defaultVal;
+    }
   };
 
   const canPrompt = Boolean(io.input || process.stdin.isTTY || process.env.UNIVERSAL_SKILL_INTERACTIVE);
@@ -329,7 +338,7 @@ Options:
     const wsProfile = loadProfile(targetDir);
     const activeProfile = wsProfile || cwdProfile;
 
-    // 3. Mode Resolution
+    // 3. Mode & Format Resolution (User-driven choice: neither dark nor widescreen is forced default)
     let mode = flags.mode;
     if (!mode && activeProfile?.preferred_mode) {
       mode = activeProfile.preferred_mode;
@@ -337,7 +346,7 @@ Options:
 
     if (!mode) {
       if (canPrompt) {
-        mode = await ask('Select mode (dark / edit_only / podcast_clip)', 'dark');
+        mode = await ask('Select mode (podcast_clip / edit_only / dark)', 'dark');
       } else {
         throw new Error('Non-interactive run requires --mode flag (edit_only, dark, podcast_clip)');
       }
@@ -346,6 +355,15 @@ Options:
     mode = mode.toLowerCase().trim();
     if (!['dark', 'edit_only', 'podcast_clip'].includes(mode)) {
       throw new Error(`Invalid mode '${mode}'. Expected: dark, edit_only, or podcast_clip.`);
+    }
+
+    let format = flags.format || activeProfile?.preferred_format || '9:16';
+    if (!flags.format && canPrompt && process.stdin.isTTY && !process.env.UNIVERSAL_SKILL_INTERACTIVE) {
+      format = await ask('Select aspect ratio: 9:16 (vertical mobile) or 16:9 (widescreen)', '9:16');
+    }
+    format = (format || '9:16').trim();
+    if (format !== '16:9' && format !== '9:16') {
+      format = '9:16';
     }
 
     // 4. Media Files Resolution
@@ -412,7 +430,7 @@ Options:
       }
     }
 
-    const plan = buildOnboardPlan({ mode, assets: importedAssets });
+    const plan = buildOnboardPlan({ mode, assets: importedAssets, format });
     validateEditPlan(plan);
 
     const packagesDir = path.join(targetDir, 'packages');
@@ -438,6 +456,7 @@ Options:
     const profileData = {
       default_dir: targetDir,
       preferred_mode: mode,
+      preferred_format: format,
       updated_at: new Date().toISOString(),
     };
     saveProfile(targetDir, profileData);

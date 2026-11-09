@@ -41,6 +41,7 @@ A tabela a seguir estabelece as equivalências obrigatórias entre os conceitos 
 
 | Pergunta Frequente | Resposta Determinística |
 | :--- | :--- |
+| **"O CLI força fundo preto ou proporção widescreen por padrão?"** | **NÃO.** Nem fundo escuro nem widescreen são padrões obrigatórios. O usuário escolhe livremente entre vertical 9:16 (mobile) e horizontal 16:9 (desktop), e define se usará gravações, packs de apoio ou fundo escuro. |
 | **"O CLI envia vídeos para a nuvem para renderizar?"** | **NÃO.** Todo o pipeline de decupagem, mixagem e renderização executa estritamente na máquina local do cliente através do FFmpeg. |
 | **"O CLI exige chave de API ou conexão de rede para funcionar?"** | **NÃO.** Os comandos de criação, edição, renderização e QA executam completamente offline uma vez que o pacote e o FFmpeg estejam instalados. |
 | **"O CLI pode apagar arquivos de vídeo originais?"** | **NÃO.** O estúdio opera em modo estritamente não destrutivo. Os arquivos originais importados são mantidos intactos e os novos vídeos são salvos na pasta de renders. |

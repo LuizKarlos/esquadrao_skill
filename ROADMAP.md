@@ -32,10 +32,12 @@
 - [x] **2.1. Detecção Precoce de Dependências:**
   - [x] Verificação nativa da presença de `ffmpeg` e `ffprobe` no PATH antes de executar operações.
   - [x] Instruções de instalação personalizadas e acionáveis por sistema operacional (Windows, macOS, Linux).
-- [x] **2.2. Modos de Onboarding Homologados:**
-  - [x] Modo `dark`: renderização de vídeo vertical sem necessidade de filmagens prévias, com tipografia e fundos limpos.
-  - [x] Modo `edit_only`: corte e concatenação contígua de 2 trechos de vídeo.
-  - [x] Modo `podcast_clip`: decupagem de fala com queima gráfica de legendas dinâmicas.
+- [x] **2.2. Modos de Onboarding e Formatos Escolhidos pelo Usuário:**
+  - [x] Soberania do usuário: escolha explícita entre vertical 9:16 e widescreen 16:9 via flag `--format` e assistente de terminal, sem forçar fundo preto ou widescreen como padrão.
+  - [x] Modo `podcast_clip`: decupagem de fala com queima gráfica de legendas dinâmicas e áudio balanceado.
+  - [x] Modo `edit_only`: corte e concatenação contígua de 2 trechos de vídeo a partir de fontes do usuário ou packs.
+  - [x] Modo `dark`: renderização de vídeo tipográfico sob demanda expressa do usuário.
+  - [x] Guia canônico para LLMs e agentes de IA (`references/llm-agent-guide.md`) para onboarding sem alucinações.
 - [x] **2.3. Interface e Execução:**
   - [x] Modo interativo orientado a perguntas de múltipla escolha via `node:readline`.
   - [x] Modo não interativo via flags completas (`--mode`, `--file`, `--dest`, `--json`, `--verbose`).

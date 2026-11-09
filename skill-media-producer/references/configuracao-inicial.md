@@ -133,6 +133,8 @@ $plano.clips[1].asset_id = $asset.id
 
 ## 5. Escolher proporção e cortes
 
+> **Nota de Escolha do Usuário:** O formato e o estilo de edição são definidos livremente por você. O sistema não impõe fundo preto nem formato widescreen como padrão. Você escolhe entre a proporção vertical 9:16 (mobile) ou horizontal 16:9 (widescreen), e define se usará suas filmagens, packs de apoio ou telas tipográficas.
+
 | Formato | Largura | Altura | Uso |
 |---|---:|---:|---|
 | 9:16 | 1080 | 1920 | Reels, Shorts, TikTok |
