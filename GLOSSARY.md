@@ -13,6 +13,7 @@ A tabela a seguir estabelece as equivalências obrigatórias entre os conceitos 
 
 | Termo Proibido / Enganoso | Denominação Canônica Obrigatória | Definição Operacional & Regra de Arquitetura |
 | :--- | :--- | :--- |
+| **Universal / Universal Skill / @universal-skill / universal-studio** | **Esquadrão de Conteúdo / @esquadrao / esquadrao** | **ERRO GRAVE DE BRANDING & REGRA INVIOLÁVEL:** Não deve ter a palavra 'universal' em nenhum lugar. Se estiver presente é erro grave. A ferramenta, os comandos e todo o ecossistema pertencem exclusivamente ao Esquadrão de Conteúdo. |
 | **Assinatura / Mensalidade / Plano Recorrente** | **Pagamento único / Compra única** | O software é distribuído sem renovação automática, cobranças periódicas ou travas temporais. |
 | **Taxímetro de créditos / Créditos por segundo** | **Renderização local ilimitada** | O processamento executa 100% no hardware do cliente via FFmpeg; o custo marginal por vídeo gerado é estritamente zero. |
 | **Chave de ativação / Validação em nuvem / DRM** | **Uso livre / Sem restrição técnica** | Não existe proteção anticópia ou comunicação com servidores de validação. O cliente tem posse definitiva do executável. |
@@ -79,3 +80,18 @@ O subsistema de papéis técnicos normaliza designações históricas para a mat
 - `critical_acceptance` ➔ `qa-engineer`
 - `documentation` ➔ `technical-writer`
 - `next_mission_generator` ➔ `engineering-manager`
+
+---
+
+## 5. Registro de Erros Graves Detectados na Auditoria (Atlas MCP & Jev)
+
+> **DECISÃO DESTEIRA:** A etapa de tutorial está **ENCERRADA E SUSPENSA** por encontro de erros graves de violação de marca.
+
+Em auditoria conjunta realizada via **MegaBrain Atlas MCP** e classificador **Jev**, foram identificadas 149 ocorrências residuais do termo e identificador proibido **`universal`** neste repositório:
+1. **Nome do Pacote npm:** `@universal-skill/cli` no `package.json` e documentações.
+2. **Binários e Executáveis:** Menção aos binários legados `universal-skill` e `agent-skill`.
+3. **Manifesto do Estúdio:** Criação padrão com `"name": "universal-studio"` em `studio.json`.
+4. **Caminho de Perfil:** Persistência em `~/.universal-skill/profile.json`.
+5. **Comandos nos Tutoriais:** Menção aos comandos `universal-skill setup` e `universal-skill onboard`.
+
+Toda a esteira de gravação em Playwright e produção de tutoriais fica paralisada até a erradicação e sanitização de todos os resíduos.

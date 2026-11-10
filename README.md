@@ -323,3 +323,11 @@ npm test
 ## License
 
 MIT
+
+---
+
+## 🛑 Auditoria Atlas MCP & Jev: Encerramento da Etapa de Tutoriais por Erros Graves
+
+> **AVISO DE QUARENTENA:** A etapa de produção de tutoriais está **ENCERRADA E SUSPENSA**.
+> Foi identificada a presença de 149 ocorrências residuais da palavra proibida **`universal`** neste repositório.
+> Nenhuma gravação Playwright ou narração de vídeo será realizada antes da sanitização de pacotes (`@universal-skill/cli`), binários legados e manifestos (`universal-studio`).

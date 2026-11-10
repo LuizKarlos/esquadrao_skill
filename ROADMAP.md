@@ -113,3 +113,9 @@
 - [ ] **5.2. Validação Externa em Diretório Limpo:**
   - [ ] Execução de teste em máquina/ambiente sem arquivos locais via `npx @universal-skill/cli onboard --mode dark --dest ./test-clean`.
   - [ ] Verificação de integração pós-compra no painel do funil (`/app` com `NEXT_PUBLIC_CLI_NPM_PUBLISHED=true`).
+
+---
+
+## Auditoria de Governança Atlas MCP & Jev: Encerramento da Etapa de Tutoriais
+> **Status:** ENCERRADA E SUSPENSA POR ENCONTRO DE ERROS GRAVES
+A esteira de tutoriais e onboarding visual está formalmente encerrada e paralisada devido à detecção de 149 ocorrências da palavra proibida 'universal' no repositório de skills. A esteira não avança para gravações em Playwright até o saneamento total do pacote npm, binários e manifestos.

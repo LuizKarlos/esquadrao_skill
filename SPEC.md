@@ -195,3 +195,17 @@ A suíte cobre:
 - Studio engine: integridade do `studio.json`, cancelamento via SIGINT, proteção de caracteres de legendas e validação de QA.
 - Oráculos de papéis e autoridades.
 - Testes de estresse com 50 nós lineares e paralelos nos scripts autônomos.
+
+---
+
+## 7. Registro de Auditoria Atlas MCP & Jev: Encerramento da Etapa de Tutorial por Erros Graves
+
+### 7.1. Decisão Executiva de Governança
+- **Status:** **ETAPA DE TUTORIAL ENCERRADA E SUSPENSA**.
+- **Violação Grave:** O termo e identificador 'universal' foi detectado em 149 pontos do repositório de skills e 71 pontos do funil. A regra de ouro estabelece que não deve ter a palavra 'universal' em nenhum lugar.
+- **Erros Graves Destilados:**
+  1. Pacote npm: `@universal-skill/cli` precisa ser substituído pela marca canônica `@esquadrao/cli`.
+  2. Binários: `universal-skill` precisa ser expurgado, restando exclusivamente o comando `esquadrao`.
+  3. Manifesto do estúdio: `universal-studio` em `src/commands/studio.js` deve ser saneado para `esquadrao-studio`.
+  4. Perfil do usuário: `~/.universal-skill` deve ser saneado para `~/.esquadrao`.
+  5. Esteira de vídeo: Gravação em Playwright e narração suspensas até que os comandos exibidos reflitam o nome limpo.
