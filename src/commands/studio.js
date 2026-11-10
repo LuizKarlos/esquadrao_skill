@@ -672,7 +672,63 @@ export async function transcribeAudio(audioPath, { apiKey, useOpenai, srtPath } 
   return [];
 }
 
-export function buildAutoClipPlan({ asset, speechIntervals, captions = [], format = '9:16' }) {
+export const HOOK_PATTERNS = [
+  /\b(o (?:maior )?(?:erro|segredo|problema)|a verdade|ninguem te conta|pouca gente sabe)\b/i,
+  /\b(por que|porque|como voce|se voce quer|quando voce|nunca faca|pare de|cuidado com)\b/i,
+  /\b(voce sabia|presta atencao|olha isso|o que acontece|o resultado)\b/i,
+  /\b(primeiro|segundo|passo|dica|estrategia|metodo)\b/i,
+];
+
+export function scoreHookSentence(text = '') {
+  let score = 0.0;
+  const normalized = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  for (const pat of HOOK_PATTERNS) {
+    if (pat.test(normalized)) score += 2.5;
+  }
+  if (text.includes('?')) score += 1.5;
+  if (text.includes('!')) score += 1.0;
+  return score;
+}
+
+export function findCandidateClips(segments = [], { minDurationSec = 30, maxDurationSec = 60 } = {}) {
+  const candidates = [];
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const hookScore = scoreHookSentence(seg.text);
+    if (hookScore < 1.0 && i > 0 && segments.length > 10) continue;
+
+    const currText = [seg.text];
+    const startSec = seg.start_s !== undefined ? seg.start_s : seg.start;
+    for (let j = i + 1; j < segments.length; j++) {
+      currText.push(segments[j].text);
+      const endSec = segments[j].end_s !== undefined ? segments[j].end_s : segments[j].end;
+      const dur = endSec - startSec;
+      if (dur >= minDurationSec && dur <= maxDurationSec) {
+        candidates.push({
+          hook_id: seg.id || i + 1,
+          start_s: parseFloat(startSec.toFixed(2)),
+          end_s: parseFloat(endSec.toFixed(2)),
+          duration_s: parseFloat(dur.toFixed(2)),
+          hook_score: hookScore,
+          hook_text: seg.text,
+          punchline_text: segments[j].text,
+          full_text: currText.join(' '),
+        });
+      } else if (dur > maxDurationSec) {
+        break;
+      }
+    }
+  }
+
+  candidates.sort((a, b) => {
+    if (b.hook_score !== a.hook_score) return b.hook_score - a.hook_score;
+    return Math.abs(a.duration_s - 45.0) - Math.abs(b.duration_s - 45.0);
+  });
+
+  return candidates;
+}
+
+export function buildAutoClipPlan({ asset, speechIntervals, captions = [], format = '9:16', overlays = [], musicTracks = [] }) {
   const isWidescreen = format === '16:9';
   const width = isWidescreen ? 1920 : 1080;
   const height = isWidescreen ? 1080 : 1920;
@@ -722,6 +778,13 @@ export function buildAutoClipPlan({ asset, speechIntervals, captions = [], forma
       audio_codec: 'aac',
     },
   };
+  if (overlays && overlays.length > 0) {
+    plan.overlays = overlays;
+  }
+  if (musicTracks && musicTracks.length > 0) {
+    plan.music_tracks = musicTracks;
+  }
+  return plan;
 }
 
 export async function run({ positionals = [], flags = {} } = {}) {
@@ -740,6 +803,7 @@ Subcommands:
   detect-silence <video>        Detect silent intervals and compute active speech segments
   auto-clip <video>             Full pipeline: detect silence, cut pauses, transcribe, and render
   transcribe <video>            Extract audio and export structured transcript.json with timestamps
+  find-hooks <file>             Find top viral hook segments (30-60s) from transcript or video
   render <editplan.json>        Validate EditPlan contract and execute cuts/captions via ffmpeg
   qa <artifact.mp4>             Run automated ffprobe QA verification on rendered video artifact
 
@@ -921,6 +985,54 @@ Options:
     return transcriptReport;
   }
 
+  if (sub === 'find-hooks') {
+    const inputPath = positionals[1];
+    if (!inputPath) {
+      console.error('Error: Missing file. Usage: esquadrao studio find-hooks <video.mp4 | transcript.json> [options]');
+      process.exit(1);
+    }
+    const resolvedInput = path.resolve(inputPath);
+    if (!fs.existsSync(resolvedInput)) {
+      console.error(`Error: File not found: ${inputPath}`);
+      process.exit(1);
+    }
+
+    const wsDir = findWorkspaceDir(flags.dest);
+    let segments = [];
+    if (resolvedInput.endsWith('.json')) {
+      const parsed = JSON.parse(fs.readFileSync(resolvedInput, 'utf8'));
+      segments = parsed.segments || (Array.isArray(parsed) ? parsed : []);
+    } else {
+      const transRes = await run({ positionals: ['transcribe', resolvedInput], flags: { dest: wsDir, json: true } });
+      segments = transRes.segments || [];
+    }
+
+    const minDur = parseFloat(flags['min-dur'] || '30');
+    const maxDur = parseFloat(flags['max-dur'] || '60');
+    const candidates = findCandidateClips(segments, { minDurationSec: minDur, maxDurationSec: maxDur });
+
+    const report = {
+      file: path.basename(resolvedInput),
+      total_segments: segments.length,
+      candidates_count: candidates.length,
+      top_clips: candidates.slice(0, 5),
+    };
+
+    if (flags.json) {
+      console.log(JSON.stringify(report, null, 2));
+      return report;
+    }
+    console.log(`Detecção de Ganchos de Copy para ${report.file}:`);
+    console.log(`- Segmentos analisados: ${report.total_segments}`);
+    console.log(`- Cortes virais identificados (${minDur}s - ${maxDur}s): ${report.candidates_count}`);
+    candidates.slice(0, 3).forEach((c, idx) => {
+      console.log(`\n[Opção ${idx + 1}] Duração: ${c.duration_s}s (De ${c.start_s}s a ${c.end_s}s) | Score: ${c.hook_score}`);
+      console.log(`  Gancho: "${c.hook_text}"`);
+      console.log(`  Punchline: "${c.punchline_text}"`);
+    });
+    return report;
+  }
+
   if (sub === 'auto-clip') {
     const srcFile = positionals[1];
     if (!srcFile) {
@@ -996,6 +1108,46 @@ Options:
     const rawCaptions = groupWordsIntoCaptions(words, { maxWords: 3, captionStyle });
     const remappedCaptions = remapCaptionsToSpeechTimeline(rawCaptions, speechIntervals);
 
+    // Handle broll overlays if flags.broll provided
+    const overlays = [];
+    if (flags.broll) {
+      const brollFiles = Array.isArray(flags.broll) ? flags.broll : [flags.broll];
+      let brollIdx = 0;
+      let overlayCursorSec = 4.0;
+      const totalTimelineSec = speechIntervals.reduce((acc, s) => acc + s.durationSec, 0);
+
+      while (overlayCursorSec < totalTimelineSec - 3.0 && brollIdx < brollFiles.length * 3) {
+        const fileToUse = brollFiles[brollIdx % brollFiles.length];
+        const brollAsset = await silentIfJson(() => run({ positionals: ['import', path.resolve(fileToUse)], flags: { dest: wsDir, json: false } }));
+        if (brollAsset && brollAsset.id) {
+          const ovDurSec = Math.min(3.0, (brollAsset.metadata?.duration_s || 3.0));
+          overlays.push({
+            asset_id: brollAsset.id,
+            layout: 'fullscreen',
+            in_ms: 0,
+            out_ms: Math.round(ovDurSec * 1000),
+            timeline_start_ms: Math.round(overlayCursorSec * 1000),
+            duration_ms: Math.round(ovDurSec * 1000),
+          });
+        }
+        overlayCursorSec += 7.0;
+        brollIdx++;
+      }
+    }
+
+    // Handle background music if flags.music provided
+    const musicTracks = [];
+    if (flags.music) {
+      const musicAsset = await silentIfJson(() => run({ positionals: ['import', path.resolve(flags.music)], flags: { dest: wsDir, json: false } }));
+      if (musicAsset && musicAsset.id) {
+        musicTracks.push({
+          asset_id: musicAsset.id,
+          gain_db: -22,
+          ducking: true,
+        });
+      }
+    }
+
     // 5. Build and validate EditPlan
     const format = flags.format || '9:16';
     const plan = buildAutoClipPlan({
@@ -1003,6 +1155,8 @@ Options:
       speechIntervals,
       captions: remappedCaptions,
       format,
+      overlays,
+      musicTracks,
     });
     validateEditPlan(plan);
 

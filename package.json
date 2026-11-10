@@ -1,6 +1,6 @@
 {
   "name": "@universal-skill/cli",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Universal CLI and autonomous skill orchestration framework for AI agents",
   "type": "module",
   "bin": {

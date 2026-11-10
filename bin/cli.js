@@ -27,6 +27,10 @@ const { values: flags, positionals } = parseArgs({
     openai: { type: 'boolean' },
     local: { type: 'boolean' },
     captions: { type: 'string' },
+    broll: { type: 'string', multiple: true },
+    music: { type: 'string' },
+    'min-dur': { type: 'string' },
+    'max-dur': { type: 'string' },
   },
   allowPositionals: true,
   strict: false,
@@ -69,7 +73,11 @@ Options:
   --caption-style <style>   Estilo de legendas: impact (padrão), word, full
   --openai                  Usar API OpenAI Whisper para transcrição
   --local                   Usar Whisper local (offline)
-  --captions <file.srt>     Arquivo de legendas externo`);
+  --captions <file.srt>     Arquivo de legendas externo
+  --broll <file>            Arquivo de B-roll/cena de apoio (pode ser repetido)
+  --music <file.mp3>        Arquivo de música de fundo para ducking
+  --min-dur <sec>           Duração mínima para detecção de gancho (padrão: 30)
+  --max-dur <sec>           Duração máxima para detecção de gancho (padrão: 60)`);
   process.exit(0);
 }
 
