@@ -23,14 +23,14 @@ Examine system designs adversarially to identify vulnerabilities, privilege leak
 
 ## Workflow & CLI
 
-Execute via `universal-skill role`:
+Execute via `esquadrao role`:
 
 ```bash
 # 1. View security engineer role profile
-universal-skill role info security-engineer
+esquadrao role info security-engineer
 
 # 2. Generate adversarial audit prompt
-universal-skill role prompt security-engineer "Evaluate token storage in local credentials file"
+esquadrao role prompt security-engineer "Evaluate token storage in local credentials file"
 ```
 
 ## UX & Operational Rules

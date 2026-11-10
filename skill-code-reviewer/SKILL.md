@@ -23,14 +23,14 @@ Perform rigorous, independent code review to catch bugs, regressions, and AI cod
 
 ## Workflow & CLI
 
-Execute via `universal-skill role`:
+Execute via `esquadrao role`:
 
 ```bash
 # 1. View reviewer profile
-universal-skill role info code-reviewer
+esquadrao role info code-reviewer
 
 # 2. Generate peer review prompt for a git diff
-universal-skill role prompt code-reviewer "Review PR diff adding local config persistence"
+esquadrao role prompt code-reviewer "Review PR diff adding local config persistence"
 ```
 
 ## UX & Operational Rules

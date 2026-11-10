@@ -23,14 +23,14 @@ Execute comprehensive acceptance verification against all declared operational c
 
 ## Workflow & CLI
 
-Execute via `universal-skill role`:
+Execute via `esquadrao role`:
 
 ```bash
 # 1. View QA role capabilities
-universal-skill role info qa-engineer
+esquadrao role info qa-engineer
 
 # 2. Generate release acceptance prompt
-universal-skill role prompt qa-engineer "Evaluate test suite results against release criteria"
+esquadrao role prompt qa-engineer "Evaluate test suite results against release criteria"
 ```
 
 ## UX & Operational Rules

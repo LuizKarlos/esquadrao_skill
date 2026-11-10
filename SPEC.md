@@ -1,10 +1,10 @@
-# Especificação Técnica Canônica — Esquadrão de Conteúdo CLI (`@universal-skill/cli`)
+# Especificação Técnica Canônica — Esquadrão de Conteúdo CLI (`@esquadrao/cli`)
 
 > **Repositório:** `LuizKarlos/esquadrao_skill`  
 > **Funil Integrado:** `LuizKarlos/esquadrao_funil`  
 > **Versão:** 1.0.0  
 > **Status:** Ativo / Homologado  
-> **Pacote npm:** `@universal-skill/cli`  
+> **Pacote npm:** `@esquadrao/cli`  
 > **Nome Comercial:** Esquadrão de Conteúdo  
 > **Documentos Relacionados:** [`GLOSSARY.md`](./GLOSSARY.md), [`ROADMAP.md`](./ROADMAP.md), [`README.md`](./README.md)
 
@@ -12,7 +12,7 @@
 
 ## 1. Visão Geral e Princípios Arquiteturais
 
-O **Esquadrão de Conteúdo CLI** (`@universal-skill/cli`) é um framework autônomo e executável localmente para orquestração de skills, execução de papéis técnicos e produção automatizada de vídeo vertical (9:16) e horizontal (16:9) via FFmpeg.
+O **Esquadrão de Conteúdo CLI** (`@esquadrao/cli`) é um framework autônomo e executável localmente para orquestração de skills, execução de papéis técnicos e produção automatizada de vídeo vertical (9:16) e horizontal (16:9) via FFmpeg.
 
 ### 1.1. Invariantes Arquiteturais e Limites Estritos
 1. **Zero Dependências Externas em Runtime (`dependencies: {}`):** O projeto utiliza estritamente as bibliotecas nativas do Node.js (`node:fs`, `node:path`, `node:child_process`, `node:crypto`, `node:readline`, `node:os`).
@@ -26,14 +26,14 @@ O **Esquadrão de Conteúdo CLI** (`@universal-skill/cli`) é um framework autô
 
 ## 2. Subsistemas e Contratos de Comandos
 
-O CLI expõe os binários `universal-skill` e o alias legado `agent-skill`.
+O CLI expõe o binário `esquadrao`.
 
-### 2.1. Agente de Onboarding Guiado (`universal-skill onboard`)
+### 2.1. Agente de Onboarding Guiado (`esquadrao onboard`)
 Conduz o usuário do zero absoluto até a renderização do seu primeiro vídeo vertical validado em menos de 2 minutos.
 
 - **Sintaxe:**
   ```bash
-  universal-skill onboard [--mode <dark|edit_only|podcast_clip>] [--format <9:16|16:9>] [--dest <path>] [--file <file>] [--verbose] [--json]
+  esquadrao onboard [--mode <dark|edit_only|podcast_clip>] [--format <9:16|16:9>] [--dest <path>] [--file <file>] [--verbose] [--json]
   ```
 - **Modos de Operação:**
   - `dark`: Renderização de vídeo vertical sem necessidade de footage prévio, utilizando overlays de texto centralizados, fundo escuro e áudio sintetizado ou de apoio.
@@ -46,12 +46,12 @@ Conduz o usuário do zero absoluto até a renderização do seu primeiro vídeo 
     - macOS: `brew install ffmpeg`
     - Linux: `sudo apt update && sudo apt install -y ffmpeg`
 - **Persistência de Perfil:**
-  - O diretório de destino (`--dest`) persiste a configuração no perfil local do usuário (`~/.universal-skill/profile.json`), permitindo execuções subsequentes sem redigitação de caminhos.
+  - O diretório de destino (`--dest`) persiste a configuração no perfil local do usuário (`~/.esquadrao/profile.json`), permitindo execuções subsequentes sem redigitação de caminhos.
 
-### 2.2. Motor de Vídeo Studio (`universal-skill studio`)
+### 2.2. Motor de Vídeo Studio (`esquadrao studio`)
 Fornece o pipeline operacional de criação, importação de mídias, renderização via FFmpeg e inspeção de controle de qualidade (QA).
 
-#### 2.2.1. `universal-skill studio init [--dest <path>]`
+#### 2.2.1. `esquadrao studio init [--dest <path>]`
 - Inicializa a estrutura de pastas do estúdio:
   - `workspace/assets/`: Arquivos brutos importados (`MP4`/`MOV`).
   - `workspace/editplans/`: Arquivos de plano de edição em JSON.
@@ -60,12 +60,12 @@ Fornece o pipeline operacional de criação, importação de mídias, renderiza�
   - `workspace/studio.json`: Manifesto de estado atômico.
 - Garante escrita atômica via arquivo temporário com `fs.renameSync` para evitar corrupção em caso de encerramento abrupto.
 
-#### 2.2.2. `universal-skill studio import <file>`
+#### 2.2.2. `esquadrao studio import <file>`
 - Inspeciona o arquivo de mídia usando `ffprobe -v quiet -print_format json -show_format -show_streams`.
 - Extrai metadados essenciais: duração em milissegundos, largura, altura, framerate (`fps_num`/`fps_den`), codec de vídeo, presença de faixa de áudio e tamanho em bytes.
 - Gera um identificador único de asset (`AST-XXXXXXXX`) e registra no `studio.json`.
 
-#### 2.2.3. `universal-skill studio render <editplan.json>`
+#### 2.2.3. `esquadrao studio render <editplan.json>`
 - Valida estritamente o contrato `EditPlan v1` antes de acionar o FFmpeg:
   - Rejeita planos com `out_ms` superior à duração real do asset fonte.
   - Rejeita planos com cortes inferiores a 100 milissegundos.
@@ -76,7 +76,7 @@ Fornece o pipeline operacional de criação, importação de mídias, renderiza�
   - Fallback automático para fontes de vídeo sem áudio: sintetiza stream de silêncio (`anullsrc`) impedindo falhas na multiplexação final.
   - Interrupção segura (`SIGINT`): captura o sinal de cancelamento, encerra o processo filho do FFmpeg e remove o arquivo de vídeo parcial incompleto do disco.
 
-#### 2.2.4. `universal-skill studio qa <artifact.mp4> [--plan <editplan.json>]`
+#### 2.2.4. `esquadrao studio qa <artifact.mp4> [--plan <editplan.json>]`
 - Inspeciona o artefato gerado via `ffprobe`.
 - Valida presença obrigatória de stream de áudio (falha com código `1` caso ausente).
 - Quando informado `--plan`:
@@ -130,7 +130,7 @@ Orienta a LLM a selecionar cortes de 30s a 60s (flexíveis conforme a ideia) com
 - O comando `esquadrao studio auto-clip` aceita as flags `--broll <arquivo>` (múltiplas cenas) e `--music <arquivo>`.
 - Quando informados, o estúdio distribui automaticamente as cenas de apoio sobre a fala (mantendo a voz ininterrupta) e aplica a trilha musical com atenuação inteligente (`ducking` a -22dB).
 
-### 2.3. Configuração Multi-Harness (`universal-skill setup`)
+### 2.3. Configuração Multi-Harness (`esquadrao setup`)
 Distribui as 18 skills empacotadas para os diretórios locais dos diferentes agentes de IA presentes no workspace do usuário:
 - **Grok Build:** `.agents/skills/`
 - **Claude Code:** `.claude/skills/`
@@ -139,14 +139,14 @@ Distribui as 18 skills empacotadas para os diretórios locais dos diferentes age
 - **Hermes / VS Code:** `~/.hermes/` e `.vscode/`
 - *Invariante de Segurança:* O setup local nunca emite configurações ou credenciais de servidor MCP, operando exclusivamente no modelo de arquivos locais.
 
-### 2.4. Governança e Matriz de Papéis Técnicos (`universal-skill role`)
+### 2.4. Governança e Matriz de Papéis Técnicos (`esquadrao role`)
 Expõe a matriz canônica de 12 papéis técnicos de engenharia de software com limites rígidos de autoridade.
 
 - **Comandos:**
-  - `universal-skill role list`: Lista todos os 12 papéis e status.
-  - `universal-skill role info <id>`: Detalha autoridade, regras e outputs permitidos do papel.
-  - `universal-skill role prompt <id>`: Exibe o prompt de sistema especializado para injeção em harnesses de IA.
-  - `universal-skill role matrix`: Tabela completa de permissões (Leitura/Escrita).
+  - `esquadrao role list`: Lista todos os 12 papéis e status.
+  - `esquadrao role info <id>`: Detalha autoridade, regras e outputs permitidos do papel.
+  - `esquadrao role prompt <id>`: Exibe o prompt de sistema especializado para injeção em harnesses de IA.
+  - `esquadrao role matrix`: Tabela completa de permissões (Leitura/Escrita).
 
 ---
 
@@ -198,14 +198,13 @@ A suíte cobre:
 
 ---
 
-## 7. Registro de Auditoria Atlas MCP & Jev: Encerramento da Etapa de Tutorial por Erros Graves
+## 7. Registro de Auditoria Atlas MCP & Jev: Conformidade de Nomenclatura
 
 ### 7.1. Decisão Executiva de Governança
-- **Status:** **ETAPA DE TUTORIAL ENCERRADA E SUSPENSA**.
-- **Violação Grave:** O termo e identificador 'universal' foi detectado em 149 pontos do repositório de skills e 71 pontos do funil. A regra de ouro estabelece que não deve ter a palavra 'universal' em nenhum lugar.
-- **Erros Graves Destilados:**
-  1. Pacote npm: `@universal-skill/cli` precisa ser substituído pela marca canônica `@esquadrao/cli`.
-  2. Binários: `universal-skill` precisa ser expurgado, restando exclusivamente o comando `esquadrao`.
-  3. Manifesto do estúdio: `universal-studio` em `src/commands/studio.js` deve ser saneado para `esquadrao-studio`.
-  4. Perfil do usuário: `~/.universal-skill` deve ser saneado para `~/.esquadrao`.
-  5. Esteira de vídeo: Gravação em Playwright e narração suspensas até que os comandos exibidos reflitam o nome limpo.
+- **Status:** **CONFORMIDADE ESTABELECIDA**.
+- **Ações Realizadas:**
+  1. Pacote npm: Marca canônica `@esquadrao/cli`.
+  2. Binários: Restando exclusivamente o comando `esquadrao`.
+  3. Manifesto do estúdio: Saneado para `esquadrao-studio`.
+  4. Perfil do usuário: Saneado para `~/.esquadrao`.
+  5. Esteira de vídeo: Comandos atualizados para refletir o nome limpo.

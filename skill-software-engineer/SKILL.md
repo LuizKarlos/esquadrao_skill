@@ -23,14 +23,14 @@ Deliver production code, minimal working diffs, and accompanying unit tests with
 
 ## Workflow & CLI
 
-Execute via `universal-skill role`:
+Execute via `esquadrao role`:
 
 ```bash
 # 1. View role configuration
-universal-skill role info software-engineer
+esquadrao role info software-engineer
 
 # 2. Generate calibrated implementation prompt
-universal-skill role prompt software-engineer "Implement zero-dependency AST slicer in Node.js"
+esquadrao role prompt software-engineer "Implement zero-dependency AST slicer in Node.js"
 ```
 
 ## UX & Operational Rules

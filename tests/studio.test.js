@@ -57,7 +57,7 @@ test('Studio: init creates workspace directories and manifest', async () => {
     assert.equal(fs.existsSync(manifestPath), true);
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     assert.equal(manifest.version, 1);
-    assert.equal(manifest.name, 'universal-studio');
+    assert.equal(manifest.name, 'esquadrao-studio');
     assert.deepEqual(manifest.assets, []);
     assert.deepEqual(manifest.artifacts, []);
   } finally {
@@ -142,7 +142,7 @@ test('Studio: render dark mode creates valid MP4 artifact', async (t) => {
     clips: [
       {
         kind: 'text',
-        text: 'Universal Studio Autonomous Render',
+        text: 'Esquadrão Studio Autonomous Render',
         duration_ms: 1000,
         timeline_start_ms: 0,
       },

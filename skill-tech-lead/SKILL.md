@@ -23,14 +23,14 @@ Arbitrate architectural disputes, evaluate technical trade-offs, and maintain en
 
 ## Workflow & CLI
 
-Execute via `universal-skill role`:
+Execute via `esquadrao role`:
 
 ```bash
 # 1. View tech lead specification
-universal-skill role info tech-lead
+esquadrao role info tech-lead
 
 # 2. Generate adjudication prompt
-universal-skill role prompt tech-lead "Arbitrate between WebSockets vs SSE for agent notifications"
+esquadrao role prompt tech-lead "Arbitrate between WebSockets vs SSE for agent notifications"
 ```
 
 ## UX & Operational Rules

@@ -47,7 +47,7 @@ export function detectEnvironment() {
 
 export function loadProfile(dir) {
   if (!dir) return null;
-  const uskFile = path.join(dir, '.universal-skill', 'profile.json');
+  const uskFile = path.join(dir, '.esquadrao', 'profile.json');
   if (fs.existsSync(uskFile)) {
     try {
       return JSON.parse(fs.readFileSync(uskFile, 'utf8'));
@@ -64,7 +64,7 @@ export function loadProfile(dir) {
 }
 
 export function saveProfile(targetDir, profileData) {
-  const uskDir = path.join(targetDir, '.universal-skill');
+  const uskDir = path.join(targetDir, '.esquadrao');
   fs.mkdirSync(uskDir, { recursive: true });
   fs.writeFileSync(path.join(uskDir, 'profile.json'), JSON.stringify(profileData, null, 2) + '\n');
 
@@ -91,7 +91,7 @@ export function buildOnboardPlan({ mode, assets = [], format = '9:16' }) {
       clips: [
         {
           kind: 'text',
-          text: 'Universal Skill Onboarding',
+          text: 'Esquadrão Onboarding',
           duration_ms: 1000,
           timeline_start_ms: 0,
         },
@@ -224,7 +224,7 @@ export function buildOnboardPlan({ mode, assets = [], format = '9:16' }) {
       audio_tracks: audioTracks,
       captions: [
         {
-          text: 'Universal Podcast Clip',
+          text: 'Esquadrão Podcast Clip',
           timeline_start_ms: 0,
           duration_ms: Math.min(currentTimeline, 1000),
         },
@@ -256,10 +256,10 @@ async function runSilentIfJson(isJson, fn) {
 
 export async function run({ positionals = [], flags = {}, io = {} } = {}) {
   if (flags.help || positionals[0] === 'help') {
-    console.log(`Universal Skill Onboard Agent
+    console.log(`Esquadrão Onboard Agent
 
 Usage:
-  universal-skill onboard [options]
+  esquadrao onboard [options]
 
 Guided onboarding agent that takes a client from zero to their first rendered video.
 
@@ -283,7 +283,7 @@ Options:
   }
 
   if (!flags.json) {
-    console.log(`Universal Skill Onboarding Agent`);
+    console.log(`Esquadrão Onboarding Agent`);
     console.log(`- Node: ${env.nodeVersion}`);
     console.log(`- FFmpeg & FFprobe: available`);
     if (env.font) {
@@ -315,7 +315,7 @@ Options:
     }
   };
 
-  const canPrompt = Boolean(io.input || process.stdin.isTTY || process.env.UNIVERSAL_SKILL_INTERACTIVE);
+  const canPrompt = Boolean(io.input || process.stdin.isTTY || process.env.ESQUADRAO_INTERACTIVE);
 
   try {
     // 2. Directory Resolution
@@ -358,7 +358,7 @@ Options:
     }
 
     let format = flags.format || activeProfile?.preferred_format || '9:16';
-    if (!flags.format && canPrompt && process.stdin.isTTY && !process.env.UNIVERSAL_SKILL_INTERACTIVE) {
+    if (!flags.format && canPrompt && process.stdin.isTTY && !process.env.ESQUADRAO_INTERACTIVE) {
       format = await ask('Select aspect ratio: 9:16 (vertical mobile) or 16:9 (widescreen)', '9:16');
     }
     format = (format || '9:16').trim();
@@ -471,8 +471,8 @@ Options:
         qa: qaReport,
         profile: profileData,
         next_steps: [
-          `universal-skill studio render ${path.relative(process.cwd(), planPath).replace(/\\/g, '/')}`,
-          `universal-skill studio qa ${path.relative(process.cwd(), artifactFullPath).replace(/\\/g, '/')}`,
+          `esquadrao studio render ${path.relative(process.cwd(), planPath).replace(/\\/g, '/')}`,
+          `esquadrao studio qa ${path.relative(process.cwd(), artifactFullPath).replace(/\\/g, '/')}`,
         ],
       }, null, 2));
       return;
@@ -480,7 +480,7 @@ Options:
 
     console.log(`
 =================================================================
-  Universal Skill Onboarding Complete!
+  Esquadrão Onboarding Complete!
 =================================================================
 Final Video Artifact:
   Path: ${artifactFullPath}
@@ -497,9 +497,9 @@ Profile Saved:
   Preferred Mode: ${mode}
 
 Next Commands:
-  Render new cuts: universal-skill studio render <plan.json>
-  Import footage:  universal-skill studio import <file.mp4>
-  Verify QA:       universal-skill studio qa <file.mp4>
+  Render new cuts: esquadrao studio render <plan.json>
+  Import footage:  esquadrao studio import <file.mp4>
+  Verify QA:       esquadrao studio qa <file.mp4>
 =================================================================
 `);
     return { status: 'ok', artifact, qa: qaReport, profile: profileData };

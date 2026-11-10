@@ -72,7 +72,7 @@ export function probeMedia(filePath) {
 
 export function loadManifest(manifestPath) {
   if (!fs.existsSync(manifestPath)) {
-    return { version: 1, name: 'universal-studio', assets: [], artifacts: [] };
+    return { version: 1, name: 'esquadrao-studio', assets: [], artifacts: [] };
   }
   try {
     return JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
@@ -791,11 +791,10 @@ export async function run({ positionals = [], flags = {} } = {}) {
   const sub = positionals[0];
 
   if (!sub || flags.help || sub === 'help') {
-    console.log(`Esquadrão Studio (Universal Skill Studio)
+    console.log(`Esquadrão Studio
 
 Usage:
   esquadrao studio <subcommand> [arguments] [options]
-  universal-skill studio <subcommand> [arguments] [options]
 
 Subcommands:
   init [--dest <path>]          Create studio workspace dirs (assets, artifacts, packages) and manifest
@@ -1215,7 +1214,7 @@ Options:
     } else {
       manifest = {
         version: 1,
-        name: 'universal-studio',
+        name: 'esquadrao-studio',
         created_at: new Date().toISOString(),
         assets: [],
         artifacts: [],
@@ -1236,7 +1235,7 @@ Options:
   if (sub === 'import') {
     const srcFile = positionals[1];
     if (!srcFile) {
-      console.error('Error: Missing file to import. Usage: universal-skill studio import <file>');
+      console.error('Error: Missing file to import. Usage: esquadrao studio import <file>');
       process.exit(1);
     }
     const resolvedSrc = path.resolve(srcFile);
@@ -1304,7 +1303,7 @@ Options:
   if (sub === 'render') {
     const planFile = positionals[1];
     if (!planFile) {
-      console.error('Error: Missing edit plan file. Usage: universal-skill studio render <editplan.json>');
+      console.error('Error: Missing edit plan file. Usage: esquadrao studio render <editplan.json>');
       process.exit(1);
     }
     const resolvedPlanFile = path.resolve(planFile);
@@ -1538,7 +1537,7 @@ Options:
   if (sub === 'qa') {
     const artFile = positionals[1];
     if (!artFile) {
-      console.error('Error: Missing artifact file. Usage: universal-skill studio qa <artifact.mp4> [--plan <editplan.json>]');
+      console.error('Error: Missing artifact file. Usage: esquadrao studio qa <artifact.mp4> [--plan <editplan.json>]');
       process.exit(1);
     }
     const resolvedArt = path.resolve(artFile);
@@ -1582,7 +1581,7 @@ Options:
     return report;
   }
 
-  console.error(`Error: Unknown studio subcommand '${sub}'. Run 'universal-skill studio --help' for available subcommands.`);
+  console.error(`Error: Unknown studio subcommand '${sub}'. Run 'esquadrao studio --help' for available subcommands.`);
   process.exit(1);
 }
 

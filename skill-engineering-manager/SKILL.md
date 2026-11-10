@@ -23,14 +23,14 @@ Transform execution outcomes into follow-up engineering milestones, backlog prio
 
 ## Workflow & CLI
 
-Execute via `universal-skill role`:
+Execute via `esquadrao role`:
 
 ```bash
 # 1. View engineering manager role profile
-universal-skill role info engineering-manager
+esquadrao role info engineering-manager
 
 # 2. Generate roadmap planning prompt
-universal-skill role prompt engineering-manager "Derive Next Milestone from completed Auth release"
+esquadrao role prompt engineering-manager "Derive Next Milestone from completed Auth release"
 ```
 
 ## UX & Operational Rules

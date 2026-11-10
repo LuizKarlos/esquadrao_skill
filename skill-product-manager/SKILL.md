@@ -23,14 +23,14 @@ Synthesize product vision into crisp, testable requirements and explicit boundar
 
 ## Workflow & CLI
 
-Execute via `universal-skill role`:
+Execute via `esquadrao role`:
 
 ```bash
 # 1. Inspect role definition and constraints
-universal-skill role info product-manager
+esquadrao role info product-manager
 
 # 2. Generate calibrated prompt for requirements synthesis
-universal-skill role prompt product-manager "Build headless authentication with OAuth2"
+esquadrao role prompt product-manager "Build headless authentication with OAuth2"
 ```
 
 ## UX & Operational Rules

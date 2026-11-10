@@ -1,13 +1,13 @@
 ---
 name: skill-media-producer
 version: "1.2.0"
-description: "Set up Universal Skill Studio and configure video aspect ratio, captions, cuts, audio gain, EditPlan validation, rendering, and QA. Use for initial setup and video configuration requests."
+description: "Set up Esquadrão Studio and configure video aspect ratio, captions, cuts, audio gain, EditPlan validation, rendering, and QA. Use for initial setup and video configuration requests."
 allowed-tools: ["terminal"]
 ---
 
 # Media Producer — Esquadrão de Conteúdo
 
-Guia canônico e motor de execução para agentes de IA e LLMs produzirem vídeos automatizados via `@universal-skill/cli` e FFmpeg local.
+Guia canônico e motor de execução para agentes de IA e LLMs produzirem vídeos automatizados via `@esquadrao/cli` e FFmpeg local.
 
 ## When to Use
 
@@ -69,22 +69,22 @@ Se o FFmpeg não estiver instalado, a LLM fornece o comando exato para o sistema
 ### Passo 3: Instalação e Configuração das Skills
 ```bash
 # Instalação global do CLI oficial
-npm install -g @universal-skill/cli
+npm install -g @esquadrao/cli
 
 # Configuração e distribuição das skills para o workspace atual
-universal-skill setup
+esquadrao setup
 ```
 
 ### Passo 4: Inicialização do Estúdio
 ```bash
 # Inicializa a estrutura atômica de pastas do workspace
-universal-skill studio init --dest ./workspace
+esquadrao studio init --dest ./workspace
 ```
 
 ### Passo 5: Importação das Fontes de Mídia (se aplicável)
 ```bash
 # Importa o arquivo de vídeo e inspeciona duração, codecs e áudio
-universal-skill studio import ./caminho/meu-video.mp4 --dest ./workspace --json
+esquadrao studio import ./caminho/meu-video.mp4 --dest ./workspace --json
 ```
 
 ### Passo 6: Criação do EditPlan e Aprovação do Usuário
@@ -94,10 +94,10 @@ A LLM gera o arquivo `./workspace/packages/editplan.json` com base nos modelos c
 ### Passo 7: Renderização e Verificação de Qualidade (QA)
 ```bash
 # Renderiza o artefato final em MP4
-universal-skill studio render ./workspace/packages/editplan.json --dest ./workspace --json
+esquadrao studio render ./workspace/packages/editplan.json --dest ./workspace --json
 
 # Valida conformidade técnica (áudio, resolução e duração)
-universal-skill studio qa ./workspace/artifacts/video.mp4 --plan ./workspace/packages/editplan.json
+esquadrao studio qa ./workspace/artifacts/video.mp4 --plan ./workspace/packages/editplan.json
 ```
 
 ---

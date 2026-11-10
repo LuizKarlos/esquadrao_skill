@@ -23,14 +23,14 @@ Diagnose test failures, analyze crash traces, and establish deterministic fix co
 
 ## Workflow & CLI
 
-Execute via `universal-skill role`:
+Execute via `esquadrao role`:
 
 ```bash
 # 1. View SRE role configuration
-universal-skill role info sre-engineer
+esquadrao role info sre-engineer
 
 # 2. Generate debugging prompt
-universal-skill role prompt sre-engineer "Diagnose AssertionError in merkle_verify.js: hash mismatch"
+esquadrao role prompt sre-engineer "Diagnose AssertionError in merkle_verify.js: hash mismatch"
 ```
 
 ## UX & Operational Rules

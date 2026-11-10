@@ -39,7 +39,7 @@ Se o FFmpeg não for encontrado, responda com o comando de instalação imediato
 Execute no terminal:
 ```bash
 # 1. Instalar o CLI globalmente se ainda não estiver presente
-npm install -g @universal-skill/cli
+npm install -g @esquadrao/cli
 
 # 2. Configurar o workspace atual
 esquadrao setup

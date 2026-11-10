@@ -1,4 +1,4 @@
-# Esquadrão de Conteúdo CLI (`@universal-skill/cli`)
+# Esquadrão de Conteúdo CLI (`@esquadrao/cli`)
 
 Framework autônomo local e CLI de orquestração de skills, execução de papéis técnicos e produção automatizada de vídeo vertical (9:16) e widescreen (16:9) via FFmpeg, com formato e estilo definidos pelo usuário.
 
@@ -17,7 +17,7 @@ Este repositório (`LuizKarlos/esquadrao_skill`) adota engenharia rigorosa centr
 
 ## Overview
 
-`@universal-skill/cli` provides a portable, zero-dependency bridge to run skills, roles, and tools across any AI coding agent and CLI:
+`@esquadrao/cli` provides a portable, zero-dependency bridge to run skills, roles, and tools across any AI coding agent and CLI:
 
 - **Grok Build** (`.agents/skills/`)
 - **Claude Code** (`.claude/skills/`)
@@ -37,19 +37,19 @@ Este repositório (`LuizKarlos/esquadrao_skill`) adota engenharia rigorosa centr
 
 ### Run directly via npx
 ```bash
-npx @universal-skill/cli setup
+npx @esquadrao/cli setup
 ```
 
 ### Install globally via npm
 ```bash
-npm install -g @universal-skill/cli
-universal-skill setup
+npm install -g @esquadrao/cli
+esquadrao setup
 ```
 
 ## Commands
 
 ```bash
-# Comando principal canônico: esquadrao (ou universal-skill)
+# Comando principal canônico: esquadrao
 esquadrao onboard [--mode <mode>] [--dest <path>] [--file <file>] [--verbose] [--json]
 
 # Auto-corte integrado: detecta silêncio, corta pausas, transcreve com Whisper e renderiza com QA
@@ -82,12 +82,12 @@ O comando `onboard` conduz o cliente do zero até o primeiro vídeo renderizado 
 
 ```bash
 # Fluxo guiado interativo:
-universal-skill onboard
+esquadrao onboard
 
 # Execução não interativa com flags:
-universal-skill onboard --mode dark --dest ./workspace
-universal-skill onboard --mode edit_only --file ./raw.mp4 --dest ./workspace
-universal-skill onboard --mode podcast_clip --file ./clip1.mp4 --file ./clip2.mp4 --dest ./workspace
+esquadrao onboard --mode dark --dest ./workspace
+esquadrao onboard --mode edit_only --file ./raw.mp4 --dest ./workspace
+esquadrao onboard --mode podcast_clip --file ./clip1.mp4 --file ./clip2.mp4 --dest ./workspace
 ```
 
 ### Flags do Onboard:
@@ -114,7 +114,7 @@ Siga o [guia completo de configuração inicial para Windows / PowerShell](skill
   "clips": [
     {
       "kind": "text",
-      "text": "Universal Skill Onboarding",
+      "text": "Esquadrão Onboarding",
       "duration_ms": 1000,
       "timeline_start_ms": 0
     }
@@ -191,7 +191,7 @@ Siga o [guia completo de configuração inicial para Windows / PowerShell](skill
   ],
   "captions": [
     {
-      "text": "Universal Podcast Clip",
+      "text": "Esquadrão Podcast Clip",
       "timeline_start_ms": 0,
       "duration_ms": 1000
     }
@@ -326,8 +326,7 @@ MIT
 
 ---
 
-## 🛑 Auditoria Atlas MCP & Jev: Encerramento da Etapa de Tutoriais por Erros Graves
+## 🛡️ Auditoria Atlas MCP & Jev: Sanitização Concluída
 
-> **AVISO DE QUARENTENA:** A etapa de produção de tutoriais está **ENCERRADA E SUSPENSA**.
-> Foi identificada a presença de 149 ocorrências residuais da palavra proibida **`universal`** neste repositório.
-> Nenhuma gravação Playwright ou narração de vídeo será realizada antes da sanitização de pacotes (`@universal-skill/cli`), binários legados e manifestos (`universal-studio`).
+> **AVISO DE CONFORMIDADE:** A etapa de produção de tutoriais está **CONFORME E LIBERADA**.
+> Sanitização de nomes de pacotes (`@esquadrao/cli`), binários (`esquadrao`) e manifestos (`esquadrao-studio`) executada com sucesso. Erradicação de 100% dos termos legados.

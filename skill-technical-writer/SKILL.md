@@ -23,14 +23,14 @@ Author clear, accurate, and concise developer documentation, API contracts, and 
 
 ## Workflow & CLI
 
-Execute via `universal-skill role`:
+Execute via `esquadrao role`:
 
 ```bash
 # 1. View technical writer profile
-universal-skill role info technical-writer
+esquadrao role info technical-writer
 
 # 2. Generate documentation prompt
-universal-skill role prompt technical-writer "Document new CLI commands and flags in README.md"
+esquadrao role prompt technical-writer "Document new CLI commands and flags in README.md"
 ```
 
 ## UX & Operational Rules

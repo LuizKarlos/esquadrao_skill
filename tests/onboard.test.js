@@ -50,7 +50,7 @@ function runCliAsync(args, envOverrides = {}, cwd = repoRoot) {
 
 function runCliInteractiveAsync(args, inputData, envOverrides = {}) {
   return new Promise((resolve) => {
-    const env = { ...process.env, UNIVERSAL_SKILL_INTERACTIVE: '1', ...envOverrides };
+    const env = { ...process.env, ESQUADRAO_INTERACTIVE: '1', ...envOverrides };
     const child = spawn(process.execPath, [binPath, ...args], { env, cwd: repoRoot });
     let stdout = '';
     let stderr = '';
@@ -139,8 +139,8 @@ test('Onboard: happy path dark mode (non-interactive, zero footage)', async (t) 
     assert.equal(manifest.profile.preferred_mode, 'dark');
     assert.equal(manifest.profile.default_dir, path.resolve(tmp));
 
-    // Verify profile persisted in .universal-skill/profile.json
-    const profileFile = path.join(tmp, '.universal-skill', 'profile.json');
+    // Verify profile persisted in .esquadrao/profile.json
+    const profileFile = path.join(tmp, '.esquadrao', 'profile.json');
     assert.equal(fs.existsSync(profileFile), true);
     const profileJson = JSON.parse(fs.readFileSync(profileFile, 'utf8'));
     assert.equal(profileJson.preferred_mode, 'dark');

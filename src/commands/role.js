@@ -1,14 +1,14 @@
-// CLI command: universal-skill role [list|info|prompt|matrix]
+// CLI command: esquadrao role [list|info|prompt|matrix]
 import { listRoles, getRole, READ_ONLY_ROLES, FORBIDDEN_COMMAND_PATTERNS } from '../roles/index.js';
 
 export async function run({ positionals = [], flags = {} } = {}) {
   const sub = positionals[0] || 'list';
 
   if (flags.help || sub === 'help') {
-    console.log(`Universal Skill Roles Command
+    console.log(`Esquadrão Roles Command
 
 Usage:
-  universal-skill role [subcommand] [arguments] [options]
+  esquadrao role [subcommand] [arguments] [options]
 
 Subcommands:
   list              List all standard industry engineering roles (default)
@@ -28,7 +28,7 @@ Options:
       console.log(JSON.stringify(roles, null, 2));
       return;
     }
-    console.log('Universal Industry Roles Matrix:\n');
+    console.log('Roles Matrix:\n');
     for (const r of roles) {
       const roTag = r.readOnly ? '[READ-ONLY]' : '[READ/WRITE]';
       console.log(`  ${r.id.padEnd(22)} ${roTag.padEnd(14)} ${r.title}`);
@@ -43,12 +43,12 @@ Options:
   if (sub === 'info') {
     const target = positionals[1];
     if (!target) {
-      console.error('Error: Missing role identifier. Usage: universal-skill role info <role_id>');
+      console.error('Error: Missing role identifier. Usage: esquadrao role info <role_id>');
       process.exit(1);
     }
     const roleMod = getRole(target);
     if (!roleMod) {
-      console.error(`Error: Unknown role '${target}'. Run 'universal-skill role list' to see available roles.`);
+      console.error(`Error: Unknown role '${target}'. Run 'esquadrao role list' to see available roles.`);
       process.exit(1);
     }
     if (flags.json) {
@@ -70,7 +70,7 @@ Options:
   if (sub === 'prompt') {
     const target = positionals[1];
     if (!target) {
-      console.error('Error: Missing role identifier. Usage: universal-skill role prompt <role_id> [intent]');
+      console.error('Error: Missing role identifier. Usage: esquadrao role prompt <role_id> [intent]');
       process.exit(1);
     }
     const roleMod = getRole(target);
@@ -112,7 +112,7 @@ Options:
     return;
   }
 
-  console.error(`Unknown subcommand '${sub}'. Run 'universal-skill role --help' for usage.`);
+  console.error(`Unknown subcommand '${sub}'. Run 'esquadrao role --help' for usage.`);
   process.exit(1);
 }
 

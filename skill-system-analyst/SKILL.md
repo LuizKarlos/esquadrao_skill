@@ -23,14 +23,14 @@ Explore repository architecture, map structural dependencies, and isolate releva
 
 ## Workflow & CLI
 
-Execute via `universal-skill role`:
+Execute via `esquadrao role`:
 
 ```bash
 # 1. Inspect role capabilities
-universal-skill role info system-analyst
+esquadrao role info system-analyst
 
 # 2. Generate calibrated reconnaissance prompt
-universal-skill role prompt system-analyst "Map authentication flows in src/"
+esquadrao role prompt system-analyst "Map authentication flows in src/"
 ```
 
 ## UX & Operational Rules

@@ -23,14 +23,14 @@ Design robust software systems, define immutable boundaries, and enforce impleme
 
 ## Workflow & CLI
 
-Execute via `universal-skill role`:
+Execute via `esquadrao role`:
 
 ```bash
 # 1. View architectural role capabilities
-universal-skill role info software-architect
+esquadrao role info software-architect
 
 # 2. Generate prompt for technical specification design
-universal-skill role prompt software-architect "Design zero-dependency RPC client"
+esquadrao role prompt software-architect "Design zero-dependency RPC client"
 ```
 
 ## UX & Operational Rules

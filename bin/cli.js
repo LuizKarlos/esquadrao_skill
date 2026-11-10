@@ -46,11 +46,10 @@ if (flags.version || command === 'version' || flags.v) {
 const SUBCOMMANDS = new Set(['setup', 'role', 'studio', 'onboard']);
 
 if (!command || command === 'help' || (flags.help && !SUBCOMMANDS.has(command))) {
-  console.log(`Esquadrão CLI / Universal Skill CLI v${pkg.version}
+  console.log(`Esquadrão CLI v${pkg.version}
 
 Usage:
   esquadrao <command> [options]
-  universal-skill <command> [options]
 
 Commands:
   setup       Instala os skills nos ambientes de agentes (.agents, .claude, .codex, .cursor)
@@ -82,7 +81,7 @@ Options:
 }
 
 if (!SUBCOMMANDS.has(command)) {
-  console.error(`Unknown command: '${command}'. Run 'universal-skill --help' for available commands.`);
+  console.error(`Unknown command: '${command}'. Run 'esquadrao --help' for available commands.`);
   process.exit(1);
 }
 

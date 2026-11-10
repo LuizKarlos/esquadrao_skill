@@ -39,7 +39,7 @@ test('CLI Invocation: --version, -v, version, --help, -h, help', async () => {
 
   const h1 = await runCliAsync(['--help']);
   assert.equal(h1.status, 0);
-  assert.match(h1.stdout, /Universal Skill CLI/);
+  assert.match(h1.stdout, /Esquadrão CLI/);
 
   const h2 = await runCliAsync(['-h']);
   assert.equal(h2.status, 0);
@@ -70,7 +70,7 @@ test('CLI Errors: Unknown commands exit with code 1', async () => {
 });
 
 test('CLI Setup: installs skills locally without MCP config emission', async () => {
-  const tmp = path.join(os.tmpdir(), `universal-setup-${Date.now()}`);
+  const tmp = path.join(os.tmpdir(), `esquadrao-setup-${Date.now()}`);
   try {
     const res = await runCliAsync(['setup', '--dest', tmp, '--json']);
     assert.equal(res.status, 0);

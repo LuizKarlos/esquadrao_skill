@@ -1,8 +1,8 @@
-# Roadmap de Engenharia — Esquadrão de Conteúdo CLI (`@universal-skill/cli`)
+# Roadmap de Engenharia — Esquadrão de Conteúdo CLI (`@esquadrao/cli`)
 
 > **Repositório:** `LuizKarlos/esquadrao_skill`  
 > **Funil Integrado:** `LuizKarlos/esquadrao_funil`  
-> **Esteira Viva:** Este roadmap governa o ciclo de desenvolvimento, os testes contínuos e os marcos de entrega do pacote `@universal-skill/cli`.  
+> **Esteira Viva:** Este roadmap governa o ciclo de desenvolvimento, os testes contínuos e os marcos de entrega do pacote `@esquadrao/cli`.  
 > **Autoridades Canônicas:** [`SPEC.md`](./SPEC.md), [`GLOSSARY.md`](./GLOSSARY.md), [`README.md`](./README.md)
 
 ---
@@ -12,11 +12,11 @@
 > **Objetivo:** Estabelecer a arquitetura zero-dependency baseada em Node.js stdlib, comandos de despacho e utilitários Unix de suporte a agentes.
 
 - [x] **1.1. Estrutura Base e CLI Runner:**
-  - [x] Ponto de entrada binário em `bin/cli.js` com suporte a `universal-skill` e `agent-skill`.
+  - [x] Ponto de entrada binário em `bin/cli.js` com suporte a `esquadrao`.
   - [x] Tratamento de flags globais (`--help`, `-h`, `--version`, `-v`).
   - [x] Encerramento seguro com código `1` para comandos inexistentes.
 - [x] **1.2. Comando Setup Multi-Harness:**
-  - [x] Implementação de `universal-skill setup [--dest <path>]`.
+  - [x] Implementação de `esquadrao setup [--dest <path>]`.
   - [x] Instalação de skills para Claude Code (`.claude/skills/`), Codex CLI (`.codex/skills/`), Grok Build (`.agents/skills/`), Cursor (`.cursor/rules/`) e Hermes (`~/.hermes/`).
   - [x] Invariante de isolamento: zero emissão de configurações de servidor remoto MCP.
 - [x] **1.3. Scripts Unix Autônomos com Node.js stdlib:**
@@ -43,7 +43,7 @@
 - [x] **2.3. Interface e Execução:**
   - [x] Modo interativo orientado a perguntas de múltipla escolha via `node:readline`.
   - [x] Modo não interativo via flags completas (`--mode`, `--file`, `--dest`, `--json`, `--verbose`).
-  - [x] Persistência do perfil do workspace em `~/.universal-skill/profile.json`.
+  - [x] Persistência do perfil do workspace em `~/.esquadrao/profile.json`.
 
 ---
 
@@ -52,19 +52,19 @@
 > **Objetivo:** Construir o pipeline local completo de decupagem, importação, queima de legendas seguras e inspeção automatizada de QA.
 
 - [x] **3.1. Gerenciamento do Workspace do Estúdio:**
-  - [x] Comando `universal-skill studio init`: geração atômica de pastas (`assets`, `editplans`, `renders`, `qa`) e manifesto `studio.json`.
+  - [x] Comando `esquadrao studio init`: geração atômica de pastas (`assets`, `editplans`, `renders`, `qa`) e manifesto `studio.json`.
   - [x] Gravação segura via arquivo temporário para prevenir corrupção de estado.
 - [x] **3.2. Importação e Inspeção de Mídia:**
-  - [x] Comando `universal-skill studio import <file>`: extração de resolução, duração em ms, taxa de quadros e faixas de áudio via `ffprobe`.
+  - [x] Comando `esquadrao studio import <file>`: extração de resolução, duração em ms, taxa de quadros e faixas de áudio via `ffprobe`.
   - [x] Atribuição de identificador imutável `AST-XXXXXXXX`.
 - [x] **3.3. Motor de Renderização via FFmpeg:**
-  - [x] Comando `universal-skill studio render <editplan.json>`.
+  - [x] Comando `esquadrao studio render <editplan.json>`.
   - [x] Validação rigorosa do contrato `EditPlan v1` (cortes >= 100ms, tempos dentro dos limites da fonte).
   - [x] Tratamento de caracteres especiais em legendas (`%`, `'`, `\`) no filtro `drawtext`.
   - [x] Síntese de áudio mudo (`anullsrc`) para fontes sem áudio original, evitando falhas de multiplexação.
   - [x] Tratamento de `SIGINT`: cancelamento gracioso e expurgo imediato de artefatos parciais.
 - [x] **3.4. Inspeção Automatizada de Qualidade (QA):**
-  - [x] Comando `universal-skill studio qa <artifact.mp4> [--plan <editplan.json>]`.
+  - [x] Comando `esquadrao studio qa <artifact.mp4> [--plan <editplan.json>]`.
   - [x] Verificação obrigatória de presença de stream de áudio.
   - [x] Validação de resolução (1080x1920 / 1920x1080) e conformidade de duração contra o plano.
 - [x] **3.5. Detecção de Silêncio e Auto-Clip Integrado:**
@@ -95,14 +95,14 @@
   - [x] Validação de outputs permitidos por papel.
   - [x] Oráculo `anti-self-review`: bloqueio de aprovação quando autor e revisor são idênticos.
 - [x] **4.3. Interface CLI de Papéis:**
-  - [x] `universal-skill role list`, `info <id>`, `prompt <id>` e `matrix`.
+  - [x] `esquadrao role list`, `info <id>`, `prompt <id>` e `matrix`.
 
 ---
 
 ## Fase 5: Publicação no Registro npm e Homologação de Entrega
 > **Status:** Em Andamento  
-> **Objetivo:** Tornar o repositório público, publicar o pacote `@universal-skill/cli` no registro oficial do npm e validar execução em ambiente limpo.  
-> **Issue GitHub Ativa:** [#26 — Publicar @universal-skill/cli no npm](https://github.com/LuizKarlos/esquadrao_skill/issues/26)
+> **Objetivo:** Tornar o repositório público, publicar o pacote `@esquadrao/cli` no registro oficial do npm e validar execução em ambiente limpo.  
+> **Issue GitHub Ativa:** [#26 — Publicar @esquadrao/cli no npm](https://github.com/LuizKarlos/esquadrao_skill/issues/26)
 
 - [ ] **5.1. Homologação da Publicação:**
   - [x] Testes unitários com cobertura total de 55 testes verdes.
@@ -111,11 +111,11 @@
   - [ ] Abertura do repositório para visibilidade pública no GitHub.
   - [ ] Publicação do pacote no registro npm oficial (`npm publish --access public`).
 - [ ] **5.2. Validação Externa em Diretório Limpo:**
-  - [ ] Execução de teste em máquina/ambiente sem arquivos locais via `npx @universal-skill/cli onboard --mode dark --dest ./test-clean`.
+  - [ ] Execução de teste em máquina/ambiente sem arquivos locais via `npx @esquadrao/cli onboard --mode dark --dest ./test-clean`.
   - [ ] Verificação de integração pós-compra no painel do funil (`/app` com `NEXT_PUBLIC_CLI_NPM_PUBLISHED=true`).
 
 ---
 
-## Auditoria de Governança Atlas MCP & Jev: Encerramento da Etapa de Tutoriais
-> **Status:** ENCERRADA E SUSPENSA POR ENCONTRO DE ERROS GRAVES
-A esteira de tutoriais e onboarding visual está formalmente encerrada e paralisada devido à detecção de 149 ocorrências da palavra proibida 'universal' no repositório de skills. A esteira não avança para gravações em Playwright até o saneamento total do pacote npm, binários e manifestos.
+## Auditoria de Governança Atlas MCP & Jev: Conformidade da Etapa de Tutoriais
+> **Status:** CONFORME E LIBERADA
+A esteira de tutoriais e onboarding visual teve a sanitização de pacotes (@esquadrao/cli), binários e manifestos concluída com 100% de conformidade.

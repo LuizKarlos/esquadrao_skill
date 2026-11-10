@@ -41,7 +41,7 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 ## [1.1.0] - 2026-11-09
 
 ### Adicionado
-- **Comando Canônico `esquadrao`**: Adicionado alias binário oficial `esquadrao` e `esquadrao-skill` em conjunto com `universal-skill`.
+- **Comando Canônico `esquadrao`**: Adicionado alias binário oficial `esquadrao` e `esquadrao-skill` .
 - **Corte Automático de Silêncio (`detectSilence` / `computeSpeechIntervals`)**:
   - Filtro nativo FFmpeg `silencedetect=noise=-30dB:d=0.8` (customizável via `--silence-thresh` e `--silence-duration`).
   - Mapeamento determinístico de intervalos de silêncio e geração automática de segmentos de fala ativa.
@@ -66,7 +66,7 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 ## [1.0.0] - 2026-11-09
 
 ### Adicionado
-- Lançamento inicial do `@universal-skill/cli` com arquitetura modular zero-dependency em 5 camadas.
+- Lançamento inicial do `@esquadrao/cli` com arquitetura modular zero-dependency em 5 camadas.
 - 12 papéis canônicos de engenharia de software e produção de mídia.
 - Comandos `setup`, `role`, `studio` (init, import, render, qa) e `onboard`.
 - Soberania do usuário sobre proporção (Vertical 9:16 ou Widescreen 16:9) e estilos (`dark`, `edit_only`, `podcast_clip`).

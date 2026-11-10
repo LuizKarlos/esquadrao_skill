@@ -274,19 +274,19 @@ test('Roles: Media Producer Short-Form Video Parameter Validation', () => {
 });
 
 test('Roles: CLI Commands execution', () => {
-  // 1. universal-skill role list --json
+  // 1. esquadrao role list --json
   const listRaw = execFileSync(process.execPath, [binPath, 'role', 'list', '--json'], { encoding: 'utf8' });
   const listData = JSON.parse(listRaw);
   assert.equal(Array.isArray(listData), true);
   assert.equal(listData.length, 12);
 
-  // 2. universal-skill role info software-architect --json
+  // 2. esquadrao role info software-architect --json
   const infoRaw = execFileSync(process.execPath, [binPath, 'role', 'info', 'software-architect', '--json'], { encoding: 'utf8' });
   const infoData = JSON.parse(infoRaw);
   assert.equal(infoData.id, 'software-architect');
   assert.equal(infoData.formerName, 'chief_architect');
 
-  // 3. universal-skill role prompt media-producer "Vertical short" --json
+  // 3. esquadrao role prompt media-producer "Vertical short" --json
   const promptRaw = execFileSync(
     process.execPath,
     [binPath, 'role', 'prompt', 'media-producer', 'Vertical short', '--json'],
@@ -296,7 +296,7 @@ test('Roles: CLI Commands execution', () => {
   assert.equal(promptData.role, 'media-producer');
   assert.ok(promptData.prompt.includes('Media Producer'));
 
-  // 4. universal-skill role matrix --json
+  // 4. esquadrao role matrix --json
   const matrixRaw = execFileSync(process.execPath, [binPath, 'role', 'matrix', '--json'], { encoding: 'utf8' });
   const matrixData = JSON.parse(matrixRaw);
   assert.ok(matrixData.readOnlyRoles.includes('system-analyst'));

@@ -26,9 +26,9 @@ test('Documentação Canônica: presença, integridade e referências cruzadas',
 
   // Nome comercial oficial e pacote npm
   assert.ok(spec.includes('Esquadrão de Conteúdo'), 'SPEC.md deve citar Esquadrão de Conteúdo');
-  assert.ok(spec.includes('@universal-skill/cli'), 'SPEC.md deve citar @universal-skill/cli');
+  assert.ok(spec.includes('@esquadrao/cli'), 'SPEC.md deve citar @esquadrao/cli');
   assert.ok(readme.includes('Esquadrão de Conteúdo'), 'README.md deve citar Esquadrão de Conteúdo');
-  assert.ok(readme.includes('@universal-skill/cli'), 'README.md deve citar @universal-skill/cli');
+  assert.ok(readme.includes('@esquadrao/cli'), 'README.md deve citar @esquadrao/cli');
 
   // Modos de Onboard documentados
   for (const mode of ['dark', 'edit_only', 'podcast_clip']) {

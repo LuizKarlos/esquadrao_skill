@@ -27,7 +27,7 @@ const SKILLS = [
 // ponytail: synchronous copy; upgrade to async workers when syncing >50 skills
 export async function run({ positionals = [], flags = {} } = {}) {
   if (flags?.help) {
-    console.log('Usage: universal-skill setup [--dest <path>] [--json]');
+    console.log('Usage: esquadrao setup [--dest <path>] [--json]');
     return;
   }
 
@@ -100,8 +100,8 @@ export async function run({ positionals = [], flags = {} } = {}) {
       const rulesDir = path.join(cursorDir, 'rules');
       fs.mkdirSync(rulesDir, { recursive: true });
       fs.writeFileSync(
-        path.join(rulesDir, 'universal-skill.mdc'),
-        '---\ndescription: Universal Agent Skills Rules\nglobs: *\n---\nUse universal-skill tools and CLI.\n'
+        path.join(rulesDir, 'esquadrao.mdc'),
+        '---\ndescription: Esquadrao Skills Rules\nglobs: *\n---\nUse esquadrao tools and CLI.\n'
       );
     }
 
@@ -125,7 +125,7 @@ export async function run({ positionals = [], flags = {} } = {}) {
   if (flags?.json) {
     console.log(JSON.stringify(report));
   } else {
-    console.log(`Universal Skill Setup: ${report.status.toUpperCase()}`);
+    console.log(`Esquadrão Setup: ${report.status.toUpperCase()}`);
     console.log(`- Node.js: ${process.version} (${nodeOk ? 'OK' : 'Requires >= 18'})`);
     console.log(`- Installed ${installed.length} items to ${destDir}`);
     if (harnesses.length) console.log(`- Harnesses detected: ${harnesses.join(', ')}`);

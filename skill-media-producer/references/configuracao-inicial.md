@@ -1,4 +1,4 @@
-# Configuração inicial do Universal Skill Studio
+# Configuração inicial do Esquadrão Studio
 
 Guia para Windows / PowerShell: instalar, escolher proporção, configurar cortes e legendas, renderizar e verificar o MP4. Execute os blocos na mesma sessão. O Studio executa localmente pelo CLI, com Node.js e FFmpeg.
 
@@ -35,7 +35,7 @@ Alternativamente, após a publicação do pacote no npm, instale com `npm instal
 Escolha uma pasta exclusiva para o vídeo. `setup` copia as skills e atualiza as integrações de agentes detectadas nessa pasta; use uma pasta nova para preservar configurações de outros projetos.
 
 ```powershell
-$projeto = Join-Path $env:USERPROFILE "Videos\StudioUniversal\meu-primeiro-video"
+$projeto = Join-Path $env:USERPROFILE "Videos\StudioEsquadrao\meu-primeiro-video"
 New-Item -ItemType Directory -Force -Path $projeto | Out-Null
 Set-Location $projeto
 node $cli setup
