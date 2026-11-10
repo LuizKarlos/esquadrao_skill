@@ -3,7 +3,6 @@ import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
-import readline from 'node:readline/promises';
 
 function checkBinary(name) {
   try {
@@ -61,24 +60,7 @@ export async function run({ positionals = [], flags = {} } = {}) {
 
   const rootDir = fileURLToPath(new URL('../../', import.meta.url));
   const cwd = process.cwd();
-  let destArg = typeof flags?.dest === 'string' ? flags.dest : (positionals[0] || null);
-
-  if (!destArg && (process.stdin.isTTY || process.env.ESQUADRAO_INTERACTIVE || io.input) && !flags?.json) {
-    const rl = readline.createInterface({
-      input: io.input || process.stdin,
-      output: io.output || process.stdout,
-    });
-    try {
-      const answer = (await rl.question('Em qual pasta você deseja criar seu workspace? [. (pasta atual)]: ')).trim();
-      if (answer && answer !== '.') {
-        destArg = path.resolve(cwd, answer);
-      }
-    } catch {
-      // fallback to cwd
-    } finally {
-      rl.close();
-    }
-  }
+  const destArg = typeof flags?.dest === 'string' ? flags.dest : (positionals[0] || null);
   const destDir = destArg || path.join(cwd, '.agents', 'skills');
 
   fs.mkdirSync(destDir, { recursive: true });
