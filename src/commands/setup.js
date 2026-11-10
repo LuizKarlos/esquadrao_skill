@@ -14,7 +14,7 @@ function checkBinary(name) {
   }
 }
 
-function tryAutoInstallFfmpeg() {
+export function tryAutoInstallFfmpeg() {
   if (checkBinary('ffmpeg') && checkBinary('ffprobe')) return true;
   try {
     if (process.platform === 'darwin') {
@@ -88,7 +88,7 @@ export async function run({ positionals = [], flags = {} } = {}) {
       harnesses.push('.claude');
       const claudeSkillsDir = path.join(claudeDir, 'skills');
       fs.mkdirSync(claudeSkillsDir, { recursive: true });
-      for (const item of SKILLS) {
+      for (const item of [...SKILLS, 'scripts']) {
         const src = path.join(rootDir, item);
         if (fs.existsSync(src)) {
           fs.cpSync(src, path.join(claudeSkillsDir, item), { recursive: true });
@@ -103,7 +103,7 @@ export async function run({ positionals = [], flags = {} } = {}) {
       harnesses.push('.codex');
       const codexSkillsDir = path.join(codexDir, 'skills');
       fs.mkdirSync(codexSkillsDir, { recursive: true });
-      for (const item of SKILLS) {
+      for (const item of [...SKILLS, 'scripts']) {
         const src = path.join(rootDir, item);
         if (fs.existsSync(src)) {
           fs.cpSync(src, path.join(codexSkillsDir, item), { recursive: true });

@@ -57,6 +57,7 @@ function runCliInteractiveAsync(args, inputData, envOverrides = {}) {
     child.stdout.on('data', (d) => { stdout += d; });
     child.stderr.on('data', (d) => { stderr += d; });
     child.stdin.write(inputData);
+    child.stdin.end();
     child.on('close', (code) => {
       resolve({ status: code, stdout, stderr });
     });

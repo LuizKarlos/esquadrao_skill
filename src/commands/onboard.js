@@ -14,6 +14,7 @@ import {
   buildClipFilters,
   buildDarkTextFilters,
 } from './studio.js';
+import { tryAutoInstallFfmpeg } from './setup.js';
 import { validateEditPlan } from '../roles/mediaProducer.js';
 
 export function getFfmpegInstallInstructions(platform = process.platform) {
@@ -32,17 +33,22 @@ export function detectEnvironment() {
     throw new Error(`Node.js >= 18 is required (current: ${process.versions.node}). Please upgrade Node.js.`);
   }
 
-  const hasFfmpeg = checkBinary('ffmpeg');
-  const hasFfprobe = checkBinary('ffprobe');
-  if (!hasFfmpeg || !hasFfprobe) {
-    const missing = [!hasFfmpeg && 'ffmpeg', !hasFfprobe && 'ffprobe'].filter(Boolean).join(' and ');
+  let hasFfmpeg = checkBinary('ffmpeg') && checkBinary('ffprobe');
+  let autoInstalledFfmpeg = false;
+  if (!hasFfmpeg) {
+    autoInstalledFfmpeg = tryAutoInstallFfmpeg();
+    hasFfmpeg = checkBinary('ffmpeg') && checkBinary('ffprobe');
+  }
+
+  if (!hasFfmpeg) {
+    const missing = [!checkBinary('ffmpeg') && 'ffmpeg', !checkBinary('ffprobe') && 'ffprobe'].filter(Boolean).join(' and ');
     throw new Error(
       `${missing} is not installed or not found on PATH.\nTo install ffmpeg on ${process.platform}:\n  ${getFfmpegInstallInstructions()}`
     );
   }
 
   const font = findSystemFont();
-  return { nodeVersion: process.versions.node, ffmpeg: true, font };
+  return { nodeVersion: process.versions.node, ffmpeg: true, autoInstalledFfmpeg, font };
 }
 
 export function loadProfile(dir) {
@@ -295,21 +301,28 @@ Options:
   }
 
   let rl = null;
+  let isClosed = false;
   const getRl = () => {
     if (!rl) {
       rl = readline.createInterface({
         input: io.input || defaultInput,
         output: flags.json ? undefined : (io.output || defaultOutput),
       });
+      rl.on('close', () => { isClosed = true; });
     }
     return rl;
   };
 
   const ask = async (promptMsg, defaultVal = '') => {
+    if (isClosed || rl?.closed) return defaultVal;
     try {
       const promptStr = defaultVal ? `${promptMsg} [${defaultVal}]: ` : `${promptMsg}: `;
       const r = getRl();
-      const answer = (await r.question(promptStr)).trim();
+      const res = await Promise.race([
+        r.question(promptStr),
+        new Promise((resolve) => r.once('close', () => resolve(defaultVal))),
+      ]);
+      const answer = (res || '').trim();
       return answer || defaultVal;
     } catch {
       return defaultVal;
@@ -329,10 +342,9 @@ Options:
 
     if (!targetDir) {
       if (!flags.mode && canPrompt) {
-        targetDir = await ask('1. Em qual pasta você deseja guardar seus vídeos e projetos? [Pressione Enter para a pasta atual]', process.cwd());
-      } else {
-        targetDir = process.cwd();
+        targetDir = await ask('1. Em qual pasta você deseja guardar seus vídeos e projetos? [Pressione Enter para a pasta atual]');
       }
+      targetDir = targetDir || process.cwd();
     }
     targetDir = path.resolve(targetDir);
 
@@ -351,7 +363,7 @@ Options:
    [1] Corte de podcast ou aula com legendas automáticas (Recomendado)
    [2] Canal sem rosto / Vídeo dinâmico de alta retenção (Dark)
    [3] Fatiar e juntar partes de vídeos sem legendas (Edit Only)
-   Escolha [1]`;
+   Escolha`;
       const ansMode = await ask(modePrompt, '1');
       if (ansMode === '1' || ansMode.toLowerCase().includes('podcast')) mode = 'podcast_clip';
       else if (ansMode === '2' || ansMode.toLowerCase().includes('dark')) mode = 'dark';
@@ -368,15 +380,15 @@ Options:
     }
 
     let format = flags.format || activeProfile?.preferred_format || '9:16';
-    if (!flags.format && canPrompt && process.stdin.isTTY && !process.env.ESQUADRAO_INTERACTIVE) {
+    if (!flags.format && canPrompt) {
       const fmtPrompt = `3. Onde você vai postar esse vídeo?
    [1] Celular em pé (9:16 — Reels, TikTok, YouTube Shorts) [Padrão]
    [2] Vídeo deitado (16:9 — YouTube tradicional)
-   Escolha [1]`;
-    const ansFmt = await ask(fmtPrompt, '1');
-    if (ansFmt === '1' || ansFmt.includes('9:16')) format = '9:16';
-    else if (ansFmt === '2' || ansFmt.includes('16:9')) format = '16:9';
-    else format = ansFmt;
+   Escolha`;
+      const ansFmt = await ask(fmtPrompt, '1');
+      if (ansFmt === '1' || ansFmt.includes('9:16')) format = '9:16';
+      else if (ansFmt === '2' || ansFmt.includes('16:9')) format = '16:9';
+      else format = ansFmt;
     }
     format = (format || '9:16').trim();
     if (format !== '16:9' && format !== '9:16') {
