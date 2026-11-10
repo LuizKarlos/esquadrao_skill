@@ -54,26 +54,20 @@ A LLM pergunta de forma direta e objetiva:
 1. *"Qual formato você prefere para o seu vídeo? (1) Vertical 9:16 para Reels/Shorts/TikTok ou (2) Widescreen 16:9 para YouTube?"*
 2. *"Qual estilo você quer aplicar? (1) Cortar uma gravação com legendas automáticas, (2) Decupar e unir trechos de vídeos/packs, ou (3) Vídeo tipográfico sobre fundo escuro?"*
 
-### Passo 2: Verificação de Pré-requisitos
-A LLM orienta ou executa a checagem no terminal:
+### Passo 2: Instalação no Agente de IA e Resolução de Dependências
+O usuário instala o pacote executando apenas o comando npm através do seu agente de IA preferido (Claude Code, OpenAI Codex, Gemini, Cursor):
 ```bash
-node -v      # Deve ser >= 18.0.0
-ffmpeg -version
-ffprobe -version
-```
-Se o FFmpeg não estiver instalado, a LLM fornece o comando exato para o sistema:
-- **Windows:** `winget install Gyan.FFmpeg` ou `choco install ffmpeg`
-- **macOS:** `brew install ffmpeg`
-- **Linux:** `sudo apt update && sudo apt install -y ffmpeg`
-
-### Passo 3: Instalação e Configuração das Skills
-```bash
-# Instalação global do CLI oficial
 npm install -g @esquadrao/cli
+```
+> **Resolução Automática:** Caso o Node.js (>=18) ou o FFmpeg/ffprobe não estejam presentes na máquina, o próprio comando `esquadrao setup` ou o agente de IA realiza a instalação necessária de forma transparente. O usuário não precisa executar comandos de sistema operacional além do npm.
 
-# Configuração e distribuição das skills para o workspace atual
+### Passo 3: Definição do Workspace e Configuração das Skills
+O usuário escolhe uma pasta no computador para ser seu repositório/workspace principal de uso diário (ex.: `./meu-estudio`). É nessa pasta que as skills inteligentes do Esquadrão operam:
+```bash
+# Dentro da pasta do seu projeto/workspace
 esquadrao setup
 ```
+> **Acervo de Apoio:** Os packs de vídeos e imagens adquiridos na plataforma devem ser descompactados e mantidos dentro dessa mesma pasta de trabalho (ex.: `./packs/`), garantindo acesso imediato aos agentes para cortes e B-rolls.
 
 ### Passo 4: Inicialização do Estúdio
 ```bash
