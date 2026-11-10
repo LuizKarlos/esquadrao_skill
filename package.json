@@ -5,8 +5,7 @@
   "type": "module",
   "bin": {
     "esquadrao": "bin/cli.js",
-    "esquadrao-skill": "bin/cli.js",
-    "agent-skill": "bin/cli.js"
+    "esquadrao-skill": "bin/cli.js"
   },
   "files": [
     "bin",
