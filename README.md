@@ -12,7 +12,6 @@ Este repositório (`LuizKarlos/esquadrao_skill`) adota engenharia rigorosa centr
 - **[`GLOSSARY.md`](./GLOSSARY.md)**: Fonte canônica de terminologia, equivalências técnicas, códigos de saída e matriz anti-delírio.
 - **[`ROADMAP.md`](./ROADMAP.md)**: Esteira viva de engenharia estruturada em 5 fases vinculadas às issues do repositório.
 - **[`Guia Operacional para LLMs`](./skill-media-producer/references/llm-agent-guide.md)**: Playbook completo para agentes inteligentes (Claude, Cursor, Codex, Grok, Hermes) conduzirem onboarding sem alucinações.
-- **Pipeline Audiovisual de Tutoriais**: Especificação do fluxo de gravação headless e paridade com comandos do CLI disponível em [`TUTORIAL_PIPELINE.md`](https://github.com/LuizKarlos/esquadrao_funil/blob/main/TUTORIAL_PIPELINE.md).
 
 ---
 
