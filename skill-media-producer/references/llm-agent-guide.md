@@ -122,7 +122,13 @@ esquadrao studio transcribe /caminho/do/video_longo.mp4 --dest ./workspace --jso
 O arquivo `./workspace/packages/transcript.json` conterá todos os blocos com `start_s`, `end_s` e `text`.
 
 ### Passo 2: Análise de Copy e Seleção dos Melhores Trechos
-A LLM deve ler a transcrição e aplicar a **Fórmula Tripartite de Retenção Viral**:
+A LLM pode rodar o detector automatizado de ganchos ou analisar manualmente o `transcript.json`:
+```bash
+esquadrao studio find-hooks ./workspace/packages/transcript.json --min-dur 30 --max-dur 60 --json
+```
+O comando retorna os Top 3 candidatos ranqueados com pontuação de gancho, timestamps exatos (`start_ms`, `end_ms`) e punchlines.
+
+A LLM deve aplicar a **Fórmula Tripartite de Retenção Viral**:
 1. **O Gancho (0 a 3 segundos):** Identifique o momento em que o orador faz uma pergunta contraintuitiva, revela um segredo ou expõe um erro comum. O corte DEVE começar exatamente na primeira palavra do gancho (ex: *"O maior erro de quem tenta vender..."*).
 2. **Janela de Retenção (30s a 60s flexível):** A ideia central precisa ser explicada com clareza sem prolixidade. Se o raciocínio exigir 45s ou 55s, respeite a conclusão natural da ideia. Permita ajuste se o usuário solicitar cortes mais curtos ou mais longos.
 3. **Punchline de Fechamento:** O corte encerra no clímax da resposta ou conclusão, cortando antes de transições vazias ("é isso", "então pessoal", "deixa o like").

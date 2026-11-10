@@ -119,6 +119,17 @@ Orienta a LLM a selecionar cortes de 30s a 60s (flexíveis conforme a ideia) com
 2. **Desenvolvimento (4s-50s):** Explicação da ideia com inserção de B-roll a cada 4-7 segundos para manter a retenção visual.
 3. **Punchline (50s-60s):** Fechamento conclusivo sem despedidas vazias, finalizando no ápice da resposta.
 
+#### 2.2.11. `esquadrao studio find-hooks <video.mp4 | transcript.json> [opções]`
+- Analisa a transcrição estruturada com heurísticas determinísticas de Copywriting:
+  - Pontua gatilhos de curiosidade, quebras de padrão, dores e perguntas contraintuitivas no início de frases.
+  - Constrói intervalos contíguos de raciocínio respeitando a janela alvo (padrão 30s a 60s, flexível via `--min-dur` e `--max-dur`).
+  - Detecta punchlines naturais com pontuação conclusiva e penaliza transições mortas.
+  - Retorna o ranking dos melhores trechos virais com timestamps em milissegundos (`in_ms`, `out_ms`), gancho identificado e punchline de fechamento.
+
+#### 2.2.12. Auto-Clip com B-Rolls e Trilha Ducking Integrados
+- O comando `esquadrao studio auto-clip` aceita as flags `--broll <arquivo>` (múltiplas cenas) e `--music <arquivo>`.
+- Quando informados, o estúdio distribui automaticamente as cenas de apoio sobre a fala (mantendo a voz ininterrupta) e aplica a trilha musical com atenuação inteligente (`ducking` a -22dB).
+
 ### 2.3. Configuração Multi-Harness (`universal-skill setup`)
 Distribui as 18 skills empacotadas para os diretórios locais dos diferentes agentes de IA presentes no workspace do usuário:
 - **Grok Build:** `.agents/skills/`

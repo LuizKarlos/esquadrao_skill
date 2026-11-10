@@ -77,6 +77,9 @@
 - [x] **3.7. Vídeos Dinâmicos com B-Rolls e Trilha Ducking:**
   - [x] Suporte a `overlays` no `EditPlan v1` com layouts dinâmicos (`fullscreen`, `pip`, `split_bottom`, `split_top`).
   - [x] Suporte a `music_tracks` com ducking suave de áudio (-20dB a -24dB) e mixagem sonora equilibrada.
+- [x] **3.8. Detector Heurístico de Ganchos e Auto-Clip Dinâmico:**
+  - [x] Comando `esquadrao studio find-hooks <video | transcript.json>` para mineração automática de melhores trechos (30s-60s) baseados em copy.
+  - [x] Suporte a `--broll` e `--music` diretamente no comando `esquadrao studio auto-clip` para produção 100% autônoma.
 
 ---
 

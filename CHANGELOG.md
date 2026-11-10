@@ -6,6 +6,21 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 
 ---
 
+## [1.3.0] - 2026-11-09
+
+### Adicionado
+- **Detector Heurístico de Ganchos (`esquadrao studio find-hooks`)**:
+  - Mineração automatizada de trechos virais com base em padrões de copywriting (perguntas contraintuitivas, quebras de padrão, dores e segredos).
+  - Janela de raciocínio inteligente com agrupamento de 30s a 60s (customizável via `--min-dur` e `--max-dur`).
+  - Identificação de punchline final e pontuação de retenção para apoiar a seleção por agentes LLM.
+- **Auto-Clip Totalmente Dinâmico (`--broll` e `--music`)**:
+  - `esquadrao studio auto-clip` agora aceita `--broll <arquivo>` (múltiplas cenas de apoio) e `--music <arquivo>`.
+  - Distribuição automática de B-rolls durante a fala e mixagem suave de trilha sonora com ducking (-22dB) em um único comando.
+- **Suíte de Testes para Detecção de Ganchos e Auto-Clip Dinâmico**:
+  - Adicionado `tests/find_hooks.test.js` com testes unitários e de integração (72/72 testes passando).
+
+---
+
 ## [1.2.0] - 2026-11-09
 
 ### Adicionado
