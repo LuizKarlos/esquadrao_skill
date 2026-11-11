@@ -1,6 +1,6 @@
 ---
 name: skill-media-producer
-version: "1.2.0"
+version: "1.4.0"
 description: "Set up Esquadrão Studio and configure video aspect ratio, captions, cuts, audio gain, EditPlan validation, rendering, and QA. Use for initial setup and video configuration requests."
 allowed-tools: ["terminal"]
 ---
