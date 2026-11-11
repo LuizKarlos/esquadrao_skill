@@ -133,6 +133,24 @@ test('Auto-Clip: buildAutoClipPlan creates compliant podcast_clip schema v1', ()
   assert.equal(plan.clips[1].timeline_start_ms, 2000);
 });
 
+test('Auto-Clip: buildAutoClipPlan preserves multiple b-roll overlays and music', () => {
+  const plan = buildAutoClipPlan({
+    asset: { id: 'AST-BASE' },
+    speechIntervals: [{ startSec: 0, endSec: 10, durationSec: 10 }],
+    captions: [],
+    format: '9:16',
+    overlays: [
+      { asset_id: 'AST-B1', layout: 'fullscreen', in_ms: 0, out_ms: 2000, timeline_start_ms: 1000, duration_ms: 2000 },
+      { asset_id: 'AST-B2', layout: 'fullscreen', in_ms: 0, out_ms: 2000, timeline_start_ms: 5000, duration_ms: 2000 },
+    ],
+    musicTracks: [{ asset_id: 'AST-MUSIC', gain_db: -22, ducking: true }],
+  });
+  assert.equal(plan.overlays.length, 2);
+  assert.equal(plan.overlays[0].asset_id, 'AST-B1');
+  assert.equal(plan.music_tracks.length, 1);
+  assert.equal(plan.music_tracks[0].asset_id, 'AST-MUSIC');
+});
+
 test('Auto-Clip: detectSilence finds pauses in synthetic audio/video', (t) => {
   if (!checkBinary('ffmpeg')) {
     t.skip('ffmpeg not found');

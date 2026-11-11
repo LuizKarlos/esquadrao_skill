@@ -12,11 +12,12 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 - **Onboarding real no modo `podcast_clip`:** `esquadrao onboard --mode podcast_clip` agora executa o pipeline `auto-clip` (detecção de silêncio, cortes, legendas e QA), com `--captions`, `--openai`, `--local` e `--no-captions`.
 - **Corte explícito sem legendas:** flag `--no-captions` em `studio auto-clip` e `onboard` para gerar o vídeo sem transcrição de forma intencional.
 - **Motor local opcional:** `@xenova/transformers@^2.17.2` declarado em `optionalDependencies`; ausência gera erro acionável e não quebra a instalação.
-- **Testes:** 78/78 (5 novos) cobrindo falha sem legenda, `--no-captions`, ausência do motor local, `transcribe` sem fonte e onboarding real.
+- **Testes:** 79/79 (6 novos) cobrindo falha sem legenda, `--no-captions`, ausência do motor local, `transcribe` sem fonte, onboarding real e overlays/música no plano.
 
 ### Corrigido
 - `auto-clip` e `transcribe` falham com código `1` e mensagem acionável quando não há SRT, OpenAI nem motor local, em vez de renderizar sem legendas.
 - `--captions` funciona em vídeo sem faixa de áudio (SRT não exige extração).
+- `auto-clip --broll` e `--music` agora anexam overlays e `music_tracks` ao EditPlan; antes eram construídos e descartados por um retorno antecipado. A distribuição usa todos os b-rolls informados em cortes de ~2,4 s.
 - `onboard` em `podcast_clip` sem motor de legenda gera corte real com aviso explícito, sem legenda fixa.
 - Documentação sincronizada: SPEC §8, ROADMAP, GLOSSARY, README, `skill-media-producer` e referências refletem o estado entregue.
 

@@ -4,7 +4,7 @@
 > **Funil Integrado:** `LuizKarlos/esquadrao_funil`
 > **Esteira Viva:** Este roadmap governa o ciclo de desenvolvimento, os testes contínuos e os marcos de entrega do pacote `@esquadrao/cli`.
 > **Autoridades Canônicas:** [`SPEC.md`](./SPEC.md), [`GLOSSARY.md`](./GLOSSARY.md), [`README.md`](./README.md)
-> **Estado de Conformidade (2026-11-11):** 78/78 testes verdes, lint em 35 arquivos aprovado; Fases 1, 2 e 4 entregues; Fase 3 parcial; Fase 5 em andamento.
+> **Estado de Conformidade (2026-11-11):** 79/79 testes verdes, lint em 35 arquivos aprovado; Fases 1, 2 e 4 entregues; Fase 3 parcial; Fase 5 em andamento.
 > **Legenda:** `[x]` = implementado e testado; `[ ]` = previsto, pendente ou demonstração.
 
 ---
@@ -111,7 +111,7 @@
 > **Issue GitHub Ativa:** [#26 — Publicar @esquadrao/cli no npm](https://github.com/LuizKarlos/esquadrao_skill/issues/26)
 
 - [ ] **5.1. Homologação da Publicação:**
-  - [x] Testes unitários com cobertura total de 78 testes verdes.
+  - [x] Testes unitários com cobertura total de 79 testes verdes.
   - [x] Linting nativo `node scripts/lint.js` aprovado em todos os 35 arquivos.
   - [x] Documentação canônica integrada (`SPEC.md`, `ROADMAP.md`, `GLOSSARY.md`, `README.md`).
   - [ ] Abertura do repositório para visibilidade pública no GitHub.
@@ -151,7 +151,7 @@
 - [ ] **CLI-10: Atualização do manual de ajuda de `studio`**
   *Critério de aceite:* Documentar flags `--broll` e `--music` na saída de `esquadrao studio auto-clip --help`.
 - [ ] **CLI-11: Alinhamento contínuo de referências documentais**
-  *Critério de aceite:* Manter métricas de teste (78 testes), contagem de lint (35 arquivos) e estrutura real do estúdio sincronizadas nos testes de documentação.
+  *Critério de aceite:* Manter métricas de teste (79 testes), contagem de lint (35 arquivos) e estrutura real do estúdio sincronizadas nos testes de documentação.
 
 ### Critérios de Aceite Globais
 - **P0 Resolvido:** `podcast_clip` executa corte dinâmico real e ausência de legendas bloqueia renderização com código de erro.

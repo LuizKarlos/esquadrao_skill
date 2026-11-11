@@ -197,13 +197,13 @@ Todos os scripts são construídos com biblioteca padrão do Node.js e executam 
 
 ## 5. Garantia da Qualidade e Suíte de Testes
 
-A integridade do CLI é atestada deterministicamente pelo test runner nativo do Node.js (78 testes aprovados) e pelo linter (35 arquivos verificados):
+A integridade do CLI é atestada deterministicamente pelo test runner nativo do Node.js (79 testes aprovados) e pelo linter (35 arquivos verificados):
 ```bash
 npm test
 npm run lint
 ```
 A suíte cobre:
-- CLI core: argumentos, ajuda, versão e códigos de erro de saída (78/78 testes verdes).
+- CLI core: argumentos, ajuda, versão e códigos de erro de saída (79/79 testes verdes).
 - Onboard em todos os 3 modos (`dark`, `edit_only`, `podcast_clip`).
 - Studio engine: integridade do `studio.json`, cancelamento via SIGINT, proteção de caracteres de legendas e validação de QA.
 - Oráculos de papéis e autoridades (12 papéis canônicos).
@@ -229,7 +229,7 @@ A suíte cobre:
 
 ### 8.1. Método de Verificação e Evidências Operacionais
 A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.4.0) foi executada em 2026-11-11 por inspeção direta de código, verificação do manifesto e execução determinística de testes:
-1. **Suíte de Testes Unitários e Integração:** `npm test` executou 78 testes distribuídos em 11 arquivos de teste com 100% de aprovação (`78/78 pass, 0 fail`).
+1. **Suíte de Testes Unitários e Integração:** `npm test` executou 79 testes distribuídos em 11 arquivos de teste com 100% de aprovação (`79/79 pass, 0 fail`).
 2. **Auditoria Estática de Código:** `npm run lint` validou a conformidade sintática e estilística em 35 arquivos de código-fonte sem avisos ou falhas.
 3. **Inspeção de Estrutura do Estúdio:** Execução real de `esquadrao studio init` em diretório temporário isolado confirmou a criação exclusiva dos diretórios `assets/`, `packages/`, `artifacts/` e do arquivo `studio.json`. Os diretórios `editplans/`, `renders/` e `qa/` não são gerados pelo comando.
 4. **Inspeção de Dependências e Runtime:** O manifesto `package.json` declara `dependencies: {}` e `optionalDependencies: { "@xenova/transformers": "^2.17.2" }`. O motor local é opcional: se a instalação do pacote opcional falhar, `--local` retorna erro acionável e o restante do CLI permanece funcional.

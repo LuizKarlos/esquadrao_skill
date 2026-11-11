@@ -792,7 +792,7 @@ export function buildAutoClipPlan({ asset, speechIntervals, captions = [], forma
     timelineCursorMs += clipDurMs;
   }
 
-  return {
+  const plan = {
     schema_version: 1,
     mode: 'podcast_clip',
     clips,
@@ -807,12 +807,8 @@ export function buildAutoClipPlan({ asset, speechIntervals, captions = [], forma
       audio_codec: 'aac',
     },
   };
-  if (overlays && overlays.length > 0) {
-    plan.overlays = overlays;
-  }
-  if (musicTracks && musicTracks.length > 0) {
-    plan.music_tracks = musicTracks;
-  }
+  if (overlays.length > 0) plan.overlays = overlays;
+  if (musicTracks.length > 0) plan.music_tracks = musicTracks;
   return plan;
 }
 
@@ -1146,26 +1142,30 @@ Options:
     const overlays = [];
     if (flags.broll) {
       const brollFiles = Array.isArray(flags.broll) ? flags.broll : [flags.broll];
-      let brollIdx = 0;
-      let overlayCursorSec = 4.0;
+      const importedBrolls = [];
+      for (const file of brollFiles) {
+        const brollAsset = await silentIfJson(() => run({ positionals: ['import', path.resolve(file)], flags: { dest: wsDir, json: false } }));
+        if (brollAsset && brollAsset.id) importedBrolls.push(brollAsset);
+      }
       const totalTimelineSec = speechIntervals.reduce((acc, s) => acc + s.durationSec, 0);
-
-      while (overlayCursorSec < totalTimelineSec - 3.0 && brollIdx < brollFiles.length * 3) {
-        const fileToUse = brollFiles[brollIdx % brollFiles.length];
-        const brollAsset = await silentIfJson(() => run({ positionals: ['import', path.resolve(fileToUse)], flags: { dest: wsDir, json: false } }));
-        if (brollAsset && brollAsset.id) {
-          const ovDurSec = Math.min(3.0, (brollAsset.metadata?.duration_s || 3.0));
+      const maxOverlays = Math.max(1, Math.floor(totalTimelineSec / 1.5));
+      const selected = importedBrolls.slice(0, maxOverlays);
+      if (selected.length > 0 && totalTimelineSec >= 2) {
+        const slotSec = totalTimelineSec / selected.length;
+        const targetDurSec = Math.min(3.0, slotSec * 0.9);
+        selected.forEach((brollAsset, index) => {
+          const startSec = index * slotSec + (slotSec - targetDurSec) / 2;
+          const durSec = Math.min(targetDurSec, brollAsset.metadata?.duration_s || targetDurSec, totalTimelineSec - startSec);
+          if (durSec < 0.5) return;
           overlays.push({
             asset_id: brollAsset.id,
             layout: 'fullscreen',
             in_ms: 0,
-            out_ms: Math.round(ovDurSec * 1000),
-            timeline_start_ms: Math.round(overlayCursorSec * 1000),
-            duration_ms: Math.round(ovDurSec * 1000),
+            out_ms: Math.round(durSec * 1000),
+            timeline_start_ms: Math.round(startSec * 1000),
+            duration_ms: Math.round(durSec * 1000),
           });
-        }
-        overlayCursorSec += 7.0;
-        brollIdx++;
+        });
       }
     }
 
