@@ -1,6 +1,6 @@
 ---
 name: skill-media-producer
-version: "1.4.0"
+version: "1.5.0"
 description: "Set up Esquadrão Studio and configure video aspect ratio, captions, cuts, audio gain, EditPlan validation, rendering, and QA. Use for initial setup and video configuration requests."
 allowed-tools: ["terminal"]
 ---
@@ -117,7 +117,7 @@ esquadrao studio auto-clip ./caminho/meu-video.mp4 --dest ./workspace --json
 2. `--openai`: Requer a variável de ambiente `OPENAI_API_KEY` para transcrição remota via API Whisper.
 3. `--local`: Utiliza `@xenova/transformers` + `Xenova/whisper-tiny` (declarada em `optionalDependencies`). Se o pacote opcional não estiver instalado, o comando falha com instrução acionável; use `--no-captions` para cortar sem legendas.
 
-> **Templates de legenda:** o catálogo canônico tem nove presets em [`references/caption-templates.md`](references/caption-templates.md). O CLI 1.4.0 ainda expõe apenas `impact`, `word` e `full`; `--caption-template` é backlog CLI-12. Não prometa os nove templates como flags disponíveis.
+> **Templates de legenda:** o catálogo canônico tem nove presets em [`references/caption-templates.md`](references/caption-templates.md), disponíveis no CLI 1.5.0 via `--caption-template <id>` ou `captions[].template`. `--caption-style impact|word|full` permanece como legado.
 
 ---
 
@@ -322,4 +322,4 @@ esquadrao studio auto-clip ./caminho/meu-video.mp4 --dest ./workspace --json
 
 - [`references/llm-agent-guide.md`](references/llm-agent-guide.md): Guia de conversação completo com fluxos de tratamento de erro.
 - [`references/configuracao-inicial.md`](references/configuracao-inicial.md): Guia passo a passo para execução via PowerShell / Windows.
-- [`references/caption-templates.md`](references/caption-templates.md): catálogo canônico dos nove templates de legenda, com fonte, cores, contorno, sombra e status de implementação (CLI-12).
+- [`references/caption-templates.md`](references/caption-templates.md): catálogo canônico dos nove templates de legenda, com fonte, cores, contorno, sombra e contrato CLI.

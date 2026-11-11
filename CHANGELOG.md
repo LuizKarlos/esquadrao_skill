@@ -6,6 +6,23 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 
 ---
 
+## [1.5.0] - 2026-11-11
+
+### Adicionado
+- **Motor nativo de templates de legenda (CLI-12):** `--caption-template <id>` em `studio auto-clip`/`studio render`, `caption_template` e `captions[].template` no EditPlan, e `studio caption-templates --json`.
+- **Nove presets:** MrBeast Yellow, TikTok White, Gold Stroke, Green Stroke, Neon Glitch, Minimal Lower Third, Red Stroke, Heavy White e Mono Clean, todos sem fundo sólido.
+- **Fontes empacotadas:** Anton, Bebas Neue e Poppins em `assets/fonts` (OFL 1.1), com fallback para Liberation/DejaVu/Poppins.
+- **Validação:** ID desconhecido falha com código 1 e lista os templates disponíveis.
+
+### Corrigido
+- **Escala vertical:** a segunda linha usa `lineGap * font_size`, mantendo o bloco compacto em 9:16 em vez de abrir um vão proporcional à altura.
+- **Heavy White:** contorno reduzido de 10 px para 8 px para não fechar o espaço entre as palavras.
+
+### Testes
+- 87/87 testes (8 novos) e lint em 37 arquivos cobrindo catálogo, fontes, divisão de linhas, geometria vertical, validação de ID, listagem CLI e render ponta a ponta.
+
+---
+
 ## [1.4.0] - 2026-11-11
 
 ### Adicionado

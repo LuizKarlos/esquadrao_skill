@@ -1,6 +1,6 @@
 # Catálogo de Templates de Legenda
 
-> **Status:** especificação de referência validada em um grid 3×3 (2026-11-11). O CLI **1.4.0** ainda expõe apenas os estilos `impact`, `word` e `full`. Os nove presets abaixo são o contrato do motor nativo de templates, planejado no backlog **CLI-12**. Não use `--caption-template` até a entrega; hoje ele não existe.
+> **Status:** implementado no CLI **1.5.0**. Use `--caption-template <id>` em `studio auto-clip`/`studio render` ou `captions[].template` no EditPlan. Os estilos `impact`, `word` e `full` continuam disponíveis como legado via `--caption-style`.
 
 Este documento é a fonte canônica para fonte, cor, contorno, sombra, posição e animação das legendas. Ele descreve os nove estilos usados no grid de demonstração e serve de base para a implementação no `@esquadrao/cli`.
 
@@ -28,10 +28,10 @@ Referência de projeto: célula **640×360** (16:9). Para outro canvas, multipli
 | `stroke` base | 7 px | `7 * k` | 12 px |
 | `shadow` base | 4 px | `4 * k` | 7 px |
 | linha 1 (`y1`) | 100 px (27,8%) | `0.2778 * altura` | 533 px |
-| linha 2 (`y2`) | 170 px (47,2%) | `0.4722 * altura` | 907 px |
+| linha 2 (`y2`) | 170 px | `y1 + lineGap * font_size` | 651 px (heavy-white) |
 | lower third (`y`) | 276 px (76,7%) | `0.7667 * altura` | 1472 px |
 
-O motor deve arredondar para inteiro e garantir `stroke >= 2` e `font_size >= 12` em qualquer canvas.
+O motor deve arredondar para inteiro e garantir `stroke >= 2` e `font_size >= 12` em qualquer canvas. O `lineGap` é específico por template (1,0× a 1,4× o `font_size`) e mantém o bloco compacto em 9:16, em vez de abrir um vão proporcional à altura.
 
 ---
 
@@ -46,10 +46,10 @@ O motor deve arredondar para inteiro e garantir `stroke >= 2` e `font_size >= 12
 | 5 | `neon-glitch` | Neon Glitch | Anton | `#FFFFFF` + offsets `#00E5FF` / `#FF00E5` | `#000000` 3 px no núcleo | halo 0 px, 70% | 100 / 170 | Gaming, tech |
 | 6 | `minimal-lower-third` | Minimal Lower Third | Liberation Sans Bold | `#FFFFFF` | `#000000` 3 px | 2 px, 2 px | 276 (linha única) | Corporativo, clean |
 | 7 | `red-stroke` | Red Stroke | Poppins Bold | `#FFFFFF` | `#E11D2E` 6 px | 3 px, 3 px | 105 / 175 | Alerta, ênfase |
-| 8 | `heavy-white` | Heavy White | Poppins Bold | `#FFFFFF` | `#000000` 10 px | 4 px, 4 px | 105 / 178 | Máxima leitura |
+| 8 | `heavy-white` | Heavy White | Poppins Bold | `#FFFFFF` | `#000000` 8 px | 4 px, 4 px | 105 / 178 | Máxima leitura |
 | 9 | `mono-clean` | Mono Clean | DejaVu Sans Mono Bold | `#FFFFFF` | `#000000` 9 px | 4 px, 4 px | 112 / 178 | Técnico, typewriter |
 
-> **Sem fundo:** nenhum dos nove usa `box=1` ou `drawbox` atrás do texto. A linha horizontal do template 6 e a do template 9 são elementos gráficos, não fundos.
+> **Sem fundo:** nenhum dos nove usa `box=1` ou `drawbox` atrás do texto. A linha horizontal do template 6 é um elemento gráfico, não um fundo.
 
 ---
 
@@ -123,7 +123,7 @@ drawtext=fontfile='Anton-Regular.ttf':text='LEGENDA DO':fontsize=64:fontcolor=#F
 
 - **Fonte:** Poppins Bold, 60 px.
 - **Preenchimento:** `#FFFFFF`.
-- **Contorno:** `#000000`, 10 px.
+- **Contorno:** `#000000`, 8 px.
 - **Sombra:** preta a 90%, 4×4.
 - **Uso:** máxima legibilidade; é o template corrigido da posição inferior central.
 
@@ -137,7 +137,7 @@ drawtext=fontfile='Anton-Regular.ttf':text='LEGENDA DO':fontsize=64:fontcolor=#F
 
 ---
 
-## 5. Contrato CLI planejado (CLI-12)
+## 5. Contrato CLI implementado (1.5.0)
 
 O motor nativo deve aceitar:
 
@@ -169,15 +169,15 @@ Regras de contrato:
 - O renderizador não deve introduzir fundo sólido em nenhum template do catálogo.
 - Fontes ausentes usam fallback explícito e registram aviso, nunca falham em silêncio.
 
-**Estado:** não implementado no CLI 1.4.0. O CLI atual aceita apenas `--caption-style impact|word|full`.
+**Estado:** implementado no CLI 1.5.0. `--caption-template` e `captions[].template` são validados contra os nove IDs; ID inválido encerra com código 1 e lista os disponíveis.
 
 ---
 
 ## 6. Regras para agentes de IA
 
-1. Não prometa `--caption-template` enquanto CLI-12 não estiver entregue.
-2. Use `--caption-style impact` para o visual MrBeast/TikTok; `word` para palavra única; `full` para frase completa.
-3. Se o usuário pedir um template deste catálogo, explique que ele é referência documentada e ofereça o estilo nativo mais próximo.
+1. Use `--caption-template <id>` para escolher um dos nove presets; `caption-templates --json` lista os IDs.
+2. `--caption-style impact|word|full` continua válido como legado quando nenhum template é informado.
+3. ID inválido deve ser tratado como erro, nunca ignorado.
 4. Nunca aplique `drawbox`/`box=1` atrás do texto ao recriar estes templates.
 5. Preserve a área segura de 5% e o contorno mínimo.
 

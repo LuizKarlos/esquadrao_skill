@@ -234,6 +234,6 @@ Três caminhos de legendas no `auto-clip`:
 2. `--openai`: Requer a variável de ambiente `OPENAI_API_KEY` para transcrição via API remota da OpenAI.
 3. `--local`: Utiliza `@xenova/transformers` + `Xenova/whisper-tiny`, declarada em `optionalDependencies`. Se o pacote opcional não estiver instalado, o comando falha com instrução acionável; use `--no-captions` para cortar sem legendas.
 
-> **Templates:** o catálogo de nove presets está em [`caption-templates.md`](caption-templates.md). O CLI atual só aceita `--caption-style impact|word|full`; `--caption-template` é planejado no CLI-12.
+> **Templates:** o catálogo de nove presets está em [`caption-templates.md`](caption-templates.md). Use `--caption-template <id>` no `auto-clip`/`render` ou `captions[].template` no EditPlan; `--caption-style impact|word|full` continua como legado.
 
 Caso adicione trilha de fundo (`--music`), a atenuação aplicada é fixa em `-22dB`, sem ducking dinâmico por sidechain.

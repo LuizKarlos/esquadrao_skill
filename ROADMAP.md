@@ -4,7 +4,7 @@
 > **Funil Integrado:** `LuizKarlos/esquadrao_funil`
 > **Esteira Viva:** Este roadmap governa o ciclo de desenvolvimento, os testes contínuos e os marcos de entrega do pacote `@esquadrao/cli`.
 > **Autoridades Canônicas:** [`SPEC.md`](./SPEC.md), [`GLOSSARY.md`](./GLOSSARY.md), [`README.md`](./README.md)
-> **Estado de Conformidade (2026-11-11):** 79/79 testes verdes, lint em 35 arquivos aprovado; Fases 1, 2 e 4 entregues; Fase 3 parcial; Fase 5 em andamento.
+> **Estado de Conformidade (2026-11-11):** 87/87 testes verdes, lint em 37 arquivos aprovado; Fases 1, 2 e 4 entregues; Fase 3 parcial; Fase 5 em andamento.
 > **Legenda:** `[x]` = implementado e testado; `[ ]` = previsto, pendente ou demonstração.
 
 ---
@@ -50,7 +50,7 @@
 ---
 
 ## Fase 3: Motor de Vídeo Studio e Pipeline FFmpeg
-> **Status:** Parcial: motor base entregue; legendas automáticas locais, onboarding real e ducking dinâmico pendentes.
+> **Status:** Parcial: motor base e templates de legenda entregues; ducking dinâmico e `split_top` pendentes.
 > **Objetivo:** Construir o pipeline local completo de decupagem, importação, queima de legendas seguras e inspeção automatizada de QA.
 
 - [x] **3.1. Gerenciamento do Workspace do Estúdio:**
@@ -111,8 +111,8 @@
 > **Issue GitHub Ativa:** [#26 — Publicar @esquadrao/cli no npm](https://github.com/LuizKarlos/esquadrao_skill/issues/26)
 
 - [ ] **5.1. Homologação da Publicação:**
-  - [x] Testes unitários com cobertura total de 79 testes verdes.
-  - [x] Linting nativo `node scripts/lint.js` aprovado em todos os 35 arquivos.
+  - [x] Testes unitários com cobertura total de 87 testes verdes.
+  - [x] Linting nativo `node scripts/lint.js` aprovado em todos os 37 arquivos.
   - [x] Documentação canônica integrada (`SPEC.md`, `ROADMAP.md`, `GLOSSARY.md`, `README.md`).
   - [ ] Abertura do repositório para visibilidade pública no GitHub.
   - [ ] Publicação do pacote no registro npm oficial (`npm publish --access public`).
@@ -145,7 +145,7 @@
 - [ ] **CLI-08: Matriz de integração contínua multiplataforma**
   *Critério de aceite:* Validar execução de testes em ambientes Windows e macOS no GitHub Actions.
 
-- [ ] **CLI-12: Motor nativo de templates de legenda**
+- [x] **CLI-12: Motor nativo de templates de legenda** — resolvido em 1.5.0; `--caption-template` e `captions[].template`.
   *Critério de aceite:* Implementar `--caption-template <id>` e `captions[].template` com os nove IDs de [`references/caption-templates.md`](./skill-media-producer/references/caption-templates.md), fallback de fontes e teste de render por template.
 
 ### Prioridade P2 (Polimento de Interface e Higiene de Repositório)
@@ -154,7 +154,7 @@
 - [ ] **CLI-10: Atualização do manual de ajuda de `studio`**
   *Critério de aceite:* Documentar flags `--broll` e `--music` na saída de `esquadrao studio auto-clip --help`.
 - [ ] **CLI-11: Alinhamento contínuo de referências documentais**
-  *Critério de aceite:* Manter métricas de teste (79 testes), contagem de lint (35 arquivos) e estrutura real do estúdio sincronizadas nos testes de documentação.
+  *Critério de aceite:* Manter métricas de teste (87 testes), contagem de lint (37 arquivos) e estrutura real do estúdio sincronizadas nos testes de documentação.
 
 ### Critérios de Aceite Globais
 - **P0 Resolvido:** `podcast_clip` executa corte dinâmico real e ausência de legendas bloqueia renderização com código de erro.

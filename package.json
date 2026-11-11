@@ -1,6 +1,6 @@
 {
   "name": "@esquadrao/cli",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Esquadrão CLI and autonomous skill orchestration framework for AI agents",
   "type": "module",
   "bin": {
@@ -8,6 +8,7 @@
     "esquadrao-skill": "bin/cli.js"
   },
   "files": [
+    "assets",
     "bin",
     "src",
     "scripts",

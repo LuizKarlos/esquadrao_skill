@@ -9,6 +9,7 @@ import { execFileSync, spawnSync, spawn } from 'node:child_process';
 import process from 'node:process';
 import readline from 'node:readline';
 import { validateEditPlan } from '../roles/mediaProducer.js';
+import { buildTemplateCaptionFilters, getCaptionTemplate, listCaptionTemplates } from '../captionTemplates.js';
 
 export function checkBinary(name) {
   try {
@@ -141,13 +142,22 @@ export function buildDarkTextFilters(clips, tempFiles) {
   }).join(',');
 }
 
-export function buildCaptionFilters(captions, baseV, tempFiles, captionStyle = 'default') {
+export function buildCaptionFilters(captions, baseV, tempFiles, captionStyle = 'default', options = {}) {
   if (!captions || captions.length === 0) {
     return `${baseV}null[outv]`;
   }
   const font = findSystemFont();
   const fontOpt = font ? `:fontfile='${font.replace(/\\/g, '/').replace(/:/g, '\\:')}'` : '';
   const textFilters = captions.map((c) => {
+    const templateId = c.template || options.template;
+    if (templateId) {
+      const template = getCaptionTemplate(templateId);
+      return buildTemplateCaptionFilters(c, template, {
+        width: options.width,
+        height: options.height,
+        tempFiles,
+      });
+    }
     const start = ((c.timeline_start_ms || 0) / 1000).toFixed(3);
     const end = (((c.timeline_start_ms || 0) + (c.duration_ms || 1000)) / 1000).toFixed(3);
     const style = c.style || captionStyle;
@@ -830,6 +840,7 @@ Subcommands:
   find-hooks <file>             Find top viral hook segments (30-60s) from transcript or video
   render <editplan.json>        Validate EditPlan contract and execute cuts/captions via ffmpeg
   qa <artifact.mp4>             Run automated ffprobe QA verification on rendered video artifact
+  caption-templates [--json]     Lista os templates de legenda disponíveis
 
 Options:
   --dest <path>                 Custom studio workspace destination directory
@@ -840,10 +851,25 @@ Options:
   --openai                      Forçar uso da API OpenAI Whisper
   --local                       Forçar transcrição Whisper local
   --captions <file.srt>         Arquivo de legendas externo
+  --caption-template <id>       Template de legenda (ver caption-templates)
   --no-captions                 Gerar corte sem legendas (pula transcrição)
   --json                        Output results in JSON format
   -h, --help                    Show help message`);
     return;
+  }
+
+  if (sub === 'caption-templates') {
+    const templates = listCaptionTemplates();
+    const report = { version: 1, reference_canvas: { width: 640, height: 360 }, templates };
+    if (flags.json) {
+      console.log(JSON.stringify(report, null, 2));
+      return report;
+    }
+    console.log('Templates de legenda disponíveis:');
+    for (const template of templates) {
+      console.log(`- ${template.id} (${template.name}) — ${template.font}, ${template.font_size}px`);
+    }
+    return report;
   }
 
   if (sub === 'detect-silence') {
@@ -1079,6 +1105,7 @@ Options:
       process.exit(1);
     }
 
+    if (flags['caption-template']) getCaptionTemplate(flags['caption-template']);
     const captionSource = resolveCaptionSource(flags);
     if (captionSource.mode === 'missing') {
       throw new Error('Legendas não configuradas. Use --captions <arquivo.srt>, --openai com OPENAI_API_KEY, --local (requer @xenova/transformers) ou --no-captions para gerar apenas o corte.');
@@ -1192,6 +1219,7 @@ Options:
       overlays,
       musicTracks,
     });
+    if (flags['caption-template']) plan.caption_template = flags['caption-template'];
     validateEditPlan(plan);
 
     const packagesDir = path.join(wsDir, 'packages');
@@ -1200,7 +1228,7 @@ Options:
     fs.writeFileSync(planPath, JSON.stringify(plan, null, 2) + '\n');
 
     // 6. Render
-    const artifact = await silentIfJson(() => run({ positionals: ['render', planPath], flags: { dest: wsDir, json: false, verbose: flags.verbose } }));
+    const artifact = await silentIfJson(() => run({ positionals: ['render', planPath], flags: { dest: wsDir, json: false, verbose: flags.verbose, 'caption-template': flags['caption-template'] } }));
     if (!artifact || !artifact.path) {
       throw new Error('Failed to render auto-clip video artifact');
     }
@@ -1338,6 +1366,7 @@ Options:
   }
 
   if (sub === 'render') {
+    if (flags['caption-template']) getCaptionTemplate(flags['caption-template']);
     const planFile = positionals[1];
     if (!planFile) {
       console.error('Error: Missing edit plan file. Usage: esquadrao studio render <editplan.json>');
@@ -1427,7 +1456,7 @@ Options:
           f1.vFilter,
           f1.aFilter,
           `[v0][a0][v1][a1]concat=n=2:v=1:a=1[basev][outa]`,
-          buildCaptionFilters(plan.captions || [], '[basev]', tempFiles),
+          buildCaptionFilters(plan.captions || [], '[basev]', tempFiles, 'default', { width, height, template: plan.caption_template || flags['caption-template'] }),
         ];
 
         const args = [
@@ -1505,7 +1534,7 @@ Options:
           }
         }
 
-        filterParts.push(buildCaptionFilters(captions, currentV, tempFiles));
+        filterParts.push(buildCaptionFilters(captions, currentV, tempFiles, 'default', { width, height, template: plan.caption_template || flags['caption-template'] }));
 
         // Background Music Tracks with Ducking
         let finalA = speechA;

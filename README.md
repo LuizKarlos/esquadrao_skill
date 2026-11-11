@@ -12,7 +12,7 @@ Este repositório (`LuizKarlos/esquadrao_skill`) adota engenharia rigorosa centr
 - **[`GLOSSARY.md`](./GLOSSARY.md)**: Fonte canônica de terminologia, equivalências técnicas, códigos de saída e matriz anti-delírio.
 - **[`ROADMAP.md`](./ROADMAP.md)**: Esteira viva de engenharia estruturada em 5 fases vinculadas às issues do repositório.
 - **[`Guia Operacional para LLMs`](./skill-media-producer/references/llm-agent-guide.md)**: Playbook completo para agentes inteligentes (Claude, Cursor, Codex, Grok, Hermes) conduzirem onboarding sem alucinações.
-- **[`Catálogo de Templates de Legenda`](./skill-media-producer/references/caption-templates.md)**: Nove presets visuais com fonte, cores, contorno, sombra e medidas; status nativo no backlog CLI-12.
+- **[`Catálogo de Templates de Legenda`](./skill-media-producer/references/caption-templates.md)**: Nove presets visuais com fonte, cores, contorno, sombra e medidas, disponíveis via `--caption-template`.
 
 ---
 
@@ -113,7 +113,7 @@ Siga o [guia completo de configuração inicial para Windows / PowerShell](skill
 ### Templates de legenda
 O catálogo canônico tem nove presets sem fundo sólido — MrBeast Yellow, TikTok White, Gold Stroke, Green Stroke, Neon Glitch, Minimal Lower Third, Red Stroke, Heavy White e Mono Clean. Fonte, cores, contorno, sombra e medidas estão em [`caption-templates.md`](skill-media-producer/references/caption-templates.md).
 
-**Estado atual:** o CLI 1.4.0 expõe apenas `--caption-style impact|word|full`. A flag `--caption-template` e o campo `captions[].template` estão planejados no backlog CLI-12; não os use como se já existissem.
+**Disponível no CLI 1.5.0:** use `--caption-template <id>` em `studio auto-clip`/`studio render` ou `captions[].template` no EditPlan. `--caption-style impact|word|full` continua como legado.
 
 ## Estrutura do workspace
 

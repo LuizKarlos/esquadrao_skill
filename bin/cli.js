@@ -27,6 +27,7 @@ const { values: flags, positionals } = parseArgs({
     openai: { type: 'boolean' },
     local: { type: 'boolean' },
     captions: { type: 'string' },
+    'caption-template': { type: 'string' },
     'no-captions': { type: 'boolean' },
     broll: { type: 'string', multiple: true },
     music: { type: 'string' },
@@ -55,7 +56,7 @@ Usage:
 Commands:
   setup       Instala os skills nos ambientes de agentes (.agents, .claude, .codex, .cursor)
   role        Lista, inspeciona e executa papéis canônicos da esteira
-  studio      Estúdio local de vídeo: init, import, render, qa, auto-clip
+  studio      Estúdio local de vídeo: init, import, render, qa, auto-clip, caption-templates
   onboard     Guia interativo: da mídia bruta ao primeiro corte renderizado
   version     Exibe a versão do CLI
   help        Exibe mensagens de ajuda
@@ -74,6 +75,7 @@ Options:
   --openai                  Usar API OpenAI Whisper para transcrição
   --local                   Usar Whisper local (offline)
   --captions <file.srt>     Arquivo de legendas externo
+  --caption-template <id>   Template de legenda (ver studio caption-templates)
   --no-captions             Gerar corte sem legendas (pula transcrição)
   --broll <file>            Arquivo de B-roll/cena de apoio (pode ser repetido)
   --music <file.mp3>        Arquivo de música de fundo para ducking

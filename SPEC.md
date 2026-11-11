@@ -146,7 +146,7 @@ Orienta agentes a selecionar trechos de 30s a 60s (ajustáveis conforme a ideia)
 #### 2.2.14. Catálogo de Templates de Legenda
 - O catálogo canônico de nove presets visuais está em [`skill-media-producer/references/caption-templates.md`](./skill-media-producer/references/caption-templates.md).
 - Os presets definem fonte, preenchimento, contorno, sombra, posição, animação e fallback, sempre **sem fundo sólido**.
-- **Estado:** nove presets de referência validados em grid 3×3; o CLI 1.4.0 expõe apenas `--caption-style impact|word|full`. A flag `--caption-template` e o campo `captions[].template` do EditPlan estão planejados no backlog **CLI-12**.
+- **Estado:** implementado no CLI 1.5.0. `--caption-template <id>` em `auto-clip`/`render` e `captions[].template` no EditPlan aplicam os nove presets; IDs inválidos falham com código 1 e lista de opções. `--caption-style impact|word|full` permanece como legado.
 
 ### 2.3. Configuração Multi-Harness (`esquadrao setup`)
 Distribui as 18 skills empacotadas para os diretórios locais dos diferentes agentes de IA presentes no workspace do usuário:
@@ -202,18 +202,18 @@ Todos os scripts são construídos com biblioteca padrão do Node.js e executam 
 
 ## 5. Garantia da Qualidade e Suíte de Testes
 
-A integridade do CLI é atestada deterministicamente pelo test runner nativo do Node.js (79 testes aprovados) e pelo linter (35 arquivos verificados):
+A integridade do CLI é atestada deterministicamente pelo test runner nativo do Node.js (87 testes aprovados) e pelo linter (37 arquivos verificados):
 ```bash
 npm test
 npm run lint
 ```
 A suíte cobre:
-- CLI core: argumentos, ajuda, versão e códigos de erro de saída (79/79 testes verdes).
+- CLI core: argumentos, ajuda, versão e códigos de erro de saída (87/87 testes verdes).
 - Onboard em todos os 3 modos (`dark`, `edit_only`, `podcast_clip`).
 - Studio engine: integridade do `studio.json`, cancelamento via SIGINT, proteção de caracteres de legendas e validação de QA.
 - Oráculos de papéis e autoridades (12 papéis canônicos).
 - Testes de estresse com 50 nós lineares e paralelos nos scripts autônomos.
-- Verificação de estilo em 35 arquivos via lint sem pendências.
+- Verificação de estilo em 37 arquivos via lint sem pendências.
 
 ---
 
@@ -233,9 +233,9 @@ A suíte cobre:
 ## 8. Registro de Auditoria de Capacidades (2026-11-11)
 
 ### 8.1. Método de Verificação e Evidências Operacionais
-A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.4.0) foi executada em 2026-11-11 por inspeção direta de código, verificação do manifesto e execução determinística de testes:
-1. **Suíte de Testes Unitários e Integração:** `npm test` executou 79 testes distribuídos em 11 arquivos de teste com 100% de aprovação (`79/79 pass, 0 fail`).
-2. **Auditoria Estática de Código:** `npm run lint` validou a conformidade sintática e estilística em 35 arquivos de código-fonte sem avisos ou falhas.
+A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.5.0) foi executada em 2026-11-11 por inspeção direta de código, verificação do manifesto e execução determinística de testes:
+1. **Suíte de Testes Unitários e Integração:** `npm test` executou 87 testes distribuídos em 12 arquivos de teste com 100% de aprovação (`87/87 pass, 0 fail`).
+2. **Auditoria Estática de Código:** `npm run lint` validou a conformidade sintática e estilística em 37 arquivos de código-fonte sem avisos ou falhas.
 3. **Inspeção de Estrutura do Estúdio:** Execução real de `esquadrao studio init` em diretório temporário isolado confirmou a criação exclusiva dos diretórios `assets/`, `packages/`, `artifacts/` e do arquivo `studio.json`. Os diretórios `editplans/`, `renders/` e `qa/` não são gerados pelo comando.
 4. **Inspeção de Dependências e Runtime:** O manifesto `package.json` declara `dependencies: {}` e `optionalDependencies: { "@xenova/transformers": "^2.17.2" }`. O motor local é opcional: se a instalação do pacote opcional falhar, `--local` retorna erro acionável e o restante do CLI permanece funcional.
 5. **Inventário de Papéis e Habilidades:** Validação via `esquadrao role list --json` confirmou os 12 papéis técnicos canônicos. O comando `esquadrao setup` distribui 18 skills empacotadas para os diretórios dos agentes suportados.
@@ -267,7 +267,7 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.4.0) foi execu
 | Binário canônico e alias | Parcial | Higienização | Binário `esquadrao` ativo; alias legado `esquadrao-skill` ainda exposto. | CLI-09 |
 | Interface CLI (`--help`) | Parcial | Documentação | Flags `--broll` e `--music` operacionais mas ausentes no texto de ajuda. | CLI-10 |
 | Documentação do estúdio | Corrigido | Sincronizado | Estrutura de pastas e métricas de teste alinhadas aos fatos reais. | CLI-11 |
-| Templates de legenda (9 presets) | Especificado | Pendente | Catálogo em `skill-media-producer/references/caption-templates.md`; o CLI 1.4.0 expõe só `impact`, `word` e `full`. | CLI-12 |
+| Templates de legenda (9 presets) | Entregue | Operacional | `--caption-template` e `captions[].template` aplicam os nove presets, sem fundo sólido. | CLI-12 |
 
 ### 8.3. Backlog Técnico Priorizado
 
@@ -303,6 +303,7 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.4.0) foi execu
   *Contexto:* A suíte de testes é executada apenas em ambiente Linux x86_64 na esteira atual.
   *Meta:* Adicionar runners de Windows e macOS na esteira de CI validando a resolução de caminhos e binários FFmpeg.
 - **CLI-12: Motor nativo de templates de legenda**
+  *Status:* **RESOLVIDO em 1.5.0** — `--caption-template`, `captions[].template`, listagem JSON e validação de IDs; testes em `tests/caption_templates.test.js`.
   *Contexto:* Os nove presets de `skill-media-producer/references/caption-templates.md` foram validados em grid 3×3, mas o CLI só oferece `impact`, `word` e `full`; não há flag nem campo de EditPlan para escolher um template.
   *Meta:* Implementar `--caption-template <id>` e `captions[].template`, com validação de ID, fallback de fonte, renderização sem fundo sólido e teste por template.
 

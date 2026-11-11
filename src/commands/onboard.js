@@ -281,6 +281,7 @@ Options:
   --dest <path>       Workspace destination directory (defaults to cwd or saved profile)
   --file <path>       Media file to import for edit_only or podcast_clip (can repeat)
   --captions <path>   SRT file for podcast_clip captions
+  --caption-template <id> Caption template (see studio caption-templates)
   --openai            Use OpenAI Whisper for podcast_clip captions (requires OPENAI_API_KEY)
   --local             Use local @xenova/transformers engine for podcast_clip captions
   --no-captions       Render podcast_clip cuts without captions
@@ -481,6 +482,7 @@ Options:
         verbose: flags.verbose,
         format,
         captions: flags.captions,
+        'caption-template': flags['caption-template'],
         openai: flags.openai,
         local: flags.local,
         'no-captions': flags['no-captions'],

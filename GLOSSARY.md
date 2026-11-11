@@ -45,8 +45,8 @@ A tabela a seguir estabelece as equivalências obrigatórias entre os conceitos 
 | `mode: "podcast_clip"` | **Cortes Verticais com Legendas** | Fatiamento de falas longas com legendas via SRT, OpenAI ou modelo local; no `onboard`, usa o pipeline real de `auto-clip` (ou corte sem legenda com `--no-captions`). |
 | `silenceremove` / `afftdn` | **Higienização Sonora Avançada** | Filtros de áudio aplicados para remover pausas mortas e ruídos de fundo. |
 | `drawtext` | **Legendas Sincronizadas** | Renderização tipográfica direta no fluxo de vídeo com escape de caracteres. |
-| `--caption-template` | **Template de Legenda** | Preset nomeado de fonte, cor, contorno, sombra e posição, sem fundo sólido. Planejado no CLI-12; catálogo em `skill-media-producer/references/caption-templates.md`. |
-| `impact` / `word` / `full` | **Estilos Nativos de Legenda** | Os três estilos realmente expostos pelo CLI 1.4.0 via `--caption-style`; não confundir com os nove templates do catálogo. |
+| `--caption-template` | **Template de Legenda** | Preset nomeado de fonte, cor, contorno, sombra e posição, sem fundo sólido. Disponível no CLI 1.5.0; catálogo em `skill-media-producer/references/caption-templates.md`. |
+| `impact` / `word` / `full` | **Estilos Legados de Legenda** | Os três estilos históricos via `--caption-style`; o CLI 1.5.0 adiciona os nove templates via `--caption-template`. |
 | `amix` (atenuação fixa de volume) | **Trilha Sonora com Atenuação** | Atenuação fixa de -22dB com amix; ducking dinâmico pendente (CLI-05). |
 
 ---
