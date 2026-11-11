@@ -45,7 +45,7 @@
 - [x] **2.3. Interface e Execução:**
   - [x] Modo interativo orientado a perguntas de múltipla escolha via `node:readline`.
   - [x] Modo não interativo via flags completas (`--mode`, `--file`, `--dest`, `--json`, `--verbose`).
-  - [x] Persistência do perfil do workspace em `~/.esquadrao/profile.json`.
+  - [x] Persistência do perfil do workspace em `<workspace>/.esquadrao/profile.json`.
 
 ---
 
@@ -115,10 +115,10 @@
   - [x] Linting nativo `node scripts/lint.js` aprovado em todos os 38 arquivos.
   - [x] Documentação canônica integrada (`SPEC.md`, `ROADMAP.md`, `GLOSSARY.md`, `README.md`).
   - [ ] Abertura do repositório para visibilidade pública no GitHub.
-  - [ ] Publicação do pacote no registro npm oficial (`npm publish --access public`).
+  - [x] Publicação do pacote no registro npm oficial (`@esquadrao/cli@1.6.0`, staged e aprovado com 2FA em 2026-11-11).
 - [ ] **5.2. Validação Externa em Diretório Limpo:**
-  - [ ] Execução de teste em máquina/ambiente sem arquivos locais via `npx @esquadrao/cli onboard --mode dark --dest ./test-clean`.
-  - [ ] Verificação de integração pós-compra no painel do funil (`/app` com `NEXT_PUBLIC_CLI_NPM_PUBLISHED=true`).
+  - [x] Execução de teste em ambiente limpo via `npx @esquadrao/cli@1.6.0 --version` e instalação global com `setup` + `onboard --mode dark` (1080x1920, QA aprovado).
+  - [ ] Verificação de integração pós-compra no painel do funil (`/app` com `NEXT_PUBLIC_CLI_NPM_PUBLISHED=true`); render do Estado 2 validado, fluxo pós-compra real pendente.
 
 ---
 

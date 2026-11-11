@@ -25,7 +25,7 @@ Este repositório (`LuizKarlos/esquadrao_skill`) adota engenharia rigorosa centr
 - **Claude Code** (`.claude/skills/`)
 - **Codex CLI** (`.codex/skills/`, `AGENTS.md`)
 - **Cursor** (`.cursor/rules/*.mdc`)
-- **Hermes / VS Code** (`~/.hermes/`, `.vscode/`)
+- **Hermes / VS Code** (detectados em `~/.hermes/` e `.vscode/`; sem cópia de skills)
 
 ## Requisitos
 
@@ -52,7 +52,7 @@ esquadrao setup
 
 ```bash
 # Comando principal canônico: esquadrao
-esquadrao onboard [--mode <mode>] [--dest <path>] [--file <file>] [--captions <file.srt>] [--openai] [--local] [--no-captions] [--verbose] [--json]
+esquadrao onboard [--mode <mode>] [--format <9:16|16:9>] [--dest <path>] [--file <file>] [--captions <file.srt>] [--openai] [--local] [--no-captions] [--verbose] [--json]
 
 # Auto-corte integrado: detecta silêncio, expurga pausas e renderiza com QA
 # Legendas: use --captions <file.srt>, --openai (com OPENAI_API_KEY) ou --local (Whisper local opcional)
@@ -61,8 +61,8 @@ esquadrao studio auto-clip <video.mp4> [--captions <file.srt>] [--openai] [--loc
 # Detector rápido de silêncio e pausas mortas
 esquadrao studio detect-silence <video.mp4> [--json]
 
-# Transcrição estruturada para análise de copy (exporta transcript.json e transcript.srt via --openai ou --local)
-esquadrao studio transcribe <video.mp4> [--openai] [--local] [--json]
+# Transcrição estruturada para análise de copy (exporta transcript.json e transcript.srt via --captions, --openai ou --local)
+esquadrao studio transcribe <video.mp4> [--captions <file.srt>] [--openai] [--local] [--json]
 
 # Configurar skills nos harnesses locais do usuário (.agents, .claude, .codex, .cursor)
 esquadrao setup [--dest <path>] [--json]
@@ -115,7 +115,7 @@ Siga o [guia completo de configuração inicial para Windows / PowerShell](skill
 ### Templates de legenda
 O catálogo canônico tem nove presets sem fundo sólido — MrBeast Yellow, TikTok White, Gold Stroke, Green Stroke, Neon Glitch, Minimal Lower Third, Red Stroke, Heavy White e Mono Clean. Fonte, cores, contorno, sombra e medidas estão em [`caption-templates.md`](skill-media-producer/references/caption-templates.md).
 
-**Disponível no CLI 1.6.0:** use `--caption-template <id>` em `studio auto-clip`/`studio render` ou `captions[].template` no EditPlan. `--caption-style impact|word|full` continua como legado.
+**Disponível desde o CLI 1.5.0:** use `--caption-template <id>` em `studio auto-clip`/`studio render` ou `captions[].template` no EditPlan. `--caption-style impact|word|full` continua como legado.
 
 ## Estrutura do workspace
 
@@ -308,14 +308,16 @@ All roles follow standardized industry nomenclature, structural authority bounda
 
 ## Skills Matrix
 
+As 6 skills de engenharia abaixo são advisory, exceto pelos scripts locais citados. As 12 skills de papel são prompts de autoridade. Apenas `skill-media-producer` executa o pipeline de vídeo.
+
 | Skill | Description |
 | :--- | :--- |
-| `skill-orchestrate` | Autonomous missions, multi-agent swarms, atomic checkpoints, and rollbacks |
-| `skill-pipeline` | DAG decomposition, topological wave calculation, and auto-healing |
-| `skill-review` | Adversarial dual-blind code review, anti-slop pattern linting, and voice calibration |
-| `skill-audit` | SHA-256 Merkle chain integrity, receipt verification, and time-travel replay |
-| `skill-context` | AST outline slicing, OpenAPI 3.1 contract synthesis, and context packets <3k tokens |
-| `skill-ui` | Headless WCAG 2.1 AA/AAA contrast check, 44x44px touch targets, and visual TDD |
+| `skill-orchestrate` | Mission orchestration guidance, local DAG validation, and git-based checkpoints (swarm locks and WorkRecords not implemented) |
+| `skill-pipeline` | DAG decomposition and topological wave calculation; auto-healing is documented as a pattern, not executed |
+| `skill-review` | Dual-blind review protocol, anti-slop heuristics, and voice calibration guidance (no automated engine) |
+| `skill-audit` | SHA-256 Merkle chain verification; ed25519 receipts and time-travel replay are advisory only |
+| `skill-context` | AST outline slicing; OpenAPI 3.1 synthesis and <3k context packets are advisory only |
+| `skill-ui` | WCAG 2.1 contrast and 44x44px touch-target checks; semantic DOM and visual TDD are advisory only |
 | `skill-product-manager` | Requirements synthesis, scope boundaries, and acceptance criteria |
 | `skill-system-analyst` | Read-only codebase reconnaissance, dependency mapping, and touchpoints |
 | `skill-software-architect` | Architectural contracts, system invariants, and rollback conditions |
@@ -327,7 +329,7 @@ All roles follow standardized industry nomenclature, structural authority bounda
 | `skill-qa-engineer` | Final operational release gates and acceptance certification |
 | `skill-technical-writer` | Developer guides, ADR documentation, and changelog authoring |
 | `skill-engineering-manager` | Milestone derivations, sprint task backlogs, and agile planning |
-| `skill-media-producer` | Video timeline cuts, audio gain leveling, NFC text overlays, media QA |
+| `skill-media-producer` | Video timeline cuts, audio gain leveling, NFC text overlays, media QA, permanent split and cutout |
 
 ## Standalone Scripts
 
@@ -341,7 +343,10 @@ All scripts run directly with Node.js stdlib (zero dependencies):
 ## Limitações atuais
 
 - **Legendas automáticas:** a transcrição no `studio auto-clip` e `studio transcribe` depende de SRT (`--captions <file.srt>`), da API OpenAI (`--openai` com `OPENAI_API_KEY`) ou do motor local (`--local`, `@xenova/transformers` em `optionalDependencies`). Sem nenhum deles, o comando falha com código `1` e instrução acionável; use `--no-captions` para gerar o corte explicitamente sem legendas (CLI-02/CLI-03 resolvidos em 1.4.0).
-- **Sem processamento em lote nativo:** não há comando `batch`; renderizações em lote devem ser orquestradas externamente via chamadas sucessivas de `esquadrao studio render`.
+- **Sem processamento em lote nativo:** não há comando `batch`; renderizações em lote devem ser orquestradas externamente via chamadas sucessivas de `esquadrao studio render` (CLI-07).
+- **Saída consolidada no auto-clip:** cada execução entrega um vídeo final com os trechos de fala concatenados; não gera dezenas de cortes separados por gravação. Para vários arquivos, use um loop externo.
+- **Enquadramento de fonte widescreen:** uma fonte 16:9 em saída 9:16 é ajustada com `scale=decrease` + `pad` (tarjas); não há recorte inteligente com tracking de rosto.
+- **Legendas palavra por palavra:** timestamps reais por palavra vêm de `--openai` ou `--local`; com `--captions` SRT, o tempo é distribuído linearmente entre as palavras do bloco.
 - **Ducking de áudio fixo:** a opção `ducking: true` em `music_tracks` aplica atenuação fixa de volume em `-22dB` via filtro `amix`; ducking dinâmico via sidechain está pendente de implementação (CLI-05).
 - **Layout de overlay `split_top`:** embora aceito na validação do schema do EditPlan, o pipeline de renderização trata apenas `fullscreen`, `pip` e `split_bottom`; overlays com `split_top` são renderizados como tela cheia (`fullscreen`) (CLI-06).
 - **Split permanente:** disponível em `auto-clip --broll <pack> --layout split_bottom --overlay-duration full`; o pack cobre toda a linha do tempo em loop e o áudio original é preservado (CLI-13). `split_top` continua pendente (CLI-06).

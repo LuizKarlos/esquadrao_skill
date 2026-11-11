@@ -107,8 +107,8 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 - **Overlays Visuais Dinâmicos (B-Rolls)**:
   - Suporte a `overlays` no contrato `EditPlan v1` e renderização no FFmpeg.
   - Layouts suportados: `fullscreen` (padrão, corte de apoio cobrindo a tela mantendo a voz ininterrupta), `pip` (janela flutuante) e `split_bottom` (dupla retenção / tela dividida).
-- **Trilha Sonora com Audio Ducking**:
-  - Suporte a `music_tracks` com atenuação inteligente de volume (`amix` e ducking de -22dB durante falas ativas).
+- **Trilha Sonora com Atenuação**:
+  - Suporte a `music_tracks` com atenuação fixa de volume em -22 dB via `amix` (ducking dinâmico por sidechain ainda pendente, CLI-05).
 - **Suíte de Testes Dinâmicos**:
   - Adicionado `tests/studio_dynamic.test.js` com validação de contrato, transcrição e renderização de vídeo dinâmico com QA (69/69 testes passando).
 

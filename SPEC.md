@@ -2,7 +2,7 @@
 
 > **Repositório:** `LuizKarlos/esquadrao_skill`  
 > **Funil Integrado:** `LuizKarlos/esquadrao_funil`  
-> **Versão:** 1.0.0  
+> **Versão:** 1.6.0\
 > **Status:** Ativo / Homologado  
 > **Pacote npm:** `@esquadrao/cli`  
 > **Nome Comercial:** Esquadrão de Conteúdo  
@@ -48,7 +48,7 @@ Conduz o usuário do zero absoluto até a renderização do seu primeiro vídeo 
     - macOS: `brew install ffmpeg`
     - Linux: `sudo apt update && sudo apt install -y ffmpeg`
 - **Persistência de Perfil:**
-  - O diretório de destino (`--dest`) persiste a configuração no perfil local do usuário (`~/.esquadrao/profile.json`), permitindo execuções subsequentes sem redigitação de caminhos.
+  - O diretório de destino (`--dest`) persiste a configuração no perfil do workspace (`<workspace>/.esquadrao/profile.json`, com espelho em `studio.json`), permitindo execuções subsequentes sem redigitação de caminhos.
 
 ### 2.2. Motor de Vídeo Studio (`esquadrao studio`)
 Fornece o pipeline operacional de criação, importação de mídias, renderização via FFmpeg e inspeção de controle de qualidade (QA).
@@ -70,7 +70,7 @@ Fornece o pipeline operacional de criação, importação de mídias, renderiza�
 - Valida estritamente o contrato `EditPlan v1` antes de acionar o FFmpeg:
   - Rejeita planos com `out_ms` superior à duração real do asset fonte.
   - Rejeita planos com cortes inferiores a 100 milissegundos.
-  - Rejeita planos com `speed <= 0`.
+  - Rejeita planos com `speed` diferente de `1` (o contrato v1 aceita apenas velocidade 1).
 - Monta filtros complexos do FFmpeg:
   - Filtro de corte e velocidade: `[0:v]trim=start_pts=...:end_pts=...,setpts=...[v0]`.
   - Tratamento de caracteres especiais em legendas (`drawtext`): escape obrigatório de `%` (`\%`), apóstrofo `'` (`\'`) e contra-barra `\`.
@@ -81,7 +81,7 @@ Fornece o pipeline operacional de criação, importação de mídias, renderiza�
 - Inspeciona o artefato gerado via `ffprobe`.
 - Valida presença obrigatória de stream de áudio (falha com código `1` caso ausente).
 - Quando informado `--plan`:
-  - Compara a duração real do artefato com o esperado pelo plano (tolerância máxima de 250ms).
+  - Compara a duração real do artefato com o esperado pelo plano (tolerância máxima de 350ms).
   - Valida conformidade estrita de resolução (ex: 1080x1920) e framerate.
 
 #### 2.2.5. `esquadrao studio detect-silence <video>`
@@ -156,12 +156,12 @@ Orienta agentes a selecionar trechos de 30s a 60s (ajustáveis conforme a ideia)
 - **Especificação completa, comandos e critérios:** [`skill-media-producer/references/composicoes-especiais.md`](./skill-media-producer/references/composicoes-especiais.md).
 
 ### 2.3. Configuração Multi-Harness (`esquadrao setup`)
-Distribui as 18 skills empacotadas para os diretórios locais dos diferentes agentes de IA presentes no workspace do usuário:
+Distribui as 18 skills empacotadas para os diretórios locais dos agentes de IA suportados e detecta os demais harnesses presentes no workspace do usuário:
 - **Grok Build:** `.agents/skills/`
 - **Claude Code:** `.claude/skills/`
 - **OpenAI Codex CLI:** `.codex/skills/` e `AGENTS.md`
 - **Cursor IDE:** `.cursor/rules/*.mdc`
-- **Hermes / VS Code:** `~/.hermes/` e `.vscode/`
+- **Hermes / VS Code:** detectados em `~/.hermes/` e `.vscode/`; o setup não copia skills para esses diretórios, apenas registra o harness.
 - *Invariante de Segurança:* O setup local nunca emite configurações ou credenciais de servidor MCP, operando exclusivamente no modelo de arquivos locais.
 
 ### 2.4. Governança e Matriz de Papéis Técnicos (`esquadrao role`)
@@ -230,9 +230,9 @@ A suíte cobre:
 - **Status:** **CONFORMIDADE ESTABELECIDA**.
 - **Ações Realizadas:**
   1. Pacote npm: Marca canônica `@esquadrao/cli`.
-  2. Binários: Restando exclusivamente o comando `esquadrao`.
+  2. Binários: binário canônico `esquadrao`; o alias legado `esquadrao-skill` ainda é exposto no `package.json` (pendência CLI-09).
   3. Manifesto do estúdio: Saneado para `esquadrao-studio`.
-  4. Perfil do usuário: Saneado para `~/.esquadrao`.
+  4. Perfil do workspace: Saneado para `<workspace>/.esquadrao/profile.json` (com espelho em `studio.json`).
   5. Esteira de vídeo: Comandos atualizados para refletir o nome limpo.
 
 ---
@@ -251,7 +251,7 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.6.0) foi execu
 
 | Subsistema / Recurso | Estado Atual | Classificação | Evidência / Comportamento Observado | Referência |
 | :--- | :--- | :--- | :--- | :--- |
-| `onboard --mode dark` | Entregue | Operacional | Gera vídeo vertical com texto centralizado e áudio sintético. | §2.1 |
+| `onboard --mode dark` | Entregue | Operacional | Gera vídeo vertical com texto centralizado e trilha de áudio silenciosa (`anullsrc`). | §2.1 |
 | `onboard --mode edit_only` | Entregue | Operacional | Executa decupagem e união contígua de 2 trechos de vídeo. | §2.1 |
 | `onboard --mode podcast_clip` | Entregue | Operacional | Executa `auto-clip` real (silêncio, cortes, legendas e QA); sem motor de legenda, corta sem legenda e avisa. | §2.1, CLI-01 |
 | `studio init` | Entregue | Operacional | Cria `assets/`, `packages/`, `artifacts/` e `studio.json`. | §2.2.1 |
@@ -274,7 +274,7 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.6.0) foi execu
 | Renderização em lote | Parcial | Orquestração externa | Não existe comando `batch`; requer loop externo de comandos. | CLI-07 |
 | Suporte multi-plataforma | Parcial | Lacuna | Validado em Linux; testes automatizados não cobrem Windows e macOS. | CLI-08 |
 | Binário canônico e alias | Parcial | Higienização | Binário `esquadrao` ativo; alias legado `esquadrao-skill` ainda exposto. | CLI-09 |
-| Interface CLI (`--help`) | Parcial | Documentação | Flags `--broll` e `--music` operacionais mas ausentes no texto de ajuda. | CLI-10 |
+| Interface CLI (`--help`) | Entregue | Operacional | Help 1.6.0 lista `--broll`, `--music`, `--layout`, `--overlay-duration`, `--background`, `--engine`, `--fps` e `--python`. | CLI-10 |
 | Documentação do estúdio | Corrigido | Sincronizado | Estrutura de pastas e métricas de teste alinhadas aos fatos reais. | CLI-11 |
 | Templates de legenda (9 presets) | Entregue | Operacional | `--caption-template` e `captions[].template` aplicam os nove presets, sem fundo sólido. | CLI-12 |
 
@@ -325,8 +325,8 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.6.0) foi execu
   *Contexto:* O campo `bin` do `package.json` ainda referencia `esquadrao-skill` em desacordo com a marca canônica única.
   *Meta:* Remover o alias secundário preservando estritamente o binário canônico `esquadrao`.
 - **CLI-10: Atualização do manual de ajuda de `studio`**
-  *Contexto:* As opções `--broll` e `--music` operam no código de `auto-clip`, mas não constam na saída de `--help`.
-  *Meta:* Registrar todas as opções ativas na ajuda textual do CLI.
+  *Status:* **RESOLVIDO em 1.6.0** — `--broll`, `--music`, `--layout`, `--overlay-duration`, `--background`, `--engine`, `--fps` e `--python` constam no `--help`.
+  *Contexto:* As opções `--broll` e `--music` operavam no código de `auto-clip`, mas não constavam na saída de `--help`.
 - **CLI-11: Alinhamento contínuo de referências documentais**
   *Contexto:* Documentações anteriores citavam diretórios inexistentes (`editplans/`, `renders/`, `qa/`) e contagens desatualizadas de testes.
   *Meta:* Manter testes automatizados de documentação prevenindo descompassos entre o código e as especificações.
@@ -340,5 +340,34 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.6.0) foi execu
 2. **P1 Resolvido:** O layout `split_top` produz vídeo com orador na metade inferior e B-roll na superior verificado via teste de QA; o filtro de áudio aplica atenuação variável por envelope de voz; comando de lote executa múltiplos planos com relatório agregado;
 3. **P2 Resolvido:** Saídas de `--help` refletem todas as opções funcionais; apenas o comando `esquadrao` é exposto no manifesto de publicação.
 
-### 8.5. Cláusula de Precedência Normativa
+### 8.5. Cobertura das 18 Skills Empacotadas
+
+O pacote instala 18 skills, mas a cobertura de execução é heterogênea: 12 skills de papel são prompts de autoridade e 6 skills de engenharia são majoritariamente advisory, com quatro scripts locais (DAG, Merkle, AST e WCAG). Apenas `skill-media-producer` executa o pipeline de vídeo.
+
+| Skill | Promessa no `SKILL.md` | Entrega local verificada | Status |
+| :--- | :--- | :--- | :--- |
+| `skill-orchestrate` | Swarms, budget, locks, checkpoints, rollback e `WorkRecord` | `scripts/dag_validator.js` + branches/reset do git | Parcial — swarms, locks e WorkRecord não executam |
+| `skill-pipeline` | DAG, ondas topológicas e auto-healing | `scripts/dag_validator.js` | Parcial — auto-healing é padrão textual, sem executor |
+| `skill-review` | Revisão dual-blind, anti-slop lint e voice calibration | `git diff`, `npm test`, `npm run lint` | Advisory — sem motor de anti-slop ou consenso |
+| `skill-audit` | Merkle SHA-256, recibos ed25519 e time-travel replay | `scripts/merkle_verify.js` | Parcial — recibos e replay não executam |
+| `skill-context` | AST, OpenAPI 3.1 e context packets <3k tokens | `scripts/ast_slice.js` | Parcial — OpenAPI e packet não executam |
+| `skill-ui` | WCAG, alvos 44x44, DOM semântico e visual TDD | `scripts/wcag_check.js` | Parcial — DOM e visual TDD não executam |
+| `skill-media-producer` | Pipeline de vídeo, legendas, overlays, split e cutout | Comandos `studio` e `onboard` | Entregue com limites (CLI-05/06/07) |
+| 11 skills de papel | Autoridade, prompt e outputs permitidos | `esquadrao role list/info/prompt/matrix` | Entregue como prompt; enforcement de outputs é advisory |
+
+### 8.6. Gaps entre Promessa Comercial e Capacidade Entregue
+
+| # | Promessa comercial | Onde aparece | Realidade no CLI 1.6.0 | ID |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | Renderização em lote e semanas de postagens | `COPY.md` §1.1/§3, `hero.tsx`, `faq.tsx` | Não existe `studio batch`; cada execução processa um plano, com loop externo | CLI-07 |
+| 2 | 20 a 40 cortes dinâmicos de uma gravação longa | `COPY.md` §5.1 | `auto-clip` entrega um vídeo consolidado; `find-hooks` apenas ranqueia trechos | CLI-07 |
+| 3 | Enquadramento inteligente | `COPY.md` §5.1 | Fonte 16:9 em 9:16 usa `scale=decrease` + `pad` (tarjas), sem tracking | — |
+| 4 | Legendas automáticas palavra por palavra | `hero.tsx`, `faq.tsx`, `capabilities.tsx` | Exige SRT, OpenAI ou motor local; SRT distribui o tempo linearmente; sem fonte, o `onboard` corta sem legenda | CLI-03 |
+| 5 | Rebaixamento automático de volume durante a fala | `COPY.md` §3.5 | Ducking fixo de -22 dB via `amix`; sidechain não implementado | CLI-05 |
+| 6 | Retenção de mais de 70% do público | `capabilities.tsx` | Métrica não medida; deve ser removida ou qualificada | — |
+| 7 | 18 skills como esquadrão completo | `GLOSSARY.md` §4, `README.md` | 12 prompts + 6 skills de engenharia parciais; só `media-producer` executa o pipeline de vídeo | CLI-11 |
+
+**Conclusão:** o núcleo de corte de silêncio, templates, split permanente e cutout está entregue. As lacunas de promessa estão em lote, múltiplos cortes por gravação, enquadramento de fonte widescreen, legendas sem fonte, ducking dinâmico e métrica de retenção.
+
+### 8.7. Cláusula de Precedência Normativa
 Em caso de conflito, ambiguidade ou divergência técnica entre os contratos conceituais descritos nas Seções 1 a 7 e o inventário factual registrado nesta Seção 8, **prevalecem as disposições desta Seção 8** como a expressão autoritativa do estado de entrega e do backlog oficial do software.
