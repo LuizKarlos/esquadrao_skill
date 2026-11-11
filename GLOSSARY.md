@@ -28,23 +28,24 @@ A tabela a seguir estabelece as equivalências obrigatórias entre os conceitos 
 | Termo Técnico no Código | Linguagem de Realização para o Usuário | Arquitetura Técnica Subjacente |
 | :--- | :--- | :--- |
 | `@esquadrao/cli` | **Esquadrão de Conteúdo** | Pacote executável em Node.js com stdlib pura e comandos de terminal. |
-| `esquadrao onboard` | **Primeiro Vídeo Guiado** | Agente interativo que conduz o usuário até o primeiro arquivo `.mp4` validado. |
-| `esquadrao` | **Esquadrão CLI** | Comando de linha unificado para orquestração de papéis e estúdio de vídeo. |
-| `esquadrao studio auto-clip` | **Esteira de Auto-Corte** | Pipeline completo: detecção de silêncio, transcrição Whisper, legendas e renderização. |
-| `esquadrao studio find-hooks` | **Detector de Ganchos Virais** | Heurística determinística de copy para localizar os melhores inícios e finais de ideias (30-60s). |
-| `esquadrao studio transcribe` | **Transcrição Estruturada** | Extração de áudio e transcrição Whisper com timestamps para análise de copy. |
-| `B-Roll Overlay` | **Cena de Apoio Dinâmica** | Imagem ou vídeo sobreposto à fala em tela cheia (`fullscreen`), janela (`pip`) ou tela dividida (`split`). |
-| `Audio Ducking` | **Atenuação Inteligente de Trilha** | Rebaixamento automático do volume da música de fundo para dar destaque à voz. |
+| `esquadrao onboard` | **Primeiro Vídeo Guiado** | Demonstração guiada interativa gerando um primeiro vídeo de teste com legenda fixa; o pipeline real de decupagem e legendagem dinâmica a partir da fala é o `studio auto-clip`. |
+| `esquadrao` | **Esquadrão CLI** | Comando de linha unificado para orquestração de papéis e estúdio de vídeo (binário canônico oficial; alias legado `esquadrao-skill` ainda mantido no `package.json`, pendente CLI-09). |
+| `esquadrao studio auto-clip` | **Esteira de Auto-Corte** | Pipeline de detecção de silêncio, corte de pausas e renderização. Possui três caminhos de legenda: 1. `--captions <arquivo.srt>` (offline e determinístico); 2. `--openai` (transcrição via API externa); 3. `--local` (modelo local via `@xenova/transformers`, dependência não empacotada no momento; sem SRT ou OpenAI, renderiza sem legendas). |
+| `esquadrao studio find-hooks` | **Detector de Ganchos Virais** | Heurística determinística de copy baseada em pontuação de frases (perguntas e marcadores) para sugerir cortes de 30-60s; não é garantia de viralidade. |
+| `esquadrao studio transcribe` | **Transcrição Estruturada** | Extração de áudio e transcrição estruturada com timestamps para análise de copy (requer `--openai` com API key ou `--local` via `@xenova/transformers`, com a mesma pendência de dependência local). |
+| `B-Roll Overlay` | **Cena de Apoio Dinâmica** | Imagem ou vídeo sobreposto à fala em tela cheia (`fullscreen`), janela (`pip`) ou tela dividida (`split_bottom`); `split_top` é aceito no schema mas renderiza como fullscreen (CLI-06). |
+| `Audio Ducking` | **Atenuação de Trilha** | Redução fixa de -22dB via `amix`; ducking dinâmico por sidechain pendente (CLI-05). |
 | `Gancho de Retenção` | **Hook de Abertura (0-3s)** | Primeiro trecho selecionado pela copy para prender a atenção e maximizar a retenção. |
 | `esquadrao studio detect-silence` | **Detector de Silêncios** | Análise por FFmpeg silencedetect para identificar pausas e duração de fala ativa. |
-| `esquadrao studio` | **Estúdio Local de Produção** | Pipeline de decupagem, junção de fontes e aplicação de filtros de áudio/vídeo. |
+| `esquadrao studio init` | **Inicialização de Workspace** | Criação atômica da estrutura de pastas (`assets/`, `packages/`, `artifacts/`) e do manifesto `studio.json`. |
+| `esquadrao studio` | **Estúdio Local de Produção** | Pipeline de decupagem, junção de fontes e aplicação de filtros de áudio/vídeo em `assets/`, `packages/` e `artifacts/`. |
 | `EditPlan v1` | **Plano de Corte e Edição** | Esquema JSON determinístico com trilhas, cortes milimétricos e textos. |
 | `mode: "dark"` | **Canais Dark / Vídeo Rápido** | Renderização sem necessidade de gravação prévia, usando fundos e tipografia. |
 | `mode: "edit_only"` | **Decupagem Contígua** | Seleção e união rápida de trechos com transições suaves e ritmo acelerado. |
-| `mode: "podcast_clip"` | **Cortes Verticais com Legendas** | Fatiamento de falas longas com queima gráfica de legendas dinâmicas. |
+| `mode: "podcast_clip"` | **Cortes Verticais com Legendas** | Fatiamento de falas longas com legendas quando há SRT, OpenAI ou modelo local; no `onboard`, é um vídeo demonstrativo com legenda fixa. |
 | `silenceremove` / `afftdn` | **Higienização Sonora Avançada** | Filtros de áudio aplicados para remover pausas mortas e ruídos de fundo. |
 | `drawtext` | **Legendas Sincronizadas** | Renderização tipográfica direta no fluxo de vídeo com escape de caracteres. |
-| `amix` com sidechain ducking | **Trilha Sonora Inteligente** | Rebaixamento automático do volume da música enquanto há fala ativa. |
+| `amix` (atenuação fixa de volume) | **Trilha Sonora com Atenuação** | Atenuação fixa de -22dB com amix; ducking dinâmico pendente (CLI-05). |
 
 ---
 
@@ -54,10 +55,10 @@ A tabela a seguir estabelece as equivalências obrigatórias entre os conceitos 
 | :--- | :--- |
 | **"O CLI força fundo preto ou proporção widescreen por padrão?"** | **NÃO.** Nem fundo escuro nem widescreen são padrões obrigatórios. O usuário escolhe livremente entre vertical 9:16 (mobile) e horizontal 16:9 (desktop), e define se usará gravações, packs de apoio ou fundo escuro. |
 | **"O CLI envia vídeos para a nuvem para renderizar?"** | **NÃO.** Todo o pipeline de decupagem, mixagem e renderização executa estritamente na máquina local do cliente através do FFmpeg. |
-| **"O CLI exige chave de API ou conexão de rede para funcionar?"** | **NÃO.** Os comandos de criação, edição, renderização e QA executam completamente offline uma vez que o pacote e o FFmpeg estejam instalados. |
-| **"O CLI pode apagar arquivos de vídeo originais?"** | **NÃO.** O estúdio opera em modo estritamente não destrutivo. Os arquivos originais importados são mantidos intactos e os novos vídeos são salvos na pasta de renders. |
+| **"O CLI exige chave de API ou conexão de rede para funcionar?"** | **NÃO para corte, renderização e QA.** Os comandos de criação, corte, edição, renderização e QA executam completamente offline uma vez que o pacote e o FFmpeg estejam instalados. A geração de legenda automática exige arquivo SRT prévio (`--captions`), chave de API externa (`--openai`) ou modelo local opcional (`--local`, pendente de empacotamento). |
+| **"O CLI pode apagar arquivos de vídeo originais?"** | **NÃO.** O estúdio opera em modo estritamente não destrutivo. Os arquivos originais importados são mantidos intactos e os novos vídeos são salvos em `artifacts/`. |
 | **"O comando onboard exige parâmetros complexos?"** | **NÃO.** Executado sem parâmetros (`esquadrao onboard`), ele abre um assistente de terminal interativo com perguntas simples de múltipla escolha. |
-| **"O CLI depende de dependências pesadas no package.json?"** | **NÃO.** A seção `dependencies` do `package.json` é vazia (`{}`). O CLI usa estritamente a biblioteca padrão do Node.js. |
+| **"O CLI depende de dependências pesadas no package.json?"** | **NÃO.** A seção `dependencies` do `package.json` é vazia (`{}`). O CLI usa estritamente a biblioteca padrão do Node.js. A transcrição local opcional requer `@xenova/transformers`, que não vem instalado por padrão. |
 
 ---
 
@@ -89,7 +90,7 @@ O subsistema de papéis técnicos normaliza designações históricas para a mat
 
 Em auditoria conjunta realizada via **MegaBrain Atlas MCP** e classificador **Jev**, foram saneadas todas as ocorrências residuais de termos legados neste repositório:
 1. **Nome do Pacote npm:** `@esquadrao/cli` no `package.json` e documentações.
-2. **Binários e Executáveis:** Restrito ao comando canônico `esquadrao`.
+2. **Binários e Executáveis:** Restrito ao comando canônico `esquadrao`. Nota: o alias legado `esquadrao-skill` ainda consta no `package.json` para compatibilidade transitória e sua remoção está mapeada no backlog (CLI-09).
 3. **Manifesto do Estúdio:** Criação padrão com `"name": "esquadrao-studio"` em `studio.json`.
 4. **Caminho de Perfil:** Persistência em `~/.esquadrao/profile.json`.
 5. **Comandos nos Tutoriais:** Menção aos comandos `esquadrao setup` e `esquadrao onboard`.

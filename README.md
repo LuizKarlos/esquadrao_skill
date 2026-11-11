@@ -52,14 +52,15 @@ esquadrao setup
 # Comando principal canônico: esquadrao
 esquadrao onboard [--mode <mode>] [--dest <path>] [--file <file>] [--verbose] [--json]
 
-# Auto-corte integrado: detecta silêncio, corta pausas, transcreve com Whisper e renderiza com QA
-esquadrao studio auto-clip <video.mp4> [--silence-thresh -30dB] [--silence-duration 0.8] [--format 9:16] [--caption-style impact]
+# Auto-corte integrado: detecta silêncio, expurga pausas e renderiza com QA
+# Legendas: use --captions <file.srt>, --openai (com OPENAI_API_KEY) ou --local (Whisper local opcional)
+esquadrao studio auto-clip <video.mp4> [--captions <file.srt>] [--openai] [--local] [--broll <file>] [--music <file.mp3>] [--silence-thresh -30dB] [--silence-duration 0.8] [--format 9:16] [--caption-style impact]
 
 # Detector rápido de silêncio e pausas mortas
 esquadrao studio detect-silence <video.mp4> [--json]
 
-# Transcrição estruturada para análise de copy (exporta transcript.json e transcript.srt)
-esquadrao studio transcribe <video.mp4> [--json]
+# Transcrição estruturada para análise de copy (exporta transcript.json e transcript.srt via --openai ou --local)
+esquadrao studio transcribe <video.mp4> [--openai] [--local] [--json]
 
 # Configurar skills nos harnesses locais do usuário (.agents, .claude, .codex, .cursor)
 esquadrao setup [--dest <path>] [--json]
@@ -78,10 +79,10 @@ esquadrao studio qa <artifact.mp4> [--plan <editplan.json>]
 
 ## Primeiro acesso
 
-O comando `onboard` conduz o cliente do zero até o primeiro vídeo renderizado com validação automatizada de QA:
+O comando `onboard` é uma demonstração guiada que conduz o cliente do zero até o primeiro vídeo renderizado com validação automatizada de QA. No modo `podcast_clip`, o `onboard` gera um vídeo demonstrativo com legenda fixa (`"Esquadrão Podcast Clip"`). Para o pipeline real de decupagem com transcrição e geração de legendas dinâmicas a partir da fala, utilize `esquadrao studio auto-clip`.
 
 ```bash
-# Fluxo guiado interativo:
+# Fluxo guiado interativo (demonstração):
 esquadrao onboard
 
 # Execução não interativa com flags:
@@ -103,6 +104,18 @@ esquadrao onboard --mode podcast_clip --file ./clip1.mp4 --file ./clip2.mp4 --de
 ### Configurar proporção, legendas e áudio
 
 Siga o [guia completo de configuração inicial para Windows / PowerShell](skill-media-producer/references/configuracao-inicial.md): preparação do projeto, importação, plano de edição, formatos vertical/horizontal, legendas, áudio, renderização e QA. A referência acompanha a instalação da `skill-media-producer` e documenta as opções disponíveis e os limites atuais.
+
+## Estrutura do workspace
+
+Ao inicializar o estúdio via `esquadrao studio init` (ou no primeiro uso via `onboard`), a seguinte árvore de diretórios é criada:
+
+```
+workspace/
+├── assets/       # Mídias brutas e assets importados (vídeos, áudios, b-rolls)
+├── packages/     # Planos de corte e edição gerados (editplan.json)
+├── artifacts/    # Vídeos finais renderizados (.mp4); QA é emitido em JSON/stdout
+└── studio.json   # Manifesto do estúdio e inventário de assets registrados
+```
 
 ## Exemplos de EditPlan por Modo
 
@@ -312,6 +325,14 @@ All scripts run directly with Node.js stdlib (zero dependencies):
 - `node scripts/merkle_verify.js ledger.json` - Verifies cryptographic continuity of Merkle blocks.
 - `node scripts/ast_slice.js src/app.js` - Extracts structural AST signatures reducing tokens by >60%.
 - `node scripts/wcag_check.js --fg="#000" --bg="#fff"` - Checks WCAG contrast ratios and target sizes.
+
+## Limitações atuais
+
+- **Legendas automáticas:** a transcrição automática no `studio auto-clip` e `studio transcribe` depende de arquivo de legendas externo (`--captions <file.srt>`), da API OpenAI (`--openai` com variável `OPENAI_API_KEY`) ou de modelo local (`--local`). O caminho local depende de `@xenova/transformers`, que não vem empacotado por padrão; sem SRT e sem OpenAI, o comando renderiza sem legendas (CLI-02).
+- **Sem processamento em lote nativo:** não há comando `batch`; renderizações em lote devem ser orquestradas externamente via chamadas sucessivas de `esquadrao studio render`.
+- **Ducking de áudio fixo:** a opção `ducking: true` em `music_tracks` aplica atenuação fixa de volume em `-22dB` via filtro `amix`; ducking dinâmico via sidechain está pendente de implementação (CLI-05).
+- **Layout de overlay `split_top`:** embora aceito na validação do schema do EditPlan, o pipeline de renderização trata apenas `fullscreen`, `pip` e `split_bottom`; overlays com `split_top` são renderizados como tela cheia (`fullscreen`) (CLI-06).
+- **Alias legado no package.json:** o binário canônico oficial é `esquadrao`; o alias `esquadrao-skill` ainda consta no campo `bin` do `package.json` para compatibilidade retroativa e sua remoção está mapeada em backlog (CLI-09).
 
 ## Testing
 

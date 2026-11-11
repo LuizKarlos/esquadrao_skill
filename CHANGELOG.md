@@ -6,6 +6,17 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 
 ---
 
+## 2026-11-11 — docs(capabilities): auditoria de capacidades do CLI, correção de onboarding/captions/ducking e backlog CLI-01..CLI-11
+
+### Modificado
+- **Alinhamento de Capacidades do CLI e Guias de Agentes**:
+  - `skill-media-producer/SKILL.md`: sincronização da árvore real do workspace (`assets/`, `packages/`, `artifacts/`, `studio.json`), qualificação do onboarding como demonstrativo, detalhamento dos três caminhos de legenda no `auto-clip` e qualificação de ducking fixo e `split_top` pendente.
+  - `skill-media-producer/references/configuracao-inicial.md`: adequação dos diretórios operacionais, explicitação dos caminhos de legenda em `auto-clip` com aviso sobre a dependência ausente `@xenova/transformers`, correção da transcrição para condicional e esclarecimento do ducking fixo (-22dB).
+  - `skill-media-producer/references/llm-agent-guide.md`: proibição estrita de prometer legendas automáticas sem arquivo SRT ou chave da OpenAI, documentação do caráter demonstrativo do `onboard`, clarificação dos layouts de overlay (`split_bottom` vs `split_top` pendente) e ducking estático.
+  - Formalização do mapeamento de contratos pendentes no backlog de engenharia (CLI-01 a CLI-11), assegurando fidelidade entre as orientações para IA e o comportamento real do código.
+
+---
+
 ## [1.3.1] - 2026-11-10
 
 ### Modificado
