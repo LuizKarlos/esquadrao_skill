@@ -124,7 +124,7 @@ test('Privacy & Neutrality Scanner', () => {
   function scan(dir) {
     const hits = [];
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (entry.name === '.git') continue;
+      if (entry.name === '.git' || entry.name === 'node_modules') continue;
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
         hits.push(...scan(full));
