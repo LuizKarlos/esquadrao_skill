@@ -10,7 +10,6 @@ import {
   checkBinary,
   findSystemFont,
   run as studioRun,
-  hasLocalTranscriber,
   buildCaptionFilters,
   buildClipFilters,
   buildDarkTextFilters,
@@ -492,12 +491,11 @@ Options:
       };
       const hasCaptionChoice = autoFlags.captions || autoFlags.openai || autoFlags.local || autoFlags['no-captions'] || process.env.OPENAI_API_KEY;
       if (!hasCaptionChoice) {
-        if (await hasLocalTranscriber()) {
-          autoFlags.local = true;
-        } else {
-          autoFlags['no-captions'] = true;
-          if (!flags.json) console.warn('⚠️  Nenhum motor de legenda disponível; gerando corte real sem legendas. Use --captions, --openai ou --local para legendas.');
-        }
+        // A presença do pacote opcional não é uma escolha do usuário: o
+        // onboarding só usa legenda quando --captions/--openai/--local é
+        // explícito. Isso evita tentar baixar o modelo Whisper em CI/offline.
+        autoFlags['no-captions'] = true;
+        if (!flags.json) console.warn('⚠️  Nenhum motor de legenda escolhido; gerando corte real sem legendas. Use --captions, --openai ou --local para legendas.');
       }
 
       const autoResult = await runSilentIfJson(flags.json, () => studioRun({
