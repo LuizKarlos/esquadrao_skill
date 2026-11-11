@@ -13,6 +13,7 @@ Este repositório (`LuizKarlos/esquadrao_skill`) adota engenharia rigorosa centr
 - **[`ROADMAP.md`](./ROADMAP.md)**: Esteira viva de engenharia estruturada em 5 fases vinculadas às issues do repositório.
 - **[`Guia Operacional para LLMs`](./skill-media-producer/references/llm-agent-guide.md)**: Playbook completo para agentes inteligentes (Claude, Cursor, Codex, Grok, Hermes) conduzirem onboarding sem alucinações.
 - **[`Catálogo de Templates de Legenda`](./skill-media-producer/references/caption-templates.md)**: Nove presets visuais com fonte, cores, contorno, sombra e medidas, disponíveis via `--caption-template`.
+- **[`Prova de Corte em 3 Níveis`](./skill-media-producer/references/corte-podcast-3-niveis.md)**: Procedimento validado para demonstrar corte de pausas longas e respiros curtos, com métricas e critérios de aceite.
 
 ---
 

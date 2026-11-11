@@ -323,3 +323,4 @@ esquadrao studio auto-clip ./caminho/meu-video.mp4 --dest ./workspace --json
 - [`references/llm-agent-guide.md`](references/llm-agent-guide.md): Guia de conversação completo com fluxos de tratamento de erro.
 - [`references/configuracao-inicial.md`](references/configuracao-inicial.md): Guia passo a passo para execução via PowerShell / Windows.
 - [`references/caption-templates.md`](references/caption-templates.md): catálogo canônico dos nove templates de legenda, com fonte, cores, contorno, sombra e contrato CLI.
+- [`references/corte-podcast-3-niveis.md`](references/corte-podcast-3-niveis.md): procedimento validado para demonstrar corte de pausas longas e respiros curtos em três níveis, com métricas e critérios de aceite.
