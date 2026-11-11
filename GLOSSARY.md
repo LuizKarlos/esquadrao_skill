@@ -28,11 +28,11 @@ A tabela a seguir estabelece as equivalências obrigatórias entre os conceitos 
 | Termo Técnico no Código | Linguagem de Realização para o Usuário | Arquitetura Técnica Subjacente |
 | :--- | :--- | :--- |
 | `@esquadrao/cli` | **Esquadrão de Conteúdo** | Pacote executável em Node.js com stdlib pura e comandos de terminal. |
-| `esquadrao onboard` | **Primeiro Vídeo Guiado** | Demonstração guiada interativa gerando um primeiro vídeo de teste com legenda fixa; o pipeline real de decupagem e legendagem dinâmica a partir da fala é o `studio auto-clip`. |
+| `esquadrao onboard` | **Primeiro Vídeo Guiado** | Fluxo guiado que leva do zero ao primeiro vídeo com QA. No modo `podcast_clip`, executa o pipeline real de `auto-clip`, com `--captions`, `--openai`, `--local` ou `--no-captions`. |
 | `esquadrao` | **Esquadrão CLI** | Comando de linha unificado para orquestração de papéis e estúdio de vídeo (binário canônico oficial; alias legado `esquadrao-skill` ainda mantido no `package.json`, pendente CLI-09). |
-| `esquadrao studio auto-clip` | **Esteira de Auto-Corte** | Pipeline de detecção de silêncio, corte de pausas e renderização. Possui três caminhos de legenda: 1. `--captions <arquivo.srt>` (offline e determinístico); 2. `--openai` (transcrição via API externa); 3. `--local` (modelo local via `@xenova/transformers`, dependência não empacotada no momento; sem SRT ou OpenAI, renderiza sem legendas). |
+| `esquadrao studio auto-clip` | **Esteira de Auto-Corte** | Pipeline de detecção de silêncio, corte de pausas e renderização. Possui três caminhos de legenda: 1. `--captions <arquivo.srt>` (offline e determinístico); 2. `--openai` (transcrição via API externa); 3. `--local` (modelo local via `@xenova/transformers`, `optionalDependencies`). Sem nenhum deles, falha com erro acionável; `--no-captions` gera o corte sem legendas. |
 | `esquadrao studio find-hooks` | **Detector de Ganchos Virais** | Heurística determinística de copy baseada em pontuação de frases (perguntas e marcadores) para sugerir cortes de 30-60s; não é garantia de viralidade. |
-| `esquadrao studio transcribe` | **Transcrição Estruturada** | Extração de áudio e transcrição estruturada com timestamps para análise de copy (requer `--openai` com API key ou `--local` via `@xenova/transformers`, com a mesma pendência de dependência local). |
+| `esquadrao studio transcribe` | **Transcrição Estruturada** | Extração de áudio e transcrição estruturada com timestamps para análise de copy (requer `--captions` SRT, `--openai` com API key ou `--local` via `@xenova/transformers`). |
 | `B-Roll Overlay` | **Cena de Apoio Dinâmica** | Imagem ou vídeo sobreposto à fala em tela cheia (`fullscreen`), janela (`pip`) ou tela dividida (`split_bottom`); `split_top` é aceito no schema mas renderiza como fullscreen (CLI-06). |
 | `Audio Ducking` | **Atenuação de Trilha** | Redução fixa de -22dB via `amix`; ducking dinâmico por sidechain pendente (CLI-05). |
 | `Gancho de Retenção` | **Hook de Abertura (0-3s)** | Primeiro trecho selecionado pela copy para prender a atenção e maximizar a retenção. |
@@ -42,7 +42,7 @@ A tabela a seguir estabelece as equivalências obrigatórias entre os conceitos 
 | `EditPlan v1` | **Plano de Corte e Edição** | Esquema JSON determinístico com trilhas, cortes milimétricos e textos. |
 | `mode: "dark"` | **Canais Dark / Vídeo Rápido** | Renderização sem necessidade de gravação prévia, usando fundos e tipografia. |
 | `mode: "edit_only"` | **Decupagem Contígua** | Seleção e união rápida de trechos com transições suaves e ritmo acelerado. |
-| `mode: "podcast_clip"` | **Cortes Verticais com Legendas** | Fatiamento de falas longas com legendas quando há SRT, OpenAI ou modelo local; no `onboard`, é um vídeo demonstrativo com legenda fixa. |
+| `mode: "podcast_clip"` | **Cortes Verticais com Legendas** | Fatiamento de falas longas com legendas via SRT, OpenAI ou modelo local; no `onboard`, usa o pipeline real de `auto-clip` (ou corte sem legenda com `--no-captions`). |
 | `silenceremove` / `afftdn` | **Higienização Sonora Avançada** | Filtros de áudio aplicados para remover pausas mortas e ruídos de fundo. |
 | `drawtext` | **Legendas Sincronizadas** | Renderização tipográfica direta no fluxo de vídeo com escape de caracteres. |
 | `amix` (atenuação fixa de volume) | **Trilha Sonora com Atenuação** | Atenuação fixa de -22dB com amix; ducking dinâmico pendente (CLI-05). |
@@ -58,7 +58,7 @@ A tabela a seguir estabelece as equivalências obrigatórias entre os conceitos 
 | **"O CLI exige chave de API ou conexão de rede para funcionar?"** | **NÃO para corte, renderização e QA.** Os comandos de criação, corte, edição, renderização e QA executam completamente offline uma vez que o pacote e o FFmpeg estejam instalados. A geração de legenda automática exige arquivo SRT prévio (`--captions`), chave de API externa (`--openai`) ou modelo local opcional (`--local`, pendente de empacotamento). |
 | **"O CLI pode apagar arquivos de vídeo originais?"** | **NÃO.** O estúdio opera em modo estritamente não destrutivo. Os arquivos originais importados são mantidos intactos e os novos vídeos são salvos em `artifacts/`. |
 | **"O comando onboard exige parâmetros complexos?"** | **NÃO.** Executado sem parâmetros (`esquadrao onboard`), ele abre um assistente de terminal interativo com perguntas simples de múltipla escolha. |
-| **"O CLI depende de dependências pesadas no package.json?"** | **NÃO.** A seção `dependencies` do `package.json` é vazia (`{}`). O CLI usa estritamente a biblioteca padrão do Node.js. A transcrição local opcional requer `@xenova/transformers`, que não vem instalado por padrão. |
+| **"O CLI depende de dependências pesadas no package.json?"** | **NÃO.** A seção `dependencies` do `package.json` é vazia (`{}`). O CLI usa estritamente a biblioteca padrão do Node.js. A transcrição local opcional requer `@xenova/transformers`, declarada em `optionalDependencies`; se a instalação opcional falhar, `--local` retorna erro acionável. |
 
 ---
 

@@ -220,3 +220,119 @@ test('Auto-Clip: studio detect-silence CLI command returns JSON report', (t) => 
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
+
+test('Auto-Clip: fails fast without any caption source and suggests explicit options', (t) => {
+  if (!checkBinary('ffmpeg')) {
+    t.skip('ffmpeg not found');
+    return;
+  }
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'autoclip-strict-'));
+  const testVid = path.join(tmpDir, 'source.mp4');
+  try {
+    createSyntheticAudioVideo(testVid);
+    const res = spawnSync(process.execPath, [binPath, 'studio', 'auto-clip', testVid, '--dest', path.join(tmpDir, 'ws')], {
+      encoding: 'utf8',
+      env: { ...process.env, OPENAI_API_KEY: '' },
+    });
+    assert.equal(res.status, 1);
+    assert.match(res.stderr, /--captions|--no-captions/);
+    assert.equal(fs.existsSync(path.join(tmpDir, 'ws', 'assets')), false, 'must fail before importing');
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('Auto-Clip: --no-captions renders a real cut with zero captions', (t) => {
+  if (!checkBinary('ffmpeg')) {
+    t.skip('ffmpeg not found');
+    return;
+  }
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'autoclip-nocap-'));
+  const testVid = path.join(tmpDir, 'source.mp4');
+  try {
+    createSyntheticAudioVideo(testVid);
+    const res = spawnSync(process.execPath, [binPath, 'studio', 'auto-clip', testVid, '--dest', path.join(tmpDir, 'ws'), '--no-captions', '--json'], {
+      encoding: 'utf8',
+      env: { ...process.env, OPENAI_API_KEY: '' },
+    });
+    assert.equal(res.status, 0, res.stderr);
+    const report = JSON.parse(res.stdout);
+    assert.equal(report.status, 'ok');
+    assert.equal(report.caption_mode, 'none');
+    assert.equal(report.captions_count, 0);
+    assert.equal(report.pipeline, 'auto-clip');
+    assert.ok(fs.existsSync(path.join(tmpDir, 'ws', report.artifact.path)));
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('Auto-Clip: --local fails with actionable error when engine is absent', async (t) => {
+  if (!checkBinary('ffmpeg')) {
+    t.skip('ffmpeg not found');
+    return;
+  }
+  const { hasLocalTranscriber } = await import('../src/commands/studio.js');
+  if (await hasLocalTranscriber()) {
+    t.skip('@xenova/transformers is installed');
+    return;
+  }
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'autoclip-local-'));
+  const testVid = path.join(tmpDir, 'source.mp4');
+  try {
+    createSyntheticAudioVideo(testVid);
+    const res = spawnSync(process.execPath, [binPath, 'studio', 'auto-clip', testVid, '--dest', path.join(tmpDir, 'ws'), '--local'], {
+      encoding: 'utf8',
+      env: { ...process.env, OPENAI_API_KEY: '' },
+    });
+    assert.equal(res.status, 1);
+    assert.match(res.stderr, /@xenova\/transformers/);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('Transcribe: fails with actionable error without a caption source', (t) => {
+  if (!checkBinary('ffmpeg')) {
+    t.skip('ffmpeg not found');
+    return;
+  }
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'transcribe-strict-'));
+  const testVid = path.join(tmpDir, 'source.mp4');
+  try {
+    createSyntheticAudioVideo(testVid);
+    const res = spawnSync(process.execPath, [binPath, 'studio', 'transcribe', testVid, '--dest', path.join(tmpDir, 'ws')], {
+      encoding: 'utf8',
+      env: { ...process.env, OPENAI_API_KEY: '' },
+    });
+    assert.equal(res.status, 1);
+    assert.match(res.stderr, /Transcrição requer/);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('Onboard: podcast_clip uses the real auto-clip pipeline', (t) => {
+  if (!checkBinary('ffmpeg')) {
+    t.skip('ffmpeg not found');
+    return;
+  }
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'onboard-auto-'));
+  const testVid = path.join(tmpDir, 'source.mp4');
+  try {
+    createSyntheticAudioVideo(testVid);
+    const res = spawnSync(process.execPath, [binPath, 'onboard', '--mode', 'podcast_clip', '--file', testVid, '--dest', path.join(tmpDir, 'ws'), '--no-captions', '--json'], {
+      encoding: 'utf8',
+      env: { ...process.env, OPENAI_API_KEY: '' },
+    });
+    assert.equal(res.status, 0, res.stderr);
+    const report = JSON.parse(res.stdout);
+    assert.equal(report.status, 'ok');
+    assert.equal(report.pipeline, 'auto-clip');
+    assert.equal(report.caption_mode, 'none');
+    assert.equal(report.qa.passed, true);
+    assert.ok(fs.existsSync(path.join(tmpDir, 'ws', report.artifact.path)));
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});

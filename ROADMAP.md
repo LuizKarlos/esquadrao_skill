@@ -4,7 +4,7 @@
 > **Funil Integrado:** `LuizKarlos/esquadrao_funil`
 > **Esteira Viva:** Este roadmap governa o ciclo de desenvolvimento, os testes contínuos e os marcos de entrega do pacote `@esquadrao/cli`.
 > **Autoridades Canônicas:** [`SPEC.md`](./SPEC.md), [`GLOSSARY.md`](./GLOSSARY.md), [`README.md`](./README.md)
-> **Estado de Conformidade (2026-11-11):** 73/73 testes verdes, lint em 35 arquivos aprovado; Fases 1 e 4 entregues; Fase 2 parcial (onboard demonstrativo); Fase 3 parcial; Fase 5 em andamento.
+> **Estado de Conformidade (2026-11-11):** 78/78 testes verdes, lint em 35 arquivos aprovado; Fases 1, 2 e 4 entregues; Fase 3 parcial; Fase 5 em andamento.
 > **Legenda:** `[x]` = implementado e testado; `[ ]` = previsto, pendente ou demonstração.
 
 ---
@@ -30,7 +30,7 @@
 ---
 
 ## Fase 2: Agente de Onboarding e Experiência do Primeiro Vídeo
-> **Status:** Parcial: onboarding demonstrativo entregue; pipeline real pendente (CLI-01).
+> **Status:** Entregue: `onboard --mode podcast_clip` executa o pipeline real de `auto-clip`.
 > **Objetivo:** Implementar o fluxo guiado de primeiro acesso para levar o usuário do zero ao primeiro vídeo vertical gerado em menos de 2 minutos.
 
 - [x] **2.1. Detecção Precoce de Dependências:**
@@ -38,8 +38,7 @@
   - [x] Instruções de instalação personalizadas e acionáveis por sistema operacional (Windows, macOS, Linux).
 - [x] **2.2. Modos de Onboarding e Formatos Escolhidos pelo Usuário:**
   - [x] Soberania do usuário: escolha explícita entre vertical 9:16 e widescreen 16:9 via flag `--format` e assistente de terminal, sem forçar fundo preto ou widescreen como padrão.
-  - [x] Modo `podcast_clip`: onboard demonstrativo com legenda fixa (`"Esquadrão Podcast Clip"`).
-  - [ ] Modo `podcast_clip` integrado: onboard executando o pipeline real de auto-clip (CLI-01).
+  - [x] Modo `podcast_clip`: onboard executa `auto-clip` real, com `--captions`, `--openai`, `--local` ou `--no-captions` (CLI-01).
   - [x] Modo `edit_only`: corte e concatenação contígua de 2 trechos de vídeo a partir de fontes do usuário ou packs.
   - [x] Modo `dark`: renderização de vídeo tipográfico sob demanda expressa do usuário.
   - [x] Guia canônico para LLMs e agentes de IA (`references/llm-agent-guide.md`) para onboarding sem alucinações.
@@ -74,7 +73,7 @@
   - [x] Comando `esquadrao studio detect-silence <video>` com filtros nativos FFmpeg (`silencedetect`).
   - [x] Comando `esquadrao studio auto-clip <video.mp4>` integrando fatiamento de silêncios e legendas dinâmicas estilo impacto viral (Opção A por padrão).
   - [x] Suporte a legendas via SRT (`--captions`) e OpenAI (`--openai`).
-  - [ ] Suporte a Whisper local (CLI-02): inferência local via `@xenova/transformers` pendente de empacotamento como dependência para evitar renderização sem legendas.
+  - [x] Suporte a Whisper local (CLI-02): `@xenova/transformers` declarado em `optionalDependencies`; ausência gera erro acionável.
 - [x] **3.6. Transcrição Estruturada e Copy para Vídeos Longos:**
   - [x] Comando `esquadrao studio transcribe <video.mp4>` exportando `transcript.json` com timestamps exatos de fala.
   - [x] Playbook e heurísticas de Copywriting ensinando agentes LLM a identificar ganchos (0-3s), miolo de retenção e punchlines (30-60s flexíveis).
@@ -112,7 +111,7 @@
 > **Issue GitHub Ativa:** [#26 — Publicar @esquadrao/cli no npm](https://github.com/LuizKarlos/esquadrao_skill/issues/26)
 
 - [ ] **5.1. Homologação da Publicação:**
-  - [x] Testes unitários com cobertura total de 73 testes verdes.
+  - [x] Testes unitários com cobertura total de 78 testes verdes.
   - [x] Linting nativo `node scripts/lint.js` aprovado em todos os 35 arquivos.
   - [x] Documentação canônica integrada (`SPEC.md`, `ROADMAP.md`, `GLOSSARY.md`, `README.md`).
   - [ ] Abertura do repositório para visibilidade pública no GitHub.
@@ -127,15 +126,15 @@
 > **Autoridade Detalhada:** Consulte a especificação técnica formal em [`SPEC.md §8`](./SPEC.md#8-registro-de-auditoria-de-capacidades-2026-11-11).
 
 ### Prioridade P0 (Integridade Operacional e Contratos Críticos)
-- [ ] **CLI-01: Implementação real do pipeline em `onboard --mode podcast_clip`**
-  *Critério de aceite:* Integrar chamada real ao pipeline de `auto-clip` com detecção de silêncio e cortes dinâmicos de fala, substituindo o clipe estático demonstrativo.
-- [ ] **CLI-02: Gerenciamento da dependência de transcrição local (Whisper)**
+- [x] **CLI-01: Implementação real do pipeline em `onboard --mode podcast_clip`** — resolvido em 1.4.0; `onboard` chama `auto-clip`.
+  *Critério de aceite:* Integrar chamada real ao pipeline de `auto-clip` com detecção de silêncio e cortes dinâmicos de fala, substituindo o clipe estático demonstrativo (entregue em 1.4.0).
+- [x] **CLI-02: Gerenciamento da dependência de transcrição local (Whisper)** — resolvido em 1.4.0; `optionalDependencies`.
   *Critério de aceite:* Incluir `@xenova/transformers` em dependências ou fornecer script de instalação preventiva, viabilizando transcrição offline sem API externa.
-- [ ] **CLI-03: Tratamento de erro e bloqueio de renderização sem legendas**
+- [x] **CLI-03: Tratamento de erro e bloqueio de renderização sem legendas** — resolvido em 1.4.0; `--no-captions` é a válvula explícita.
   *Critério de aceite:* Emitir aviso claro e erro com código `1` ao executar `auto-clip` sem legendas (sem SRT, sem OpenAI e sem pacote local), prevenindo artefatos incompletos.
 
 ### Prioridade P1 (Completude Funcional do Pipeline de Mídia)
-- [ ] **CLI-04: Resiliência e diagnóstico na transcrição local (`studio transcribe`)**
+- [ ] **CLI-04: Resiliência e diagnóstico na transcrição local (`studio transcribe`)** — parcialmente resolvido em 1.4.0 (erros acionáveis); falta teste com motor local real.
   *Critério de aceite:* Exibir mensagem orientadora e saída de erro acionável em caso de ausência do motor Whisper local.
 - [ ] **CLI-05: Implementação de áudio ducking dinâmico via sidechain**
   *Critério de aceite:* Aplicar atenuação adaptativa na trilha musical via compressor sidechain no FFmpeg exclusivamente durante intervalos de voz ativa.
@@ -152,7 +151,7 @@
 - [ ] **CLI-10: Atualização do manual de ajuda de `studio`**
   *Critério de aceite:* Documentar flags `--broll` e `--music` na saída de `esquadrao studio auto-clip --help`.
 - [ ] **CLI-11: Alinhamento contínuo de referências documentais**
-  *Critério de aceite:* Manter métricas de teste (73 testes), contagem de lint (35 arquivos) e estrutura real do estúdio sincronizadas nos testes de documentação.
+  *Critério de aceite:* Manter métricas de teste (78 testes), contagem de lint (35 arquivos) e estrutura real do estúdio sincronizadas nos testes de documentação.
 
 ### Critérios de Aceite Globais
 - **P0 Resolvido:** `podcast_clip` executa corte dinâmico real e ausência de legendas bloqueia renderização com código de erro.

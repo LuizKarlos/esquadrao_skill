@@ -58,7 +58,7 @@ workspace/
 ```
 *(Nota: O estúdio cria estritamente `assets/`, `packages/`, `artifacts/` e `studio.json`. Pastas como `editplans/`, `renders/` e `qa/` não são geradas.)*
 
-> **Aviso sobre Onboarding:** O comando `esquadrao onboard` (incluindo `--mode podcast_clip`) é exclusivamente um demonstrador rápido de validação do ambiente. Ele gera um vídeo estático de teste de até 1s por corte com a legenda fixa `"Esquadrão Podcast Clip"`. O assistente nunca deve prometer `onboard` como esteira de corte real ou transcrição inteligente.
+> **Onboarding:** No modo `podcast_clip`, o `esquadrao onboard` executa o pipeline real de `auto-clip` e aceita `--captions`, `--openai`, `--local` ou `--no-captions`. Sem motor de legenda, ele aplica `--no-captions`, gera o corte real sem legendas e avisa; nunca prometa legendas sem informar o pré-requisito.
 
 ### Fase 4: Importação da Mídia e Leitura dos Metadados
 Importe o arquivo do usuário e anote o ID do asset:
@@ -111,7 +111,7 @@ O comando emite o resumo com total de silêncio expurgado, quantidade de cortes 
 > O assistente de IA NÃO deve prometer ao usuário legendas automáticas sem explicitar os três caminhos suportados:
 > 1. `--captions <arquivo.srt>`: Caminho canônico, offline e determinístico (recomendado).
 > 2. `--openai`: Requer a variável de ambiente `OPENAI_API_KEY` para transcrição via API remota OpenAI Whisper.
-> 3. `--local`: Utiliza `@xenova/transformers` + `Xenova/whisper-tiny`. A dependência `@xenova/transformers` NÃO vem pré-instalada no CLI. Sem SRT e sem chave da OpenAI, a transcrição falha silenciosamente e o `auto-clip` renderiza o vídeo sem legendas (gap documentado no backlog CLI-02).
+> 3. `--local`: Utiliza `@xenova/transformers` + `Xenova/whisper-tiny` (declarada em `optionalDependencies`). Se o pacote opcional não estiver instalado, o comando falha com instrução acionável; use `--no-captions` para cortar sem legendas.
 > O agente deve sempre solicitar um arquivo SRT, instruir a configuração de `OPENAI_API_KEY` ou instalar o modelo local antes de prometer legendas no corte.
 
 ---

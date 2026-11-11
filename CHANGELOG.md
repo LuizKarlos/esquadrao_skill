@@ -6,14 +6,19 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 
 ---
 
-## 2026-11-11 — docs(capabilities): auditoria de capacidades do CLI, correção de onboarding/captions/ducking e backlog CLI-01..CLI-11
+## [1.4.0] - 2026-11-11
 
-### Modificado
-- **Alinhamento de Capacidades do CLI e Guias de Agentes**:
-  - `skill-media-producer/SKILL.md`: sincronização da árvore real do workspace (`assets/`, `packages/`, `artifacts/`, `studio.json`), qualificação do onboarding como demonstrativo, detalhamento dos três caminhos de legenda no `auto-clip` e qualificação de ducking fixo e `split_top` pendente.
-  - `skill-media-producer/references/configuracao-inicial.md`: adequação dos diretórios operacionais, explicitação dos caminhos de legenda em `auto-clip` com aviso sobre a dependência ausente `@xenova/transformers`, correção da transcrição para condicional e esclarecimento do ducking fixo (-22dB).
-  - `skill-media-producer/references/llm-agent-guide.md`: proibição estrita de prometer legendas automáticas sem arquivo SRT ou chave da OpenAI, documentação do caráter demonstrativo do `onboard`, clarificação dos layouts de overlay (`split_bottom` vs `split_top` pendente) e ducking estático.
-  - Formalização do mapeamento de contratos pendentes no backlog de engenharia (CLI-01 a CLI-11), assegurando fidelidade entre as orientações para IA e o comportamento real do código.
+### Adicionado
+- **Onboarding real no modo `podcast_clip`:** `esquadrao onboard --mode podcast_clip` agora executa o pipeline `auto-clip` (detecção de silêncio, cortes, legendas e QA), com `--captions`, `--openai`, `--local` e `--no-captions`.
+- **Corte explícito sem legendas:** flag `--no-captions` em `studio auto-clip` e `onboard` para gerar o vídeo sem transcrição de forma intencional.
+- **Motor local opcional:** `@xenova/transformers@^2.17.2` declarado em `optionalDependencies`; ausência gera erro acionável e não quebra a instalação.
+- **Testes:** 78/78 (5 novos) cobrindo falha sem legenda, `--no-captions`, ausência do motor local, `transcribe` sem fonte e onboarding real.
+
+### Corrigido
+- `auto-clip` e `transcribe` falham com código `1` e mensagem acionável quando não há SRT, OpenAI nem motor local, em vez de renderizar sem legendas.
+- `--captions` funciona em vídeo sem faixa de áudio (SRT não exige extração).
+- `onboard` em `podcast_clip` sem motor de legenda gera corte real com aviso explícito, sem legenda fixa.
+- Documentação sincronizada: SPEC §8, ROADMAP, GLOSSARY, README, `skill-media-producer` e referências refletem o estado entregue.
 
 ---
 

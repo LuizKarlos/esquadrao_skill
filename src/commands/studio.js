@@ -612,7 +612,31 @@ export function remapCaptionsToSpeechTimeline(rawCaptions = [], speechIntervals 
   return remapped;
 }
 
-export async function transcribeAudio(audioPath, { apiKey, useOpenai, srtPath } = {}) {
+export function resolveCaptionSource(flags = {}) {
+  if (flags['no-captions']) return { mode: 'none' };
+  if (flags.captions) return { mode: 'srt', srtPath: path.resolve(flags.captions) };
+  if (flags.local) return { mode: 'local' };
+  if (flags.openai) return { mode: 'openai', apiKey: process.env.OPENAI_API_KEY };
+  if (process.env.OPENAI_API_KEY) return { mode: 'openai', apiKey: process.env.OPENAI_API_KEY };
+  return { mode: 'missing' };
+}
+
+export async function hasLocalTranscriber() {
+  try {
+    await import('@xenova/transformers');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function assertLocalTranscriber() {
+  if (!(await hasLocalTranscriber())) {
+    throw new Error("Transcrição local indisponível: instale '@xenova/transformers' (npm install -g @xenova/transformers) ou use --captions/--openai.");
+  }
+}
+
+export async function transcribeAudio(audioPath, { apiKey, useOpenai, srtPath, requireLocal = false } = {}) {
   if (srtPath && fs.existsSync(srtPath)) {
     const content = fs.readFileSync(srtPath, 'utf8');
     return parseSrt(content);
@@ -665,10 +689,15 @@ export async function transcribeAudio(audioPath, { apiKey, useOpenai, srtPath } 
         end: c.timestamp[1] || c.timestamp[0] + 0.5,
       }));
     }
-  } catch {
-    // Optional local transformers not installed or failed
+  } catch (err) {
+    if (requireLocal) {
+      throw new Error("Transcrição local indisponível: instale '@xenova/transformers' ou use --captions/--openai.");
+    }
   }
 
+  if (requireLocal) {
+    throw new Error("Transcrição local indisponível: instale '@xenova/transformers' ou use --captions/--openai.");
+  }
   return [];
 }
 
@@ -815,6 +844,7 @@ Options:
   --openai                      Forçar uso da API OpenAI Whisper
   --local                       Forçar transcrição Whisper local
   --captions <file.srt>         Arquivo de legendas externo
+  --no-captions                 Gerar corte sem legendas (pula transcrição)
   --json                        Output results in JSON format
   -h, --help                    Show help message`);
     return;
@@ -883,30 +913,34 @@ Options:
     const probe = probeMedia(resolvedSrc);
     const duration = parseFloat(probe.format?.duration || '0');
 
-    const openAiKey = process.env.OPENAI_API_KEY;
-    let useOpenAi = Boolean(flags.openai);
-    if (openAiKey && !flags.local && !flags.openai && process.stdin.isTTY && !flags.json) {
-      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-      const answer = await new Promise((resolve) => {
-        rl.question(`Chave OPENAI_API_KEY detectada no ambiente. Deseja usar OpenAI Whisper para transcrição rápida? [S/n]: `, resolve);
-      });
-      rl.close();
-      useOpenAi = !answer.trim() || answer.trim().toLowerCase().startsWith('s');
-    } else if (openAiKey && !flags.local && !flags.openai) {
-      useOpenAi = true;
+    const captionSource = resolveCaptionSource(flags);
+    if (captionSource.mode === 'missing' || captionSource.mode === 'none') {
+      throw new Error('Transcrição requer --captions <arquivo.srt>, --openai com OPENAI_API_KEY ou --local (requer @xenova/transformers).');
+    }
+    if (captionSource.mode === 'local') await assertLocalTranscriber();
+    if (captionSource.mode === 'openai' && !captionSource.apiKey) {
+      throw new Error('OPENAI_API_KEY não configurada para usar --openai.');
+    }
+    if (captionSource.mode === 'srt' && !fs.existsSync(captionSource.srtPath)) {
+      throw new Error(`Arquivo de legendas não encontrado: ${captionSource.srtPath}`);
     }
 
-    const tmpAudio = path.join(os.tmpdir(), `usk-transcribe-${crypto.randomBytes(4).toString('hex')}.mp3`);
     let words = [];
-    try {
-      execFileSync('ffmpeg', ['-y', '-i', resolvedSrc, '-vn', '-ar', '16000', '-ac', '1', '-b:a', '64k', tmpAudio], { stdio: 'ignore' });
-      words = await transcribeAudio(tmpAudio, {
-        apiKey: openAiKey,
-        useOpenai: useOpenAi,
-        srtPath: flags.captions,
-      });
-    } finally {
-      if (fs.existsSync(tmpAudio)) fs.unlinkSync(tmpAudio);
+    if (captionSource.mode === 'srt') {
+      words = await transcribeAudio(null, { srtPath: captionSource.srtPath });
+    } else {
+      const tmpAudio = path.join(os.tmpdir(), `usk-transcribe-${crypto.randomBytes(4).toString('hex')}.mp3`);
+      try {
+        execFileSync('ffmpeg', ['-y', '-i', resolvedSrc, '-vn', '-ar', '16000', '-ac', '1', '-b:a', '64k', tmpAudio], { stdio: 'ignore' });
+        words = await transcribeAudio(tmpAudio, {
+          apiKey: captionSource.apiKey,
+          useOpenai: captionSource.mode === 'openai',
+          srtPath: null,
+          requireLocal: captionSource.mode === 'local',
+        });
+      } finally {
+        if (fs.existsSync(tmpAudio)) fs.unlinkSync(tmpAudio);
+      }
     }
 
     const segments = [];
@@ -1049,6 +1083,18 @@ Options:
       process.exit(1);
     }
 
+    const captionSource = resolveCaptionSource(flags);
+    if (captionSource.mode === 'missing') {
+      throw new Error('Legendas não configuradas. Use --captions <arquivo.srt>, --openai com OPENAI_API_KEY, --local (requer @xenova/transformers) ou --no-captions para gerar apenas o corte.');
+    }
+    if (captionSource.mode === 'local') await assertLocalTranscriber();
+    if (captionSource.mode === 'openai' && !captionSource.apiKey) {
+      throw new Error('OPENAI_API_KEY não configurada para usar --openai.');
+    }
+    if (captionSource.mode === 'srt' && !fs.existsSync(captionSource.srtPath)) {
+      throw new Error(`Arquivo de legendas não encontrado: ${captionSource.srtPath}`);
+    }
+
     const wsDir = findWorkspaceDir(flags.dest);
     const silentIfJson = async (fn) => {
       if (!flags.json) return await fn();
@@ -1072,34 +1118,23 @@ Options:
     const silences = detectSilence(assetPath, { noiseThreshold: silenceThresh, minDurationSec: silenceDuration });
     const speechIntervals = computeSpeechIntervals(totalDurationSec, silences);
 
-    // 3. Audio transcription decision (OpenAI vs Local vs SRT)
+    // 3. Transcribe only when captions are enabled
     let words = [];
-    const openAiKey = process.env.OPENAI_API_KEY;
-    let useOpenAi = Boolean(flags.openai);
-
-    if (openAiKey && !flags.local && !flags.openai && process.stdin.isTTY && !flags.json) {
-      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-      const answer = await new Promise((resolve) => {
-        rl.question(`Chave OPENAI_API_KEY detectada no ambiente. Deseja usar OpenAI Whisper para transcrição rápida? [S/n]: `, resolve);
-      });
-      rl.close();
-      useOpenAi = !answer.trim() || answer.trim().toLowerCase().startsWith('s');
-    } else if (openAiKey && !flags.local && !flags.openai) {
-      useOpenAi = true;
-    }
-
-    const tmpAudio = path.join(os.tmpdir(), `usk-audio-${crypto.randomBytes(4).toString('hex')}.mp3`);
-    try {
-      execFileSync('ffmpeg', ['-y', '-i', assetPath, '-vn', '-ar', '16000', '-ac', '1', '-b:a', '64k', tmpAudio], { stdio: 'ignore' });
-      words = await transcribeAudio(tmpAudio, {
-        apiKey: openAiKey,
-        useOpenai: useOpenAi,
-        srtPath: flags.captions,
-      });
-    } catch (err) {
-      if (!flags.json) console.warn(`[Warning] Transcription skipped or failed: ${err.message}`);
-    } finally {
-      if (fs.existsSync(tmpAudio)) fs.unlinkSync(tmpAudio);
+    if (captionSource.mode === 'srt') {
+      words = await transcribeAudio(null, { srtPath: captionSource.srtPath });
+    } else if (captionSource.mode !== 'none') {
+      const tmpAudio = path.join(os.tmpdir(), `usk-audio-${crypto.randomBytes(4).toString('hex')}.mp3`);
+      try {
+        execFileSync('ffmpeg', ['-y', '-i', assetPath, '-vn', '-ar', '16000', '-ac', '1', '-b:a', '64k', tmpAudio], { stdio: 'ignore' });
+        words = await transcribeAudio(tmpAudio, {
+          apiKey: captionSource.apiKey,
+          useOpenai: captionSource.mode === 'openai',
+          srtPath: captionSource.srtPath,
+          requireLocal: captionSource.mode === 'local',
+        });
+      } finally {
+        if (fs.existsSync(tmpAudio)) fs.unlinkSync(tmpAudio);
+      }
     }
 
     // 4. Captions grouping and remapping
@@ -1183,6 +1218,8 @@ Options:
       silence_cut_s: parseFloat(totalSilenceSec.toFixed(3)),
       speech_clips_count: speechIntervals.length,
       captions_count: remappedCaptions.length,
+      caption_mode: captionSource.mode,
+      pipeline: 'auto-clip',
       artifact,
       qa: qaReport,
     };

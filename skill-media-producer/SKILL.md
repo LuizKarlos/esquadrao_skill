@@ -61,7 +61,7 @@ npm install -g @esquadrao/cli
 ```
 > **Resolução Automática:** Caso o Node.js (>=18) ou o FFmpeg/ffprobe não estejam presentes na máquina, o próprio comando `esquadrao setup` ou o agente de IA realiza a instalação necessária de forma transparente. O usuário não precisa executar comandos de sistema operacional além do npm.
 
-> **Demonstração Rápida (`onboard`):** O comando `esquadrao onboard` (ou `onboard --mode podcast_clip`) é exclusivamente um teste demonstrativo de primeiro contato. Ele gera um vídeo estático curto (~1s por corte com legenda fixa "Esquadrão Podcast Clip") e não realiza transcrição real nem corte inteligente de pausas.
+> **Onboarding Real (`onboard`):** No modo `podcast_clip`, o `onboard` executa o pipeline real de `auto-clip` (detecção de silêncio, cortes, legendas e QA). Use `--captions`, `--openai`, `--local` ou `--no-captions`; sem motor de legenda, ele aplica `--no-captions`, gera o corte real sem legendas e avisa.
 
 ### Passo 3: Definição do Workspace e Configuração das Skills
 O usuário escolhe uma pasta no computador para ser seu repositório/workspace principal de uso diário (ex.: `./meu-estudio`). É nessa pasta que as skills inteligentes do Esquadrão operam:
@@ -115,7 +115,7 @@ esquadrao studio auto-clip ./caminho/meu-video.mp4 --dest ./workspace --json
 **Caminhos de legendas no `auto-clip`:**
 1. `--captions <arquivo.srt>`: Determinístico, offline e testado (caminho recomendado).
 2. `--openai`: Requer a variável de ambiente `OPENAI_API_KEY` para transcrição remota via API Whisper.
-3. `--local`: Utiliza `@xenova/transformers` + `Xenova/whisper-tiny`. A biblioteca `@xenova/transformers` não vem pré-instalada nas dependências padrão do CLI. Sem arquivo SRT ou chave da OpenAI, a transcrição falha em silêncio e o vídeo é gerado sem legendas (backlog CLI-02).
+3. `--local`: Utiliza `@xenova/transformers` + `Xenova/whisper-tiny` (declarada em `optionalDependencies`). Se o pacote opcional não estiver instalado, o comando falha com instrução acionável; use `--no-captions` para cortar sem legendas.
 
 ---
 
@@ -312,7 +312,7 @@ esquadrao studio auto-clip ./caminho/meu-video.mp4 --dest ./workspace --json
    - Layouts funcionais no renderizador: `fullscreen`, `pip` e `split_bottom`.
    - O layout `split_top` é aceito no schema de validação, mas não está implementado no renderizador atual (cai em tela cheia; pendente no backlog CLI-06).
 7. **Verificação Técnica Independente:** Sempre execute `studio qa` com `--plan` para validar integridade antes de concluir a tarefa.
-8. **Onboarding Demonstrativo:** O comando `esquadrao onboard` gera apenas uma demonstração sintética inicial com legenda fixa, não servindo como esteira de corte real.
+8. **Onboarding Real:** O comando `esquadrao onboard --mode podcast_clip` usa o pipeline real de `auto-clip`; os modos `dark` e `edit_only` continuam gerando planos guiados.
 
 ---
 

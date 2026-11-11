@@ -54,7 +54,7 @@ if ($LASTEXITCODE -ne 0) { throw "Falha ao instalar as skills para Claude Code."
 
 Abra o agente nessa pasta em uma nova sessão para carregar `skill-media-producer`. `assets/` guarda cópias das fontes, `packages/` guarda os planos, `artifacts/` recebe os MP4 e `studio.json` registra as importações e resultados. `studio init` cria exclusivamente essas pastas e arquivos.
 
-Para experimentar o fluxo guiado demonstrativo com valores padrão, use `node $cli onboard` (gera um vídeo de teste curto com legenda fixa). Para controlar proporção, cortes e legendas explicitamente, siga os próximos passos.
+Para experimentar o fluxo guiado com valores padrão, use `node $cli onboard --mode podcast_clip --file <video> --captions <legendas.srt>`. Sem SRT/OpenAI/motor local, o onboard aplica `--no-captions`, gera um corte real sem legendas e avisa. Para controlar proporção, cortes e legendas explicitamente, siga os próximos passos.
 
 ## 3. Importar um vídeo com áudio
 
@@ -232,6 +232,6 @@ O comando expurga as pausas, transcreve o áudio caso um arquivo SRT ou provedor
 Três caminhos de legendas no `auto-clip`:
 1. `--captions <arquivo.srt>`: Determinístico, offline e testado (recomendado).
 2. `--openai`: Requer a variável de ambiente `OPENAI_API_KEY` para transcrição via API remota da OpenAI.
-3. `--local`: Utiliza `@xenova/transformers` + `Xenova/whisper-tiny`. A dependência `@xenova/transformers` não vem instalada por padrão no CLI. Sem SRT e sem chave da OpenAI, o CLI não transcreve localmente e gera o vídeo sem legendas (gap documentado no backlog CLI-02).
+3. `--local`: Utiliza `@xenova/transformers` + `Xenova/whisper-tiny`, declarada em `optionalDependencies`. Se o pacote opcional não estiver instalado, o comando falha com instrução acionável; use `--no-captions` para cortar sem legendas.
 
 Caso adicione trilha de fundo (`--music`), a atenuação aplicada é fixa em `-22dB`, sem ducking dinâmico por sidechain.

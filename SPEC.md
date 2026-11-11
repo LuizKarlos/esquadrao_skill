@@ -17,7 +17,7 @@
 O **Esquadrão de Conteúdo CLI** (`@esquadrao/cli`) é um framework autônomo e executável localmente para orquestração de skills, execução de papéis técnicos e produção automatizada de vídeo vertical (9:16) e horizontal (16:9) via FFmpeg.
 
 ### 1.1. Invariantes Arquiteturais e Limites Estritos
-1. **Zero Dependências Externas em Runtime (`dependencies: {}`):** O projeto utiliza estritamente as bibliotecas nativas do Node.js (`node:fs`, `node:path`, `node:child_process`, `node:crypto`, `node:readline`, `node:os`).
+1. **Zero Dependências Obrigatórias em Runtime (`dependencies: {}`):** O projeto utiliza estritamente as bibliotecas nativas do Node.js (`node:fs`, `node:path`, `node:child_process`, `node:crypto`, `node:readline`, `node:os`). A transcrição local usa `@xenova/transformers` como `optionalDependencies`; nenhum recurso obrigatório depende dela.
 2. **Execução 100% Local:** Todo o processamento de áudio, decupagem, queima de legendas e renderização em lote ocorre na CPU/GPU da máquina do usuário. Proibido envio de gravações para servidores externos ou taxímetro de créditos por minuto.
 3. **Soberania Digital e Posse Vitalícia:** Sem DRM, sem validação periódica de chaves em nuvem, sem restrição de dispositivos e sem telemetria oculta. O cliente é dono definitivo do seu ambiente e dos seus arquivos.
 4. **Decisão do Usuário sobre Formato e Fundo (Anti-Padrão Forçado):** O sistema e os agentes de IA NUNCA forçam fundo preto (`dark`) ou widescreen (`16:9`) como padrão. O usuário define ativamente o formato (Vertical 9:16 para mobile ou Widescreen 16:9 para desktop) e o estilo de edição (cortes com legendas `podcast_clip`, decupagem `edit_only` com packs/fontes ou tipografia `dark`).
@@ -35,12 +35,12 @@ Conduz o usuário do zero absoluto até a renderização do seu primeiro vídeo 
 
 - **Sintaxe:**
   ```bash
-  esquadrao onboard [--mode <dark|edit_only|podcast_clip>] [--format <9:16|16:9>] [--dest <path>] [--file <file>] [--verbose] [--json]
+  esquadrao onboard [--mode <dark|edit_only|podcast_clip>] [--format <9:16|16:9>] [--dest <path>] [--file <file>] [--captions <file.srt>] [--openai] [--local] [--no-captions] [--verbose] [--json]
   ```
 - **Modos de Operação:**
   - `dark`: Renderização de vídeo vertical sem necessidade de footage prévio, utilizando overlays de texto centralizados, fundo escuro e áudio sintetizado ou de apoio.
   - `edit_only`: Decupagem e junção contígua de 2 cortes de fontes de vídeo fornecidas, aplicando corte determinístico de tempo de entrada (`in_ms`) e saída (`out_ms`).
-  - `podcast_clip` (**previsto**): geração de corte vertical a partir de gravação longa com legendas sincronizadas. **Estado atual:** o `onboard` é uma demonstração guiada que monta plano estático de até 1s por asset com legenda fixa 'Esquadrão Podcast Clip', sem detecção de silêncio nem transcrição; o pipeline real é `studio auto-clip` (CLI-01).
+  - `podcast_clip`: geração de corte vertical a partir de gravação longa com legendas sincronizadas. O `onboard` executa o pipeline real de `studio auto-clip` (detecção de silêncio, cortes, legendas e QA); aceita `--captions`, `--openai`, `--local` e `--no-captions`. Sem qualquer fonte de legenda, aplica `--no-captions` automaticamente, gera o corte real sem legendas e avisa; já o `studio auto-clip` direto, sem `--no-captions`, falha com código `1`.
 - **Detecção de Ambiente e Pré-requisitos:**
   - Verifica disponibilidade de `ffmpeg` e `ffprobe` antes de iniciar.
   - Em caso de ausência, encerra imediatamente com código `1` exibindo o comando exato de instalação para o sistema operacional ativo:
@@ -96,8 +96,8 @@ Fornece o pipeline operacional de criação, importação de mídias, renderiza�
   3. Transcrição e legendas por três caminhos:
      - SRT offline (`--captions arquivo.srt`): determinístico, offline e testado.
      - OpenAI com chave (`--openai`): requer `OPENAI_API_KEY` configurada via API remota.
-     - Local (`--local`): via `@xenova/transformers` (`Xenova/whisper-tiny`), dependência opcional não instalada por padrão.
-     - *Comportamento sem legenda:* Sem SRT, OpenAI ou dependência local instalada, o auto-clip corta o silêncio e renderiza sem legenda (lacunas CLI-02 e CLI-03 no §8).
+     - Local (`--local`): via `@xenova/transformers` (`Xenova/whisper-tiny`), declarada em `optionalDependencies` (^2.17.2); se o pacote opcional não estiver instalado, o comando falha com instrução de instalação.
+     - *Comportamento sem legenda:* sem SRT, OpenAI ou motor local, o comando encerra com código `1` e mensagem acionável; use `--no-captions` para gerar o corte explicitamente sem legendas.
   4. Agrupamento de legendas: Estilo A (impacto com 2 a 4 palavras em caixa alta, centralizadas e fundo contrastante por padrão), Estilo B (palavra única) ou Estilo C (frase completa).
   5. Remapeamento temporal exato das legendas sobre a linha de tempo sem pausas (`remapCaptionsToSpeechTimeline`).
   6. Geração atômica de `EditPlan v1` e renderização final via FFmpeg.
@@ -105,7 +105,7 @@ Fornece o pipeline operacional de criação, importação de mídias, renderiza�
 
 #### 2.2.7. `esquadrao studio transcribe <video.mp4> [opções]`
 - Extrai áudio de gravações longas (podcasts de 30min a 2h) e executa transcrição estruturada com Whisper via API OpenAI ou motor local.
-- *Lacuna local:* Compartilha o motor `transcribeAudio`; como `@xenova/transformers` é dependência opcional não instalada por padrão, o modo local falha silenciosamente sem gerar segmentos de texto (lacuna CLI-04 no §8).
+- *Motor local:* compartilha `transcribeAudio`; `@xenova/transformers` é `optionalDependencies`. Se o pacote não estiver instalado, `--local` retorna erro acionável (diagnóstico CLI-04).
 - Gera `workspace/packages/transcript.json` com segmentos temporais exatos (`start_s`, `end_s`, `text`) e marcações de palavras, além de exportar `.srt`.
 - Permite que modelos de linguagem analisem o conteúdo textual estruturado para seleção de cortes.
 
@@ -197,13 +197,13 @@ Todos os scripts são construídos com biblioteca padrão do Node.js e executam 
 
 ## 5. Garantia da Qualidade e Suíte de Testes
 
-A integridade do CLI é atestada deterministicamente pelo test runner nativo do Node.js (73 testes aprovados) e pelo linter (35 arquivos verificados):
+A integridade do CLI é atestada deterministicamente pelo test runner nativo do Node.js (78 testes aprovados) e pelo linter (35 arquivos verificados):
 ```bash
 npm test
 npm run lint
 ```
 A suíte cobre:
-- CLI core: argumentos, ajuda, versão e códigos de erro de saída (73/73 testes verdes).
+- CLI core: argumentos, ajuda, versão e códigos de erro de saída (78/78 testes verdes).
 - Onboard em todos os 3 modos (`dark`, `edit_only`, `podcast_clip`).
 - Studio engine: integridade do `studio.json`, cancelamento via SIGINT, proteção de caracteres de legendas e validação de QA.
 - Oráculos de papéis e autoridades (12 papéis canônicos).
@@ -228,11 +228,11 @@ A suíte cobre:
 ## 8. Registro de Auditoria de Capacidades (2026-11-11)
 
 ### 8.1. Método de Verificação e Evidências Operacionais
-A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.3.1) foi executada em 2026-11-11 por inspeção direta de código, verificação do manifesto e execução determinística de testes:
-1. **Suíte de Testes Unitários e Integração:** `npm test` executou 73 testes distribuídos em 11 arquivos de teste com 100% de aprovação (`73/73 pass, 0 fail`).
+A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.4.0) foi executada em 2026-11-11 por inspeção direta de código, verificação do manifesto e execução determinística de testes:
+1. **Suíte de Testes Unitários e Integração:** `npm test` executou 78 testes distribuídos em 11 arquivos de teste com 100% de aprovação (`78/78 pass, 0 fail`).
 2. **Auditoria Estática de Código:** `npm run lint` validou a conformidade sintática e estilística em 35 arquivos de código-fonte sem avisos ou falhas.
 3. **Inspeção de Estrutura do Estúdio:** Execução real de `esquadrao studio init` em diretório temporário isolado confirmou a criação exclusiva dos diretórios `assets/`, `packages/`, `artifacts/` e do arquivo `studio.json`. Os diretórios `editplans/`, `renders/` e `qa/` não são gerados pelo comando.
-4. **Inspeção de Dependências e Runtime:** O manifesto `package.json` declara `dependencies: {}`. A biblioteca `@xenova/transformers` (utilizada para inferência Whisper local) não se encontra declarada em `dependencies` nem em `optionalDependencies`.
+4. **Inspeção de Dependências e Runtime:** O manifesto `package.json` declara `dependencies: {}` e `optionalDependencies: { "@xenova/transformers": "^2.17.2" }`. O motor local é opcional: se a instalação do pacote opcional falhar, `--local` retorna erro acionável e o restante do CLI permanece funcional.
 5. **Inventário de Papéis e Habilidades:** Validação via `esquadrao role list --json` confirmou os 12 papéis técnicos canônicos. O comando `esquadrao setup` distribui 18 skills empacotadas para os diretórios dos agentes suportados.
 
 ### 8.2. Matriz de Capacidades: Entregue vs. Previsto
@@ -241,7 +241,7 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.3.1) foi execu
 | :--- | :--- | :--- | :--- | :--- |
 | `onboard --mode dark` | Entregue | Operacional | Gera vídeo vertical com texto centralizado e áudio sintético. | §2.1 |
 | `onboard --mode edit_only` | Entregue | Operacional | Executa decupagem e união contígua de 2 trechos de vídeo. | §2.1 |
-| `onboard --mode podcast_clip` | Parcial | Demonstração | Monta plano estático de 1s/asset com texto fixo sem decupagem real. | CLI-01 |
+| `onboard --mode podcast_clip` | Entregue | Operacional | Executa `auto-clip` real (silêncio, cortes, legendas e QA); sem motor de legenda, corta sem legenda e avisa. | §2.1, CLI-01 |
 | `studio init` | Entregue | Operacional | Cria `assets/`, `packages/`, `artifacts/` e `studio.json`. | §2.2.1 |
 | `studio import` | Entregue | Operacional | Extrai metadados via `ffprobe` e registra asset atômico. | §2.2.2 |
 | `studio render` | Entregue | Operacional | Renderiza via FFmpeg, trata escape e cancelamento SIGINT. | §2.2.3 |
@@ -249,8 +249,8 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.3.1) foi execu
 | `studio detect-silence` | Entregue | Operacional | Detecta pausas via `silencedetect` e mapeia trechos contíguos de fala. | §2.2.5 |
 | `auto-clip` com `--captions` | Entregue | Operacional | Sincroniza legendas SRT sobre corte de silêncio determinístico. | §2.2.6 |
 | `auto-clip` com `--openai` | Entregue | Operacional | Transcreve via API externa mediante presença de chave de acesso. | §2.2.6 |
-| `auto-clip` local / sem chaves | Parcial | Lacuna | Falha de importação silenciosa; gera vídeo cortado sem legendas. | CLI-02, CLI-03 |
-| `studio transcribe` local | Parcial | Lacuna | Depende de `@xenova/transformers` ausente na instalação padrão. | CLI-04 |
+| `auto-clip` local / sem chaves | Entregue | Operacional | `--local` exige a dependência opcional; sem qualquer fonte, falha com código 1; `--no-captions` gera corte explícito. | CLI-02, CLI-03 |
+| `studio transcribe` local | Entregue (opcional) | Operacional | Motor local via `optionalDependencies`; ausência gera diagnóstico acionável. | CLI-04 |
 | B-roll `fullscreen` e `pip` | Entregue | Operacional | Aplica overlays de tela cheia ou janela flutuante sobre a voz. | §2.2.8 |
 | B-roll `split_bottom` | Entregue | Operacional | Divide tela com orador no topo e B-roll na metade inferior. | §2.2.8 |
 | B-roll `split_top` | Parcial | Lacuna | Aceito na validação do plano, mas renderizado em tela cheia (fallback). | CLI-06 |
@@ -267,18 +267,22 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.3.1) foi execu
 
 #### Prioridade P0 (Integridade Operacional e Contratos Críticos)
 - **CLI-01: Implementação real do pipeline em `onboard --mode podcast_clip`**
-  *Contexto:* O modo atual gera um clipe estático demonstrativo de até 1s por asset com o texto fixo "Esquadrão Podcast Clip".
+  *Status:* **RESOLVIDO em 1.4.0** — `onboard --mode podcast_clip` chama `studio auto-clip`; teste dedicado em `tests/autoclip.test.js`.
+  *Contexto:* O modo anterior gerava um clipe estático demonstrativo de até 1s por asset com o texto fixo "Esquadrão Podcast Clip".
   *Meta:* Integrar o fluxo real de detecção de silêncio, montagem de cortes dinâmicos e legendas (SRT/OpenAI/modelo local) a partir de gravações fornecidas pelo usuário.
 - **CLI-02: Gerenciamento da dependência opcional de transcrição local**
-  *Contexto:* O pacote `@xenova/transformers` não consta em `dependencies` nem `optionalDependencies`, inviabilizando a transcrição offline out-of-the-box.
+  *Status:* **RESOLVIDO em 1.4.0** — `@xenova/transformers` em `optionalDependencies`; ausência resulta em erro acionável, sem quebrar a instalação.
+  *Contexto:* O pacote `@xenova/transformers` não constava em `dependencies` nem `optionalDependencies`, inviabilizando a transcrição offline out-of-the-box.
   *Meta:* Definir o mecanismo formal de consumo da biblioteca local (como dependência opcional documentada ou script de pré-requisito com verificação preventiva).
 - **CLI-03: Tratamento de exceção e aviso de ausência de legendas em `auto-clip`**
-  *Contexto:* Quando não há arquivo SRT, chave OpenAI nem pacote local instalado, o comando prossegue silenciosamente e emite vídeo sem faixas de texto.
+  *Status:* **RESOLVIDO em 1.4.0** — `auto-clip`/`transcribe` falham antes de importar/renderizar; `--no-captions` é a válvula explícita.
+  *Contexto:* Quando não há arquivo SRT, chave OpenAI nem pacote local instalado, o comando prosseguia silenciosamente e emitia vídeo sem faixas de texto.
   *Meta:* Interromper a execução com código de erro ou emitir aviso explícito ao operador antes de iniciar a renderização sem legendas.
 
 #### Prioridade P1 (Completude Funcional do Pipeline de Mídia)
 - **CLI-04: Resiliência e diagnóstico na transcrição local (`studio transcribe`)**
-  *Contexto:* Falhas na importação de bibliotecas locais de inferência ocorrem de forma silenciosa ou opaca.
+  *Status:* **PARCIALMENTE RESOLVIDO em 1.4.0** — erros acionáveis implementados; falta teste com o motor local real em CI.
+  *Contexto:* Falhas na importação de bibliotecas locais de inferência ocorriam de forma silenciosa ou opaca.
   *Meta:* Exibir diagnóstico claro orientando a instalação das extensões necessárias ou fornecimento de chave de API externa.
 - **CLI-05: Implementação de áudio ducking dinâmico via sidechain**
   *Contexto:* A atenuação da trilha sonora é estática (-22dB fixos) durante toda a duração do clipe.

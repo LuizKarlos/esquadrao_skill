@@ -8,7 +8,7 @@ Framework autônomo local e CLI de orquestração de skills, execução de papé
 
 Este repositório (`LuizKarlos/esquadrao_skill`) adota engenharia rigorosa centrada no código e opera sincronizado com o funil de vendas e área de membros (`LuizKarlos/esquadrao_funil`):
 
-- **[`SPEC.md`](./SPEC.md)**: Especificação técnica canônica contendo arquitetura zero-dependency, contratos dos comandos `onboard` e `studio`, soberania de escolha de formato pelo usuário e matriz de papéis.
+- **[`SPEC.md`](./SPEC.md)**: Especificação técnica canônica contendo arquitetura sem dependências obrigatórias (motor local opcional), contratos dos comandos `onboard` e `studio`, soberania de escolha de formato pelo usuário e matriz de papéis.
 - **[`GLOSSARY.md`](./GLOSSARY.md)**: Fonte canônica de terminologia, equivalências técnicas, códigos de saída e matriz anti-delírio.
 - **[`ROADMAP.md`](./ROADMAP.md)**: Esteira viva de engenharia estruturada em 5 fases vinculadas às issues do repositório.
 - **[`Guia Operacional para LLMs`](./skill-media-producer/references/llm-agent-guide.md)**: Playbook completo para agentes inteligentes (Claude, Cursor, Codex, Grok, Hermes) conduzirem onboarding sem alucinações.
@@ -17,7 +17,7 @@ Este repositório (`LuizKarlos/esquadrao_skill`) adota engenharia rigorosa centr
 
 ## Overview
 
-`@esquadrao/cli` provides a portable, zero-dependency bridge to run skills, roles, and tools across any AI coding agent and CLI:
+`@esquadrao/cli` provides a portable, zero-required-dependency bridge to run skills, roles, and tools across any AI coding agent and CLI (local transcription is an optional add-on):
 
 - **Grok Build** (`.agents/skills/`)
 - **Claude Code** (`.claude/skills/`)
@@ -50,7 +50,7 @@ esquadrao setup
 
 ```bash
 # Comando principal canônico: esquadrao
-esquadrao onboard [--mode <mode>] [--dest <path>] [--file <file>] [--verbose] [--json]
+esquadrao onboard [--mode <mode>] [--dest <path>] [--file <file>] [--captions <file.srt>] [--openai] [--local] [--no-captions] [--verbose] [--json]
 
 # Auto-corte integrado: detecta silêncio, expurga pausas e renderiza com QA
 # Legendas: use --captions <file.srt>, --openai (com OPENAI_API_KEY) ou --local (Whisper local opcional)
@@ -79,16 +79,16 @@ esquadrao studio qa <artifact.mp4> [--plan <editplan.json>]
 
 ## Primeiro acesso
 
-O comando `onboard` é uma demonstração guiada que conduz o cliente do zero até o primeiro vídeo renderizado com validação automatizada de QA. No modo `podcast_clip`, o `onboard` gera um vídeo demonstrativo com legenda fixa (`"Esquadrão Podcast Clip"`). Para o pipeline real de decupagem com transcrição e geração de legendas dinâmicas a partir da fala, utilize `esquadrao studio auto-clip`.
+O comando `onboard` conduz o cliente do zero até o primeiro vídeo renderizado com validação automatizada de QA. No modo `podcast_clip`, ele executa o pipeline real de `studio auto-clip` (detecção de silêncio, cortes, legendas e QA) e aceita `--captions`, `--openai`, `--local` ou `--no-captions`. Sem qualquer fonte de legenda, aplica `--no-captions` automaticamente, gera o corte real sem legendas e avisa; já o `studio auto-clip` direto, sem `--no-captions`, falha com código `1`.
 
 ```bash
-# Fluxo guiado interativo (demonstração):
+# Fluxo guiado interativo:
 esquadrao onboard
 
 # Execução não interativa com flags:
 esquadrao onboard --mode dark --dest ./workspace
 esquadrao onboard --mode edit_only --file ./raw.mp4 --dest ./workspace
-esquadrao onboard --mode podcast_clip --file ./clip1.mp4 --file ./clip2.mp4 --dest ./workspace
+esquadrao onboard --mode podcast_clip --file ./podcast.mp4 --captions ./podcast.srt --dest ./workspace
 ```
 
 ### Flags do Onboard:
@@ -96,6 +96,10 @@ esquadrao onboard --mode podcast_clip --file ./clip1.mp4 --file ./clip2.mp4 --de
 - `--format <9:16 | 16:9>`: Proporção de tela definida pelo usuário (Vertical 9:16 para mobile ou Widescreen 16:9 para desktop).
 - `--dest <path>`: Diretório do workspace (persiste no perfil para reuso).
 - `--file <path>`: Arquivo de vídeo fonte (pode ser repetido para múltiplos arquivos).
+- `--captions <file.srt>`: Legenda SRT para o modo `podcast_clip`.
+- `--openai`: Usa OpenAI Whisper (requer `OPENAI_API_KEY`).
+- `--local`: Usa o motor local `@xenova/transformers` (opcional).
+- `--no-captions`: Gera o corte sem legendas, de forma explícita.
 - `--verbose`: Exibe logs detalhados do FFmpeg em caso de erro.
 - `--json`: Retorna resultado estruturado em formato JSON.
 
@@ -328,7 +332,7 @@ All scripts run directly with Node.js stdlib (zero dependencies):
 
 ## Limitações atuais
 
-- **Legendas automáticas:** a transcrição automática no `studio auto-clip` e `studio transcribe` depende de arquivo de legendas externo (`--captions <file.srt>`), da API OpenAI (`--openai` com variável `OPENAI_API_KEY`) ou de modelo local (`--local`). O caminho local depende de `@xenova/transformers`, que não vem empacotado por padrão; sem SRT e sem OpenAI, o comando renderiza sem legendas (CLI-02).
+- **Legendas automáticas:** a transcrição no `studio auto-clip` e `studio transcribe` depende de SRT (`--captions <file.srt>`), da API OpenAI (`--openai` com `OPENAI_API_KEY`) ou do motor local (`--local`, `@xenova/transformers` em `optionalDependencies`). Sem nenhum deles, o comando falha com código `1` e instrução acionável; use `--no-captions` para gerar o corte explicitamente sem legendas (CLI-02/CLI-03 resolvidos em 1.4.0).
 - **Sem processamento em lote nativo:** não há comando `batch`; renderizações em lote devem ser orquestradas externamente via chamadas sucessivas de `esquadrao studio render`.
 - **Ducking de áudio fixo:** a opção `ducking: true` em `music_tracks` aplica atenuação fixa de volume em `-22dB` via filtro `amix`; ducking dinâmico via sidechain está pendente de implementação (CLI-05).
 - **Layout de overlay `split_top`:** embora aceito na validação do schema do EditPlan, o pipeline de renderização trata apenas `fullscreen`, `pip` e `split_bottom`; overlays com `split_top` são renderizados como tela cheia (`fullscreen`) (CLI-06).
