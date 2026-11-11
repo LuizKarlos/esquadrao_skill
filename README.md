@@ -56,7 +56,7 @@ esquadrao onboard [--mode <mode>] [--dest <path>] [--file <file>] [--captions <f
 
 # Auto-corte integrado: detecta silêncio, expurga pausas e renderiza com QA
 # Legendas: use --captions <file.srt>, --openai (com OPENAI_API_KEY) ou --local (Whisper local opcional)
-esquadrao studio auto-clip <video.mp4> [--captions <file.srt>] [--openai] [--local] [--broll <file>] [--music <file.mp3>] [--silence-thresh -30dB] [--silence-duration 0.8] [--format 9:16] [--caption-style impact]
+esquadrao studio auto-clip <video.mp4> [--captions <file.srt>] [--openai] [--local] [--broll <file>] [--music <file.mp3>] [--layout fullscreen|pip|split_bottom] [--overlay-duration inserts|full] [--silence-thresh -30dB] [--silence-duration 0.8] [--format 9:16] [--caption-style impact]
 
 # Detector rápido de silêncio e pausas mortas
 esquadrao studio detect-silence <video.mp4> [--json]
@@ -77,6 +77,7 @@ esquadrao studio import <file>
 # Renderizar plano manual ou executar QA
 esquadrao studio render <editplan.json>
 esquadrao studio qa <artifact.mp4> [--plan <editplan.json>]
+esquadrao studio cutout <video.mp4> --background <pack.mp4> [--python <interpretador>] [--fps 15]
 ```
 
 ## Primeiro acesso
@@ -114,7 +115,7 @@ Siga o [guia completo de configuração inicial para Windows / PowerShell](skill
 ### Templates de legenda
 O catálogo canônico tem nove presets sem fundo sólido — MrBeast Yellow, TikTok White, Gold Stroke, Green Stroke, Neon Glitch, Minimal Lower Third, Red Stroke, Heavy White e Mono Clean. Fonte, cores, contorno, sombra e medidas estão em [`caption-templates.md`](skill-media-producer/references/caption-templates.md).
 
-**Disponível no CLI 1.5.0:** use `--caption-template <id>` em `studio auto-clip`/`studio render` ou `captions[].template` no EditPlan. `--caption-style impact|word|full` continua como legado.
+**Disponível no CLI 1.6.0:** use `--caption-template <id>` em `studio auto-clip`/`studio render` ou `captions[].template` no EditPlan. `--caption-style impact|word|full` continua como legado.
 
 ## Estrutura do workspace
 
@@ -343,8 +344,8 @@ All scripts run directly with Node.js stdlib (zero dependencies):
 - **Sem processamento em lote nativo:** não há comando `batch`; renderizações em lote devem ser orquestradas externamente via chamadas sucessivas de `esquadrao studio render`.
 - **Ducking de áudio fixo:** a opção `ducking: true` em `music_tracks` aplica atenuação fixa de volume em `-22dB` via filtro `amix`; ducking dinâmico via sidechain está pendente de implementação (CLI-05).
 - **Layout de overlay `split_top`:** embora aceito na validação do schema do EditPlan, o pipeline de renderização trata apenas `fullscreen`, `pip` e `split_bottom`; overlays com `split_top` são renderizados como tela cheia (`fullscreen`) (CLI-06).
-- **Split permanente:** `split_bottom` existe no renderizador, mas é um overlay temporário de B-roll. `auto-clip --broll` fixa `fullscreen` e não expõe `--layout`; para manter o pack na base durante todo o clipe é preciso montar um `EditPlan` manual com overlay de duração total e chamar `studio render` (CLI-13).
-- **Recorte de pessoa com troca de fundo:** não existe no CLI. Não há segmentação, chroma key, máscara alfa nem composição de pack atrás do orador; o protótipo validado usou `rembg` + OpenCV + FFmpeg fora do CLI (CLI-14). Detalhes e critérios em [`skill-media-producer/references/composicoes-especiais.md`](./skill-media-producer/references/composicoes-especiais.md).
+- **Split permanente:** disponível em `auto-clip --broll <pack> --layout split_bottom --overlay-duration full`; o pack cobre toda a linha do tempo em loop e o áudio original é preservado (CLI-13). `split_top` continua pendente (CLI-06).
+- **Recorte de pessoa com troca de fundo:** `studio cutout` é experimental e exige Python com `rembg`, `onnxruntime`, `opencv-python-headless` e `numpy`; sem isso, falha com instrução. Saída 9:16, 15 fps por padrão, ~18–20 min de CPU por 60 s. Sem cache de máscaras ou GPU nesta versão. Detalhes em [`skill-media-producer/references/composicoes-especiais.md`](./skill-media-producer/references/composicoes-especiais.md).
 - **Alias legado no package.json:** o binário canônico oficial é `esquadrao`; o alias `esquadrao-skill` ainda consta no campo `bin` do `package.json` para compatibilidade retroativa e sua remoção está mapeada em backlog (CLI-09).
 
 ## Testing

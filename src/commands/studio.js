@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { execFileSync, spawnSync, spawn } from 'node:child_process';
 import process from 'node:process';
 import readline from 'node:readline';
@@ -167,12 +168,15 @@ export function buildCaptionFilters(captions, baseV, tempFiles, captionStyle = '
   return `${baseV}${textFilters}[outv]`;
 }
 
-export function buildClipFilters(inputIndex, clip, clipPath, wsDir, width, height, gainDb = 0) {
+export function buildClipFilters(inputIndex, clip, clipPath, wsDir, width, height, gainDb = 0, { splitBottom = false } = {}) {
   const inSec = ((clip.in_ms || 0) / 1000).toFixed(3);
   const outSec = ((clip.out_ms || (clip.in_ms || 0) + 1000) / 1000).toFixed(3);
   const durSec = Math.max(0.001, ((clip.out_ms || (clip.in_ms || 0) + 1000) - (clip.in_ms || 0)) / 1000).toFixed(3);
 
-  const vFilter = `[${inputIndex}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v${inputIndex}]`;
+  const halfH = Math.round(height / 2);
+  const vFilter = splitBottom
+    ? `[${inputIndex}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${halfH}:force_original_aspect_ratio=increase,crop=${width}:${halfH},pad=${width}:${height}:0:0:black,setsar=1,fps=30[v${inputIndex}]`
+    : `[${inputIndex}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v${inputIndex}]`;
   const aFilter = hasAudio(wsDir, clipPath, clip)
     ? `[${inputIndex}:a]atrim=start=${inSec}:end=${outSec},asetpts=PTS-STARTPTS,volume=${gainDb}dB[a${inputIndex}]`
     : `anullsrc=channel_layout=stereo:sample_rate=44100,atrim=duration=${durSec}[a${inputIndex}]`;
@@ -840,6 +844,7 @@ Subcommands:
   find-hooks <file>             Find top viral hook segments (30-60s) from transcript or video
   render <editplan.json>        Validate EditPlan contract and execute cuts/captions via ffmpeg
   qa <artifact.mp4>             Run automated ffprobe QA verification on rendered video artifact
+  cutout <video>                Recorta a pessoa e compõe sobre um pack (requer Python/rembg)
   caption-templates [--json]     Lista os templates de legenda disponíveis
 
 Options:
@@ -853,6 +858,14 @@ Options:
   --captions <file.srt>         Arquivo de legendas externo
   --caption-template <id>       Template de legenda (ver caption-templates)
   --no-captions                 Gerar corte sem legendas (pula transcrição)
+  --broll <file>                B-roll/cena de apoio (pode ser repetido)
+  --music <file.mp3>            Música de fundo
+  --layout <layout>             Layout do B-roll: fullscreen, pip ou split_bottom
+  --overlay-duration <mode>     inserts (padrão, 2-4s) ou full (todo o clipe)
+  --background <file>           Pack de fundo do cutout
+  --engine <rembg>              Motor de recorte (padrão: rembg)
+  --fps <n>                     FPS do cutout (padrão: 15)
+  --python <path>               Interpretador Python do motor de recorte
   --json                        Output results in JSON format
   -h, --help                    Show help message`);
     return;
@@ -1088,6 +1101,133 @@ Options:
     return report;
   }
 
+  if (sub === 'cutout') {
+    const srcFile = positionals[1];
+    if (!srcFile) {
+      console.error('Error: Missing video file. Usage: esquadrao studio cutout <video> --background <pack.mp4> [options]');
+      process.exit(1);
+    }
+    if (!flags.background) {
+      console.error('Error: Missing --background <pack.mp4>. O cutout precisa de um vídeo de fundo.');
+      process.exit(1);
+    }
+    const resolvedSrc = path.resolve(srcFile);
+    const resolvedBg = path.resolve(flags.background);
+    if (!fs.existsSync(resolvedSrc)) {
+      console.error(`Error: Source video file not found: ${srcFile}`);
+      process.exit(1);
+    }
+    if (!fs.existsSync(resolvedBg)) {
+      console.error(`Error: Background file not found: ${flags.background}`);
+      process.exit(1);
+    }
+    if (!checkBinary('ffmpeg') || !checkBinary('ffprobe')) {
+      console.error('Error: ffmpeg/ffprobe not found. Install ffmpeg to use video studio features.');
+      process.exit(1);
+    }
+
+    const engine = flags.engine || 'rembg';
+    if (engine !== 'rembg') {
+      console.error(`Error: Engine de cutout não suportado: ${engine}. Use rembg.`);
+      process.exit(1);
+    }
+    const format = flags.format || '9:16';
+    if (format !== '9:16') {
+      console.error('Error: studio cutout suporta apenas --format 9:16 nesta versão.');
+      process.exit(1);
+    }
+    const fps = parseFloat(flags.fps || '15');
+    if (!Number.isFinite(fps) || fps <= 0 || fps > 30) {
+      console.error('Error: --fps deve estar entre 1 e 30.');
+      process.exit(1);
+    }
+    const python = flags.python || process.env.ESQUADRAO_PYTHON || 'python3';
+    const deps = spawnSync(python, ['-c', 'import rembg, cv2, numpy, PIL'], { encoding: 'utf8' });
+    if (deps.error || deps.status !== 0) {
+      console.error(`Error: motor de recorte indisponível em '${python}'.`);
+      console.error('Instale: python3 -m pip install "rembg[cpu]" onnxruntime opencv-python-headless numpy Pillow');
+      process.exit(1);
+    }
+
+    const wsDir = findWorkspaceDir(flags.dest);
+    fs.mkdirSync(path.join(wsDir, 'artifacts'), { recursive: true });
+    fs.mkdirSync(path.join(wsDir, 'packages'), { recursive: true });
+    const artifactId = `ART-${crypto.randomBytes(4).toString('hex')}`;
+    const artifactPath = path.join(wsDir, 'artifacts', `${artifactId}.mp4`);
+    const scriptPath = fileURLToPath(new URL('../../scripts/cutout.py', import.meta.url));
+    if (!fs.existsSync(scriptPath)) {
+      console.error(`Error: Script de cutout não encontrado: ${scriptPath}`);
+      process.exit(1);
+    }
+
+    const child = spawn(python, [
+      scriptPath,
+      '--input', resolvedSrc,
+      '--background', resolvedBg,
+      '--output', artifactPath,
+      '--fps', String(fps),
+      '--width', '1080',
+      '--height', '1920',
+      '--model', 'u2net_human_seg',
+    ], { stdio: ['ignore', 'pipe', 'inherit'] });
+
+    let stdout = '';
+    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    const exitCode = await new Promise((resolve, reject) => {
+      child.on('error', reject);
+      child.on('close', (code) => resolve(code));
+    });
+    if (exitCode !== 0) {
+      if (fs.existsSync(artifactPath)) {
+        try { fs.unlinkSync(artifactPath); } catch {}
+      }
+      console.error(`Error: cutout falhou (exit ${exitCode}).`);
+      process.exit(1);
+    }
+
+    let engineReport = null;
+    const lines = stdout.split(/\r?\n/).filter(Boolean);
+    if (lines.length > 0) {
+      try { engineReport = JSON.parse(lines[lines.length - 1]); } catch {}
+    }
+
+    const artifactRecord = {
+      id: artifactId,
+      path: path.relative(wsDir, artifactPath).replace(/\\/g, '/'),
+      engine: 'rembg',
+      rendered_at: new Date().toISOString(),
+      size_bytes: fs.existsSync(artifactPath) ? fs.statSync(artifactPath).size : 0,
+    };
+    const manifestPath = path.join(wsDir, 'studio.json');
+    const manifest = loadManifest(manifestPath);
+    manifest.artifacts = manifest.artifacts || [];
+    manifest.artifacts.push(artifactRecord);
+    saveManifestAtomic(manifestPath, manifest);
+
+    const qaReport = verifyArtifact(artifactPath);
+    if (!qaReport.passed) {
+      console.error(`Error: Post-render QA validation failed:\n${qaReport.errors.map((e) => `  - ${e}`).join('\n')}`);
+      process.exit(1);
+    }
+    const result = {
+      status: 'ok',
+      engine: 'rembg',
+      fps,
+      artifact: artifactRecord,
+      frames: engineReport?.frames ?? null,
+      elapsed_s: engineReport?.elapsed_s ?? null,
+      qa: qaReport,
+    };
+    if (flags.json) {
+      console.log(JSON.stringify(result, null, 2));
+      return result;
+    }
+    console.log(`Cutout concluído: ${artifactRecord.path} (${artifactRecord.size_bytes} bytes)`);
+    console.log(`- Frames: ${result.frames ?? 'n/d'}; tempo: ${result.elapsed_s ?? 'n/d'}s`);
+    console.log(`- QA: ${qaReport.passed ? 'Aprovado ✓' : 'Falha ✗'}`);
+    return result;
+  }
+
   if (sub === 'auto-clip') {
     const srcFile = positionals[1];
     if (!srcFile) {
@@ -1167,6 +1307,17 @@ Options:
 
     // Handle broll overlays if flags.broll provided
     const overlays = [];
+    const overlayLayout = flags.layout || 'fullscreen';
+    if (!['fullscreen', 'pip', 'split_bottom'].includes(overlayLayout)) {
+      throw new Error(`Layout de overlay inválido: ${overlayLayout}. Use fullscreen, pip ou split_bottom (split_top está pendente em CLI-06).`);
+    }
+    const overlayDuration = flags['overlay-duration'] || 'inserts';
+    if (!['inserts', 'full'].includes(overlayDuration)) {
+      throw new Error(`Duração de overlay inválida: ${overlayDuration}. Use inserts ou full.`);
+    }
+    if (!flags.broll && (flags.layout || flags['overlay-duration'])) {
+      throw new Error('--layout e --overlay-duration exigem --broll.');
+    }
     if (flags.broll) {
       const brollFiles = Array.isArray(flags.broll) ? flags.broll : [flags.broll];
       const importedBrolls = [];
@@ -1175,24 +1326,39 @@ Options:
         if (brollAsset && brollAsset.id) importedBrolls.push(brollAsset);
       }
       const totalTimelineSec = speechIntervals.reduce((acc, s) => acc + s.durationSec, 0);
-      const maxOverlays = Math.max(1, Math.floor(totalTimelineSec / 1.5));
-      const selected = importedBrolls.slice(0, maxOverlays);
-      if (selected.length > 0 && totalTimelineSec >= 2) {
-        const slotSec = totalTimelineSec / selected.length;
-        const targetDurSec = Math.min(3.0, slotSec * 0.9);
-        selected.forEach((brollAsset, index) => {
-          const startSec = index * slotSec + (slotSec - targetDurSec) / 2;
-          const durSec = Math.min(targetDurSec, brollAsset.metadata?.duration_s || targetDurSec, totalTimelineSec - startSec);
-          if (durSec < 0.5) return;
-          overlays.push({
-            asset_id: brollAsset.id,
-            layout: 'fullscreen',
-            in_ms: 0,
-            out_ms: Math.round(durSec * 1000),
-            timeline_start_ms: Math.round(startSec * 1000),
-            duration_ms: Math.round(durSec * 1000),
-          });
+      if (overlayDuration === 'full' && importedBrolls.length > 0 && totalTimelineSec >= 0.5) {
+        if (importedBrolls.length > 1 && !flags.json) {
+          console.error('Aviso: --overlay-duration full usa apenas o primeiro --broll; os demais são ignorados.');
+        }
+        overlays.push({
+          asset_id: importedBrolls[0].id,
+          layout: overlayLayout,
+          in_ms: 0,
+          out_ms: Math.round(totalTimelineSec * 1000),
+          timeline_start_ms: 0,
+          duration_ms: Math.round(totalTimelineSec * 1000),
+          loop: true,
         });
+      } else if (overlayDuration === 'inserts') {
+        const maxOverlays = Math.max(1, Math.floor(totalTimelineSec / 1.5));
+        const selected = importedBrolls.slice(0, maxOverlays);
+        if (selected.length > 0 && totalTimelineSec >= 2) {
+          const slotSec = totalTimelineSec / selected.length;
+          const targetDurSec = Math.min(3.0, slotSec * 0.9);
+          selected.forEach((brollAsset, index) => {
+            const startSec = index * slotSec + (slotSec - targetDurSec) / 2;
+            const durSec = Math.min(targetDurSec, brollAsset.metadata?.duration_s || targetDurSec, totalTimelineSec - startSec);
+            if (durSec < 0.5) return;
+            overlays.push({
+              asset_id: brollAsset.id,
+              layout: overlayLayout,
+              in_ms: 0,
+              out_ms: Math.round(durSec * 1000),
+              timeline_start_ms: Math.round(startSec * 1000),
+              duration_ms: Math.round(durSec * 1000),
+            });
+          });
+        }
       }
     }
 
@@ -1478,13 +1644,14 @@ Options:
         const inputArgs = [];
         const filterParts = [];
         const concatInputs = [];
+        const hasSplitBottomFull = (plan.overlays || []).some((ov) => ov.layout === 'split_bottom' && ov.loop);
 
         for (let i = 0; i < videoClips.length; i++) {
           const c = videoClips[i];
           const clipPath = resolveAsset(wsDir, c);
           inputArgs.push('-i', clipPath);
           const gain = plan.audio_tracks?.[i]?.gain_db || 0;
-          const { vFilter, aFilter } = buildClipFilters(i, c, clipPath, wsDir, width, height, gain);
+          const { vFilter, aFilter } = buildClipFilters(i, c, clipPath, wsDir, width, height, gain, { splitBottom: hasSplitBottomFull });
           filterParts.push(vFilter, aFilter);
           concatInputs.push(`[v${i}][a${i}]`);
         }
@@ -1507,6 +1674,7 @@ Options:
           for (let k = 0; k < plan.overlays.length; k++) {
             const ov = plan.overlays[k];
             const ovPath = resolveAsset(wsDir, ov);
+            if (ov.loop) inputArgs.push('-stream_loop', '-1');
             inputArgs.push('-i', ovPath);
             const inSec = ((ov.in_ms || 0) / 1000).toFixed(3);
             const outSec = ((ov.out_ms || (ov.in_ms || 0) + 3000) / 1000).toFixed(3);
@@ -1522,7 +1690,7 @@ Options:
               filterParts.push(`${currentV}[ov_${k}]overlay=(W-w)/2:(H-h)/2:enable='between(t\\,${startSec}\\,${endSec})'[v_ov_${k}]`);
             } else if (layout === 'split_bottom') {
               const splitH = Math.round(height / 2);
-              filterParts.push(`[${nextInputIdx}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${splitH}:force_original_aspect_ratio=decrease,pad=${width}:${splitH}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[ov_${k}]`);
+              filterParts.push(`[${nextInputIdx}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${splitH}:force_original_aspect_ratio=increase,crop=${width}:${splitH},setsar=1,fps=30[ov_${k}]`);
               filterParts.push(`${currentV}[ov_${k}]overlay=0:${splitH}:enable='between(t\\,${startSec}\\,${endSec})'[v_ov_${k}]`);
             } else {
               // Fullscreen default

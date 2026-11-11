@@ -354,3 +354,46 @@ test('Onboard: podcast_clip uses the real auto-clip pipeline', (t) => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
+
+test('Auto-Clip: split_bottom full loops a short b-roll and passes QA', (t) => {
+  if (!checkBinary('ffmpeg') || !checkBinary('ffprobe')) {
+    t.skip('ffmpeg/ffprobe not found');
+    return;
+  }
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'autoclip-split-'));
+  const testVid = path.join(tmpDir, 'source.mp4');
+  const brollVid = path.join(tmpDir, 'pack.mp4');
+
+  try {
+    createSyntheticAudioVideo(testVid, { tone1: 1.5, silence: 1.0, tone2: 1.5 });
+    execFileSync('ffmpeg', [
+      '-y',
+      '-f', 'lavfi', '-i', 'color=c=orange:s=540x960:r=30:d=1',
+      '-an', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', brollVid,
+    ], { stdio: 'ignore' });
+
+    const res = spawnSync(process.execPath, [
+      binPath, 'studio', 'auto-clip', testVid,
+      '--dest', tmpDir,
+      '--no-captions',
+      '--broll', brollVid,
+      '--layout', 'split_bottom',
+      '--overlay-duration', 'full',
+      '--json',
+    ], { encoding: 'utf8' });
+
+    assert.equal(res.status, 0, `CLI split auto-clip failed: ${res.stderr || res.stdout}`);
+    const report = JSON.parse(res.stdout);
+    assert.equal(report.status, 'ok');
+    assert.equal(report.qa.passed, true);
+    const plan = JSON.parse(fs.readFileSync(path.join(tmpDir, 'packages', 'autoclip-plan.json'), 'utf8'));
+    assert.equal(plan.overlays.length, 1);
+    assert.equal(plan.overlays[0].layout, 'split_bottom');
+    assert.equal(plan.overlays[0].loop, true);
+    assert.equal(plan.overlays[0].timeline_start_ms, 0);
+    assert.ok(plan.overlays[0].duration_ms >= 2000, 'Full overlay must cover the cut timeline');
+    assert.ok(fs.existsSync(path.join(tmpDir, report.artifact.path)));
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});

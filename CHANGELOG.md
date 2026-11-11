@@ -6,12 +6,28 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 
 ---
 
-## [Não lançado]
+## [1.6.0] - 2026-11-11
+
+### Adicionado
+- **Split permanente no `auto-clip` (CLI-13):** `--layout split_bottom` + `--overlay-duration full` mantém o orador no topo e o pack na base durante todo o clipe, com pack silenciado em loop e áudio original.
+- **Layout configurável no `auto-clip`:** `--layout fullscreen|pip|split_bottom` e `--overlay-duration inserts|full`; `split_top` continua pendente (CLI-06).
+- **Recorte de pessoa (CLI-14, experimental):** `studio cutout <video> --background <pack>` com `rembg`/`u2net_human_seg`, refino GrabCut, composição 1080×1920, áudio original e QA.
+- **Motor Python opcional:** `scripts/cutout.py` chamado via `--python`; dependências `rembg`, `onnxruntime`, `opencv-python-headless`, `numpy` e Pillow não entram no npm.
+- **Ajuda:** `--broll`, `--music`, `--layout`, `--overlay-duration`, `--background`, `--engine`, `--fps` e `--python` documentados no `--help` (CLI-10).
+
+### Corrigido
+- **Split sem tarjas:** o overlay `split_bottom` usa `scale` + `crop` para preencher a metade, em vez de `pad`.
+- **Loop de pack:** overlays com `loop: true` usam `-stream_loop -1` no render, permitindo pack curto cobrir clipe longo.
+- **Cor do cutout:** conversão explícita RGBA→BGRA evita a troca de vermelho/azul que deixava a pele azul.
+- **Halo do cutout:** máscara do `u2net` refinada com GrabCut em resolução cheia; a franja escura ao redor da cabeça é removida.
+
+### Testes
+- **91/91 testes** (4 novos: split permanente, contrato do cutout, engine inválido e help) e lint em 38 arquivos.
+- Teste de split cobre plano `split_bottom`, `loop: true`, duração total e QA.
 
 ### Documentação
-- **Composições especiais:** documentados o split permanente (CLI-13) e o recorte de pessoa com troca de fundo (CLI-14), com estado real, limites, comandos propostos e critérios de aceite em `skill-media-producer/references/composicoes-especiais.md`.
-- **Split `split_bottom`:** esclarecido que é overlay temporário; `auto-clip --broll` fixa `fullscreen` e não expõe `--layout`.
-- **Cutout:** registrado como não implementado; protótipo externo com `rembg`/OpenCV/FFmpeg, incluindo o cuidado de cor RGB/BGR e o custo de CPU.
+- `SPEC`, `ROADMAP`, `README`, `GLOSSARY`, `SKILL.md`, guia de agentes e `references/composicoes-especiais.md` sincronizados com o estado 1.6.0.
+- Cutout qualificado como experimental: ~18–20 min de CPU por 60 s em 15 fps, sem cache de máscaras ou GPU.
 
 ---
 

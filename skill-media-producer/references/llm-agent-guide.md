@@ -159,10 +159,10 @@ A LLM deve aplicar a **Fórmula Tripartite de Retenção Viral**:
 ### Passo 3: Escolha Dinâmica dos B-Rolls e Layouts
 Para evitar que o corte fique monótono ("cabeça falante"), a LLM insere B-rolls (`overlays`) e escolhe o layout ideal:
 - **`layout: "fullscreen"` (Padrão):** Insira a cada 5 a 8 segundos cenas de apoio temáticas (ex: dinheiro, mansões, carros, trabalho) cobrindo 100% da tela durante 2 a 3 segundos, mantendo a voz do orador contínua.
-- **`layout: "split_bottom"` (Dupla Retenção, overlay temporário):** Para canais de alta velocidade (TikTok/Shorts), divida a tela com o orador em cima e o vídeo de apoio/pack embaixo. No CLI atual isso é uma janela de B-roll de 2–4 s, não um split permanente; `auto-clip --broll` fixa `fullscreen`. Split contínuo é CLI-13 e exige `EditPlan` manual + `studio render`.
+- **`layout: "split_bottom"` (Dupla Retenção):** Para canais de alta velocidade (TikTok/Shorts), divida a tela com o orador em cima e o vídeo de apoio/pack embaixo. Use `--overlay-duration full` para manter o pack na base durante todo o clipe; sem essa flag, o layout é uma janela de B-roll de 2–4 s.
 - **`layout: "pip"` (Picture-in-Picture):** Quando o orador estiver apontando para um objeto ou reagindo a algo.
 - **`layout: "split_top"` (Pendente / Backlog CLI-06):** Previsto no schema (orador embaixo e B-roll em cima), porém não implementado no renderizador atual (cai em tela cheia). O agente deve utilizar `"split_bottom"`, `"fullscreen"` ou `"pip"`.
-- **Recorte de pessoa / cutout (Pendente / CLI-14):** Não existe comando nativo para remover o fundo e colocar um pack atrás do orador. Não descreva isso como capacidade entregue; o protótipo foi externo (`rembg` + OpenCV + FFmpeg). Consulte [`composicoes-especiais.md`](./composicoes-especiais.md).
+- **Recorte de pessoa / cutout (experimental / CLI-14):** `studio cutout --background <pack> --python <interpretador>` remove o fundo e compõe o pack atrás do orador. Exige Python com `rembg`/OpenCV e custa ~18–20 min de CPU por 60 s em 15 fps; não prometa tempo real. Consulte [`composicoes-especiais.md`](./composicoes-especiais.md).
 
 ### Passo 4: Trilha Sonora com Ducking
 Importe a música de fundo e configure a atenuação de volume:

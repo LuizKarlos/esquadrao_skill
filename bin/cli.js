@@ -31,6 +31,12 @@ const { values: flags, positionals } = parseArgs({
     'no-captions': { type: 'boolean' },
     broll: { type: 'string', multiple: true },
     music: { type: 'string' },
+    layout: { type: 'string' },
+    'overlay-duration': { type: 'string' },
+    background: { type: 'string' },
+    engine: { type: 'string' },
+    fps: { type: 'string' },
+    python: { type: 'string' },
     'min-dur': { type: 'string' },
     'max-dur': { type: 'string' },
   },
@@ -56,7 +62,7 @@ Usage:
 Commands:
   setup       Instala os skills nos ambientes de agentes (.agents, .claude, .codex, .cursor)
   role        Lista, inspeciona e executa papéis canônicos da esteira
-  studio      Estúdio local de vídeo: init, import, render, qa, auto-clip, caption-templates
+  studio      Estúdio local de vídeo: init, import, render, qa, auto-clip, cutout, caption-templates
   onboard     Guia interativo: da mídia bruta ao primeiro corte renderizado
   version     Exibe a versão do CLI
   help        Exibe mensagens de ajuda
@@ -79,6 +85,12 @@ Options:
   --no-captions             Gerar corte sem legendas (pula transcrição)
   --broll <file>            Arquivo de B-roll/cena de apoio (pode ser repetido)
   --music <file.mp3>        Arquivo de música de fundo para ducking
+  --layout <layout>         Layout do B-roll: fullscreen, pip ou split_bottom
+  --overlay-duration <mode> inserts (2-4s) ou full (todo o clipe)
+  --background <file>       Pack de fundo para studio cutout
+  --engine <rembg>          Motor de recorte de pessoa (padrão: rembg)
+  --fps <n>                 FPS do recorte (padrão: 15)
+  --python <path>           Interpretador Python para o motor de recorte
   --min-dur <sec>           Duração mínima para detecção de gancho (padrão: 30)
   --max-dur <sec>           Duração máxima para detecção de gancho (padrão: 60)`);
   process.exit(0);

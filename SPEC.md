@@ -113,7 +113,7 @@ Fornece o pipeline operacional de criação, importação de mídias, renderiza�
 O contrato `EditPlan v1` estende o suporte a cenas de apoio (`overlays`) aplicadas sobre a timeline contígua:
 - **`layout: "fullscreen"` (Padrão, entregue):** O B-roll preenche 100% da tela durante 2 a 4 segundos enquanto o áudio da voz principal continua ativo sem interrupção.
 - **`layout: "pip"` (Picture-in-Picture, entregue):** O B-roll é renderizado em janela flutuante centralizada sobre o orador.
-- **`layout: "split_bottom"` (Parcial):** O renderizador sabe dividir a tela com orador no topo e B-roll na metade inferior, mas o layout é um **overlay com janela de tempo**; o `auto-clip --broll` grava `fullscreen` fixo e não expõe `--layout`. Split permanente de duração total só é possível via `EditPlan` manual + `studio render` (lacuna CLI-13 no §8).
+- **`layout: "split_bottom"` (Entregue em 1.6.0):** O renderizador divide a tela com orador no topo e B-roll na metade inferior. O `auto-clip` aceita `--layout split_bottom` e `--overlay-duration full`; o pack é repetido em loop e cobre toda a linha do tempo, com áudio original preservado.
 - **`layout: "split_top"` (Pendente):** Aceito na validação do schema, mas o pipeline atual renderiza como fallback para `fullscreen` (lacuna CLI-06 no §8).
 
 #### 2.2.9. Trilha Sonora de Fundo e Atenuação de Áudio
@@ -136,8 +136,9 @@ Orienta agentes a selecionar trechos de 30s a 60s (ajustáveis conforme a ideia)
   - *Heurística determinística:* `find-hooks` é uma ferramenta de triagem textual com regras determinísticas de pontuação, não uma garantia de viralidade ou alcance em plataformas externas.
 
 #### 2.2.12. Auto-Clip com B-Rolls e Trilha Sonora
-- O comando `esquadrao studio auto-clip` aceita as flags `--broll <arquivo>` (múltiplas cenas) e `--music <arquivo>`.
+- O comando `esquadrao studio auto-clip` aceita as flags `--broll <arquivo>` (múltiplas cenas), `--music <arquivo>`, `--layout <fullscreen|pip|split_bottom>` e `--overlay-duration <inserts|full>`.
 - Quando informados, o estúdio distribui as cenas de apoio sobre a fala (mantendo a voz ininterrupta) e aplica a música com atenuação fixa de -22dB via `amix`. Ducking dinâmico via sidechain não está implementado (lacuna CLI-05 no §8).
+- Com `--overlay-duration full`, o primeiro `--broll` cobre toda a linha do tempo e é repetido em loop; com `split_bottom`, o resultado é o split permanente (orador no topo, pack na base).
 
 #### 2.2.13. Renderização em Lote
 - Não existe comando `esquadrao studio batch` no CLI atual.
@@ -149,11 +150,10 @@ Orienta agentes a selecionar trechos de 30s a 60s (ajustáveis conforme a ideia)
 - **Estado:** implementado no CLI 1.5.0. `--caption-template <id>` em `auto-clip`/`render` e `captions[].template` no EditPlan aplicam os nove presets; IDs inválidos falham com código 1 e lista de opções. `--caption-style impact|word|full` permanece como legado.
 
 #### 2.2.15. Composições Especiais: Split Permanente e Recorte de Pessoa
-- O CLI 1.5.0 **não** possui comando de split permanente nem de recorte de pessoa com troca de fundo.
-- **Split permanente:** `split_bottom` é um overlay temporário de B-roll. Para manter o pack na base durante todo o clipe, é necessário montar um `EditPlan` manual com overlay de duração total e chamar `studio render`; o `auto-clip --broll` não oferece `--layout` e fixa `fullscreen` (CLI-13).
-- **Recorte de pessoa:** não há segmentação, chroma key, máscara alfa ou composição de pack atrás do orador. O protótipo validado usou `rembg`/`u2net_human_seg` + OpenCV + FFmpeg fora do CLI; custo de ~8 min de CPU por 60 s em 15 fps e halo em cabelo/fone (CLI-14).
-- **Regra de comunicação:** enquanto CLI-13/CLI-14 não forem entregues, README, SKILL.md, landing page e respostas de agentes não devem afirmar que o CLI faz esses formatos nativamente.
-- **Especificação completa, comandos propostos e critérios de aceite:** [`skill-media-producer/references/composicoes-especiais.md`](./skill-media-producer/references/composicoes-especiais.md).
+- **Split permanente (CLI-13, entregue em 1.6.0):** `esquadrao studio auto-clip <video> --no-captions --broll <pack> --layout split_bottom --overlay-duration full` gera 1080×1920 com o orador no topo e o pack na base durante todo o clipe. O pack é silenciado, repetido em loop e o áudio original é preservado. `split_top` continua pendente (CLI-06).
+- **Recorte de pessoa (CLI-14, entregue em 1.6.0 como opcional):** `esquadrao studio cutout <video> --background <pack> --python <interpretador>` recorta a pessoa com `rembg`/`u2net_human_seg`, refina a máscara com GrabCut e compõe sobre o pack. Requer `rembg`, `onnxruntime`, `opencv-python-headless`, `numpy` e Pillow no Python escolhido; sem eles, o comando falha com instrução acionável. Saída 9:16, 15 fps por padrão, áudio original; custo de ~18–20 min de CPU por 60 s.
+- **Limites:** o cutout é experimental, não tem cache de máscaras nem aceleração GPU; halo pode aparecer em cabelo/fone em frames difíceis. Split `split_top` e ducking dinâmico continuam pendentes.
+- **Especificação completa, comandos e critérios:** [`skill-media-producer/references/composicoes-especiais.md`](./skill-media-producer/references/composicoes-especiais.md).
 
 ### 2.3. Configuração Multi-Harness (`esquadrao setup`)
 Distribui as 18 skills empacotadas para os diretórios locais dos diferentes agentes de IA presentes no workspace do usuário:
@@ -209,18 +209,18 @@ Todos os scripts são construídos com biblioteca padrão do Node.js e executam 
 
 ## 5. Garantia da Qualidade e Suíte de Testes
 
-A integridade do CLI é atestada deterministicamente pelo test runner nativo do Node.js (87 testes aprovados) e pelo linter (37 arquivos verificados):
+A integridade do CLI é atestada deterministicamente pelo test runner nativo do Node.js (91 testes aprovados) e pelo linter (38 arquivos verificados):
 ```bash
 npm test
 npm run lint
 ```
 A suíte cobre:
-- CLI core: argumentos, ajuda, versão e códigos de erro de saída (87/87 testes verdes).
+- CLI core: argumentos, ajuda, versão e códigos de erro de saída (91/91 testes verdes).
 - Onboard em todos os 3 modos (`dark`, `edit_only`, `podcast_clip`).
 - Studio engine: integridade do `studio.json`, cancelamento via SIGINT, proteção de caracteres de legendas e validação de QA.
 - Oráculos de papéis e autoridades (12 papéis canônicos).
 - Testes de estresse com 50 nós lineares e paralelos nos scripts autônomos.
-- Verificação de estilo em 37 arquivos via lint sem pendências.
+- Verificação de estilo em 38 arquivos via lint sem pendências.
 
 ---
 
@@ -240,9 +240,9 @@ A suíte cobre:
 ## 8. Registro de Auditoria de Capacidades (2026-11-11)
 
 ### 8.1. Método de Verificação e Evidências Operacionais
-A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.5.0) foi executada em 2026-11-11 por inspeção direta de código, verificação do manifesto e execução determinística de testes:
-1. **Suíte de Testes Unitários e Integração:** `npm test` executou 87 testes distribuídos em 12 arquivos de teste com 100% de aprovação (`87/87 pass, 0 fail`).
-2. **Auditoria Estática de Código:** `npm run lint` validou a conformidade sintática e estilística em 37 arquivos de código-fonte sem avisos ou falhas.
+A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.6.0) foi executada em 2026-11-11 por inspeção direta de código, verificação do manifesto e execução determinística de testes:
+1. **Suíte de Testes Unitários e Integração:** `npm test` executou 91 testes distribuídos em 13 arquivos de teste com 100% de aprovação (`91/91 pass, 0 fail`).
+2. **Auditoria Estática de Código:** `npm run lint` validou a conformidade sintática e estilística em 38 arquivos de código-fonte sem avisos ou falhas.
 3. **Inspeção de Estrutura do Estúdio:** Execução real de `esquadrao studio init` em diretório temporário isolado confirmou a criação exclusiva dos diretórios `assets/`, `packages/`, `artifacts/` e do arquivo `studio.json`. Os diretórios `editplans/`, `renders/` e `qa/` não são gerados pelo comando.
 4. **Inspeção de Dependências e Runtime:** O manifesto `package.json` declara `dependencies: {}` e `optionalDependencies: { "@xenova/transformers": "^2.17.2" }`. O motor local é opcional: se a instalação do pacote opcional falhar, `--local` retorna erro acionável e o restante do CLI permanece funcional.
 5. **Inventário de Papéis e Habilidades:** Validação via `esquadrao role list --json` confirmou os 12 papéis técnicos canônicos. O comando `esquadrao setup` distribui 18 skills empacotadas para os diretórios dos agentes suportados.
@@ -264,10 +264,10 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.5.0) foi execu
 | `auto-clip` local / sem chaves | Entregue | Operacional | `--local` exige a dependência opcional; sem qualquer fonte, falha com código 1; `--no-captions` gera corte explícito. | CLI-02, CLI-03 |
 | `studio transcribe` local | Entregue (opcional) | Operacional | Motor local via `optionalDependencies`; ausência gera diagnóstico acionável. | CLI-04 |
 | B-roll `fullscreen` e `pip` | Entregue | Operacional | Aplica overlays de tela cheia ou janela flutuante sobre a voz. | §2.2.8 |
-| B-roll `split_bottom` | Parcial | Overlay temporário | O renderizador divide a tela, mas o layout é uma janela de B-roll; `auto-clip --broll` fixa `fullscreen` e não há split permanente. | §2.2.8 / CLI-13 |
+| B-roll `split_bottom` | Entregue | Operacional | `auto-clip --layout split_bottom --overlay-duration full` mantém orador no topo e pack na base, em loop. | §2.2.8 / CLI-13 |
 | B-roll `split_top` | Parcial | Lacuna | Aceito na validação do plano, mas renderizado em tela cheia (fallback). | CLI-06 |
-| Split permanente no `auto-clip` | Pendente | Lacuna | `split_bottom` só existe como overlay temporário; `auto-clip --broll` fixa `fullscreen`; sem flag de layout. | CLI-13 |
-| Recorte de pessoa (cutout) | Pendente | Não implementado | Sem segmentação, chroma key ou troca de fundo; protótipo externo com `rembg`. | CLI-14 |
+| Split permanente no `auto-clip` | Entregue | Operacional | `--layout split_bottom --overlay-duration full` mantém o pack na base em loop, com áudio original. | CLI-13 |
+| Recorte de pessoa (cutout) | Entregue (opcional) | Experimental | `studio cutout` recorta com `rembg`/GrabCut; requer Python e dependências; ~18–20 min/60 s em CPU. | §2.2.15 / CLI-14 |
 | Música de fundo com atenuação | Entregue | Operacional | Aplica atenuação estática de -22dB e mixagem via filtro `amix`. | §2.2.9 |
 | Audio ducking dinâmico | Pendente | Não implementado | Sidechain ducking via compressor não existe no código de render. | CLI-05 |
 | `studio find-hooks` | Entregue | Heurística | Classifica segmentos de texto por heurística determinística de copy. | §2.2.11 |
@@ -316,8 +316,8 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.5.0) foi execu
   *Contexto:* Os nove presets de `skill-media-producer/references/caption-templates.md` foram validados em grid 3×3, mas o CLI só oferece `impact`, `word` e `full`; não há flag nem campo de EditPlan para escolher um template.
   *Meta:* Implementar `--caption-template <id>` e `captions[].template`, com validação de ID, fallback de fonte, renderização sem fundo sólido e teste por template.
 - **CLI-13: Split permanente no `auto-clip`**
-  *Status:* **PENDENTE** — `split_bottom` existe no renderizador, mas só como overlay temporário; `auto-clip --broll` fixa `fullscreen` e não há `--layout`.
-  *Contexto:* O formato "podcast em cima + pack embaixo" é obtido hoje apenas com `EditPlan` manual e `studio render`.
+  *Status:* **RESOLVIDO em 1.6.0** — `--layout` + `--overlay-duration full`; pack silenciado e repetido em loop; teste em `tests/autoclip.test.js`.
+  *Contexto:* O formato "podcast em cima + pack embaixo" exigia `EditPlan` manual e `studio render`.
   *Meta:* Expor `--layout split_bottom` e duração de overlay total no `auto-clip`, com pack silenciado, loop/corte e teste de render.
 
 #### Prioridade P2 (Polimento de Interface e Higiene de Repositório)
@@ -331,9 +331,9 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.5.0) foi execu
   *Contexto:* Documentações anteriores citavam diretórios inexistentes (`editplans/`, `renders/`, `qa/`) e contagens desatualizadas de testes.
   *Meta:* Manter testes automatizados de documentação prevenindo descompassos entre o código e as especificações.
 - **CLI-14: Recorte de pessoa com troca de fundo (cutout)**
-  *Status:* **PENDENTE / EXPERIMENTAL** — nenhum comando ou dependência no CLI; protótipo externo validado com `rembg` + OpenCV + FFmpeg.
+  *Status:* **RESOLVIDO em 1.6.0 (experimental)** — `studio cutout --background`, motor `rembg` via Python, correção RGB→BGR, refino GrabCut e erro acionável; teste de contrato em `tests/cutout.test.js`.
   *Contexto:* O formato "pessoa recortada sobre pack" exige segmentação por frame, máscara alfa, composição e correção de cor RGB/BGR; custo de CPU alto e halo em cabelo/fone.
-  *Meta:* Avaliar `studio cutout` com `--background`, motor `rembg` opcional, cache de máscaras, erro acionável e teste de cor; não empacotar modelo sem decisão de licença/tamanho.
+  *Meta:* Manter dependências Python opcionais; falta cache de máscaras e GPU para volumes maiores.
 
 ### 8.4. Critérios de Aceite para Resolução do Backlog
 1. **P0 Resolvido:** `onboard --mode podcast_clip` processa áudio real ou encerra com instrução acionável; falhas de transcrição local emitem saída de erro diagnóstica com código diferente de zero;
