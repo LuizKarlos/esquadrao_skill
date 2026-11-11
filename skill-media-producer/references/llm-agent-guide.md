@@ -48,6 +48,18 @@ esquadrao setup
 esquadrao studio init --dest ./workspace
 ```
 
+A inicialização cria a seguinte árvore real no workspace:
+```text
+workspace/
+├── assets/       # Cópias locais das mídias importadas
+├── packages/     # EditPlans (editplan.json), transcrições e ganchos
+├── artifacts/    # Vídeos finais em MP4 gerados pelo renderizador
+└── studio.json   # Manifesto do estúdio e inventário de assets
+```
+*(Nota: O estúdio cria estritamente `assets/`, `packages/`, `artifacts/` e `studio.json`. Pastas como `editplans/`, `renders/` e `qa/` não são geradas.)*
+
+> **Onboarding:** No modo `podcast_clip`, o `esquadrao onboard` executa o pipeline real de `auto-clip` e aceita `--captions`, `--openai`, `--local` ou `--no-captions`. Sem motor de legenda, ele aplica `--no-captions`, gera o corte real sem legendas e avisa; nunca prometa legendas sem informar o pré-requisito.
+
 ### Fase 4: Importação da Mídia e Leitura dos Metadados
 Importe o arquivo do usuário e anote o ID do asset:
 ```bash
@@ -88,12 +100,21 @@ esquadrao studio qa ./workspace/artifacts/video.mp4 --plan ./workspace/packages/
 Entregue o caminho do vídeo final gerado e confirme que a checagem técnica passou com sucesso.
 
 ### Fase Alternativa Rápida: Pipeline Integrado de Auto-Corte (`auto-clip`)
-Quando o usuário deseja fatiar pausas mortas e aplicar legendas automáticas a partir de um vídeo longo sem montar o `editplan.json` manualmente:
+Quando o usuário deseja fatiar pausas mortas a partir de um vídeo longo sem montar o `editplan.json` manualmente:
 ```bash
-# Executa corte de silêncios (0.8s), transcrição Whisper, legendas dinâmicas e renderização com QA:
+# Executa corte de silêncios (>0.8s), montagem de cortes contíguos e renderização com QA:
 esquadrao studio auto-clip /caminho/do/video.mp4 --dest ./workspace --json
 ```
 O comando emite o resumo com total de silêncio expurgado, quantidade de cortes contíguos e o artefato renderizado aprovado.
+
+> **REGRA MANDATÓRIA PARA A LLM — NÃO PROMETER LEGENDA AUTOMÁTICA SEM PRÉ-REQUISITO:**
+> O assistente de IA NÃO deve prometer ao usuário legendas automáticas sem explicitar os três caminhos suportados:
+> 1. `--captions <arquivo.srt>`: Caminho canônico, offline e determinístico (recomendado).
+> 2. `--openai`: Requer a variável de ambiente `OPENAI_API_KEY` para transcrição via API remota OpenAI Whisper.
+> 3. `--local`: Utiliza `@xenova/transformers` + `Xenova/whisper-tiny` (declarada em `optionalDependencies`). Se o pacote opcional não estiver instalado, o comando falha com instrução acionável; use `--no-captions` para cortar sem legendas.
+> O agente deve sempre solicitar um arquivo SRT, instruir a configuração de `OPENAI_API_KEY` ou instalar o modelo local antes de prometer legendas no corte.
+>
+> **Templates de legenda:** existem nove presets documentados em [`caption-templates.md`](caption-templates.md), disponíveis via `--caption-template <id>` ou `captions[].template`. `--caption-style impact|word|full` permanece como legado.
 
 ---
 
@@ -121,6 +142,8 @@ esquadrao studio transcribe /caminho/do/video_longo.mp4 --dest ./workspace --jso
 ```
 O arquivo `./workspace/packages/transcript.json` conterá todos os blocos com `start_s`, `end_s` e `text`.
 
+> **Aviso de Execução:** O comando `transcribe` utiliza o mesmo mecanismo do auto-clip. Requer chave `OPENAI_API_KEY` configurada ou instalação prévia do módulo `@xenova/transformers`.
+
 ### Passo 2: Análise de Copy e Seleção dos Melhores Trechos
 A LLM pode rodar o detector automatizado de ganchos ou analisar manualmente o `transcript.json`:
 ```bash
@@ -136,12 +159,14 @@ A LLM deve aplicar a **Fórmula Tripartite de Retenção Viral**:
 ### Passo 3: Escolha Dinâmica dos B-Rolls e Layouts
 Para evitar que o corte fique monótono ("cabeça falante"), a LLM insere B-rolls (`overlays`) e escolhe o layout ideal:
 - **`layout: "fullscreen"` (Padrão):** Insira a cada 5 a 8 segundos cenas de apoio temáticas (ex: dinheiro, mansões, carros, trabalho) cobrindo 100% da tela durante 2 a 3 segundos, mantendo a voz do orador contínua.
-- **`layout: "split_bottom"` (Dupla Retenção):** Para canais de alta velocidade (TikTok/Shorts), divida a tela com o orador em cima e o vídeo de apoio/pack embaixo.
+- **`layout: "split_bottom"` (Dupla Retenção):** Para canais de alta velocidade (TikTok/Shorts), divida a tela com o orador em cima e o vídeo de apoio/pack embaixo. Use `--overlay-duration full` para manter o pack na base durante todo o clipe; sem essa flag, o layout é uma janela de B-roll de 2–4 s.
 - **`layout: "pip"` (Picture-in-Picture):** Quando o orador estiver apontando para um objeto ou reagindo a algo.
+- **`layout: "split_top"` (Pendente / Backlog CLI-06):** Previsto no schema (orador embaixo e B-roll em cima), porém não implementado no renderizador atual (cai em tela cheia). O agente deve utilizar `"split_bottom"`, `"fullscreen"` ou `"pip"`.
+- **Recorte de pessoa / cutout (experimental / CLI-14):** `studio cutout --background <pack> --python <interpretador>` remove o fundo e compõe o pack atrás do orador. Exige Python com `rembg`/OpenCV e custa ~18–20 min de CPU por 60 s em 15 fps; não prometa tempo real. Consulte [`composicoes-especiais.md`](./composicoes-especiais.md).
 
 ### Passo 4: Trilha Sonora com Ducking
-Importe a música de fundo e configure atenuação automática de volume (`ducking`):
-- Volume de fundo da música: `-22dB` durante a fala (suave, sem abafar a voz).
+Importe a música de fundo e configure a atenuação de volume:
+- **Atenuação Estática de Volume:** A propriedade `ducking: true` em `music_tracks` aplica uma redução fixa de `-22dB` via mixagem `amix`. Não se trata de ducking dinâmico por sidechain com compressão em tempo real sobre a voz (previsto no backlog CLI-05). O volume fixo reduz a trilha para não encobrir a fala.
 
 ### Passo 5: Geração do EditPlan Completo e Renderização
 Exemplo canônico de EditPlan com cortes, B-rolls, música e legendas estilo impacto:

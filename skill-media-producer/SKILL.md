@@ -1,6 +1,6 @@
 ---
 name: skill-media-producer
-version: "1.2.0"
+version: "1.6.0"
 description: "Set up Esquadrão Studio and configure video aspect ratio, captions, cuts, audio gain, EditPlan validation, rendering, and QA. Use for initial setup and video configuration requests."
 allowed-tools: ["terminal"]
 ---
@@ -52,7 +52,7 @@ Quando o usuário solicitar ajuda para produzir vídeos ou configurar a esteira,
 ### Passo 1: Sondagem Inicial de Preferências
 A LLM pergunta de forma direta e objetiva:
 1. *"Qual formato você prefere para o seu vídeo? (1) Vertical 9:16 para Reels/Shorts/TikTok ou (2) Widescreen 16:9 para YouTube?"*
-2. *"Qual estilo você quer aplicar? (1) Cortar uma gravação com legendas automáticas, (2) Decupar e unir trechos de vídeos/packs, ou (3) Vídeo tipográfico sobre fundo escuro?"*
+2. *"Qual estilo você quer aplicar? (1) Cortar uma gravação com legendas (via SRT, OpenAI ou modelo local), (2) Decupar e unir trechos de vídeos/packs, ou (3) Vídeo tipográfico sobre fundo escuro?"*
 
 ### Passo 2: Instalação no Agente de IA e Resolução de Dependências
 O usuário instala o pacote executando apenas o comando npm através do seu agente de IA preferido (Claude Code, OpenAI Codex, Gemini, Cursor):
@@ -60,6 +60,8 @@ O usuário instala o pacote executando apenas o comando npm através do seu agen
 npm install -g @esquadrao/cli
 ```
 > **Resolução Automática:** Caso o Node.js (>=18) ou o FFmpeg/ffprobe não estejam presentes na máquina, o próprio comando `esquadrao setup` ou o agente de IA realiza a instalação necessária de forma transparente. O usuário não precisa executar comandos de sistema operacional além do npm.
+
+> **Onboarding Real (`onboard`):** No modo `podcast_clip`, o `onboard` executa o pipeline real de `auto-clip` (detecção de silêncio, cortes, legendas e QA). Use `--captions`, `--openai`, `--local` ou `--no-captions`; sem motor de legenda, ele aplica `--no-captions`, gera o corte real sem legendas e avisa.
 
 ### Passo 3: Definição do Workspace e Configuração das Skills
 O usuário escolhe uma pasta no computador para ser seu repositório/workspace principal de uso diário (ex.: `./meu-estudio`). É nessa pasta que as skills inteligentes do Esquadrão operam:
@@ -74,6 +76,16 @@ esquadrao setup
 # Inicializa a estrutura atômica de pastas do workspace
 esquadrao studio init --dest ./workspace
 ```
+
+Estrutura criada por `studio init`:
+```text
+workspace/
+├── assets/       # Arquivos de mídia importados e cópias locais
+├── packages/     # Planos de edição (editplan.json) e transcrições
+├── artifacts/    # Vídeos finais renderizados em MP4
+└── studio.json   # Manifesto do estúdio e inventário de assets
+```
+*(Nota: o comando cria apenas `assets/`, `packages/`, `artifacts/` e `studio.json`. Pastas como `editplans/`, `renders/` e `qa/` não existem.)*
 
 ### Passo 5: Importação das Fontes de Mídia (se aplicável)
 ```bash
@@ -93,6 +105,19 @@ esquadrao studio render ./workspace/packages/editplan.json --dest ./workspace --
 # Valida conformidade técnica (áudio, resolução e duração)
 esquadrao studio qa ./workspace/artifacts/video.mp4 --plan ./workspace/packages/editplan.json
 ```
+
+### Passo Alternativo: Pipeline Integrado de Auto-Corte (`auto-clip`)
+Para vídeos falados com remoção de pausas e silêncios (>0.8s):
+```bash
+esquadrao studio auto-clip ./caminho/meu-video.mp4 --dest ./workspace --json
+```
+
+**Caminhos de legendas no `auto-clip`:**
+1. `--captions <arquivo.srt>`: Determinístico, offline e testado (caminho recomendado).
+2. `--openai`: Requer a variável de ambiente `OPENAI_API_KEY` para transcrição remota via API Whisper.
+3. `--local`: Utiliza `@xenova/transformers` + `Xenova/whisper-tiny` (declarada em `optionalDependencies`). Se o pacote opcional não estiver instalado, o comando falha com instrução acionável; use `--no-captions` para cortar sem legendas.
+
+> **Templates de legenda:** o catálogo canônico tem nove presets em [`references/caption-templates.md`](references/caption-templates.md), disponíveis no CLI 1.5.0 via `--caption-template <id>` ou `captions[].template`. `--caption-style impact|word|full` permanece como legado.
 
 ---
 
@@ -282,8 +307,16 @@ esquadrao studio qa ./workspace/artifacts/video.mp4 --plan ./workspace/packages/
    - Normalização NFC sem caracteres invisíveis.
    - Zero tags HTML (`<b>`, `<font>`, `<br>`).
    - Caracteres especiais são tratados pelo motor: `%` vira `\%`, `'` vira `\'`, `\` vira `\\`.
-5. **Ganho de Áudio:** Intervalo restrito entre `-60` dB e `+12` dB. `0` dB preserva o volume original.
-6. **Verificação Técnica Independente:** Sempre execute `studio qa` com `--plan` para validar integridade antes de concluir a tarefa.
+5. **Ganho de Áudio e Ducking:**
+   - Intervalo restrito entre `-60` dB e `+12` dB. `0` dB preserva o volume original.
+   - `music_tracks.ducking`: Aplica atenuação estática de volume (`-22dB` via mixagem `amix`), e não ducking dinâmico sidechain (backlog CLI-05).
+6. **Overlays e Layouts:**
+   - Layouts funcionais no renderizador: `fullscreen`, `pip` e `split_bottom`.
+   - **Split permanente:** `auto-clip --broll <pack> --layout split_bottom --overlay-duration full` mantém o orador no topo e o pack na base durante todo o clipe; o pack é repetido em loop e o áudio original é preservado.
+   - O layout `split_top` é aceito no schema de validação, mas não está implementado no renderizador atual (cai em tela cheia; pendente no backlog CLI-06).
+   - **Recorte de pessoa com troca de fundo:** disponível em `studio cutout <video> --background <pack> --python <interpretador>`, como experimental. Requer Python com `rembg`, `onnxruntime`, `opencv-python-headless`, `numpy` e Pillow; ~18–20 min de CPU por 60 s em 15 fps. Não prometa tempo real nem qualidade de estúdio. Detalhes em [`references/composicoes-especiais.md`](./references/composicoes-especiais.md).
+7. **Verificação Técnica Independente:** Sempre execute `studio qa` com `--plan` para validar integridade antes de concluir a tarefa.
+8. **Onboarding Real:** O comando `esquadrao onboard --mode podcast_clip` usa o pipeline real de `auto-clip`; os modos `dark` e `edit_only` continuam gerando planos guiados.
 
 ---
 
@@ -291,3 +324,5 @@ esquadrao studio qa ./workspace/artifacts/video.mp4 --plan ./workspace/packages/
 
 - [`references/llm-agent-guide.md`](references/llm-agent-guide.md): Guia de conversação completo com fluxos de tratamento de erro.
 - [`references/configuracao-inicial.md`](references/configuracao-inicial.md): Guia passo a passo para execução via PowerShell / Windows.
+- [`references/caption-templates.md`](references/caption-templates.md): catálogo canônico dos nove templates de legenda, com fonte, cores, contorno, sombra e contrato CLI.
+- [`references/corte-podcast-3-niveis.md`](references/corte-podcast-3-niveis.md): procedimento validado para demonstrar corte de pausas longas e respiros curtos em três níveis, com métricas e critérios de aceite.

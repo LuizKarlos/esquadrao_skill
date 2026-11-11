@@ -5,10 +5,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { execFileSync, spawnSync, spawn } from 'node:child_process';
 import process from 'node:process';
 import readline from 'node:readline';
 import { validateEditPlan } from '../roles/mediaProducer.js';
+import { buildTemplateCaptionFilters, getCaptionTemplate, listCaptionTemplates } from '../captionTemplates.js';
 
 export function checkBinary(name) {
   try {
@@ -141,13 +143,22 @@ export function buildDarkTextFilters(clips, tempFiles) {
   }).join(',');
 }
 
-export function buildCaptionFilters(captions, baseV, tempFiles, captionStyle = 'default') {
+export function buildCaptionFilters(captions, baseV, tempFiles, captionStyle = 'default', options = {}) {
   if (!captions || captions.length === 0) {
     return `${baseV}null[outv]`;
   }
   const font = findSystemFont();
   const fontOpt = font ? `:fontfile='${font.replace(/\\/g, '/').replace(/:/g, '\\:')}'` : '';
   const textFilters = captions.map((c) => {
+    const templateId = c.template || options.template;
+    if (templateId) {
+      const template = getCaptionTemplate(templateId);
+      return buildTemplateCaptionFilters(c, template, {
+        width: options.width,
+        height: options.height,
+        tempFiles,
+      });
+    }
     const start = ((c.timeline_start_ms || 0) / 1000).toFixed(3);
     const end = (((c.timeline_start_ms || 0) + (c.duration_ms || 1000)) / 1000).toFixed(3);
     const style = c.style || captionStyle;
@@ -157,12 +168,15 @@ export function buildCaptionFilters(captions, baseV, tempFiles, captionStyle = '
   return `${baseV}${textFilters}[outv]`;
 }
 
-export function buildClipFilters(inputIndex, clip, clipPath, wsDir, width, height, gainDb = 0) {
+export function buildClipFilters(inputIndex, clip, clipPath, wsDir, width, height, gainDb = 0, { splitBottom = false } = {}) {
   const inSec = ((clip.in_ms || 0) / 1000).toFixed(3);
   const outSec = ((clip.out_ms || (clip.in_ms || 0) + 1000) / 1000).toFixed(3);
   const durSec = Math.max(0.001, ((clip.out_ms || (clip.in_ms || 0) + 1000) - (clip.in_ms || 0)) / 1000).toFixed(3);
 
-  const vFilter = `[${inputIndex}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v${inputIndex}]`;
+  const halfH = Math.round(height / 2);
+  const vFilter = splitBottom
+    ? `[${inputIndex}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${halfH}:force_original_aspect_ratio=increase,crop=${width}:${halfH},pad=${width}:${height}:0:0:black,setsar=1,fps=30[v${inputIndex}]`
+    : `[${inputIndex}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v${inputIndex}]`;
   const aFilter = hasAudio(wsDir, clipPath, clip)
     ? `[${inputIndex}:a]atrim=start=${inSec}:end=${outSec},asetpts=PTS-STARTPTS,volume=${gainDb}dB[a${inputIndex}]`
     : `anullsrc=channel_layout=stereo:sample_rate=44100,atrim=duration=${durSec}[a${inputIndex}]`;
@@ -612,7 +626,31 @@ export function remapCaptionsToSpeechTimeline(rawCaptions = [], speechIntervals 
   return remapped;
 }
 
-export async function transcribeAudio(audioPath, { apiKey, useOpenai, srtPath } = {}) {
+export function resolveCaptionSource(flags = {}) {
+  if (flags['no-captions']) return { mode: 'none' };
+  if (flags.captions) return { mode: 'srt', srtPath: path.resolve(flags.captions) };
+  if (flags.local) return { mode: 'local' };
+  if (flags.openai) return { mode: 'openai', apiKey: process.env.OPENAI_API_KEY };
+  if (process.env.OPENAI_API_KEY) return { mode: 'openai', apiKey: process.env.OPENAI_API_KEY };
+  return { mode: 'missing' };
+}
+
+export async function hasLocalTranscriber() {
+  try {
+    await import('@xenova/transformers');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function assertLocalTranscriber() {
+  if (!(await hasLocalTranscriber())) {
+    throw new Error("Transcrição local indisponível: instale '@xenova/transformers' (npm install -g @xenova/transformers) ou use --captions/--openai.");
+  }
+}
+
+export async function transcribeAudio(audioPath, { apiKey, useOpenai, srtPath, requireLocal = false } = {}) {
   if (srtPath && fs.existsSync(srtPath)) {
     const content = fs.readFileSync(srtPath, 'utf8');
     return parseSrt(content);
@@ -665,10 +703,15 @@ export async function transcribeAudio(audioPath, { apiKey, useOpenai, srtPath } 
         end: c.timestamp[1] || c.timestamp[0] + 0.5,
       }));
     }
-  } catch {
-    // Optional local transformers not installed or failed
+  } catch (err) {
+    if (requireLocal) {
+      throw new Error("Transcrição local indisponível: instale '@xenova/transformers' ou use --captions/--openai.");
+    }
   }
 
+  if (requireLocal) {
+    throw new Error("Transcrição local indisponível: instale '@xenova/transformers' ou use --captions/--openai.");
+  }
   return [];
 }
 
@@ -763,7 +806,7 @@ export function buildAutoClipPlan({ asset, speechIntervals, captions = [], forma
     timelineCursorMs += clipDurMs;
   }
 
-  return {
+  const plan = {
     schema_version: 1,
     mode: 'podcast_clip',
     clips,
@@ -778,12 +821,8 @@ export function buildAutoClipPlan({ asset, speechIntervals, captions = [], forma
       audio_codec: 'aac',
     },
   };
-  if (overlays && overlays.length > 0) {
-    plan.overlays = overlays;
-  }
-  if (musicTracks && musicTracks.length > 0) {
-    plan.music_tracks = musicTracks;
-  }
+  if (overlays.length > 0) plan.overlays = overlays;
+  if (musicTracks.length > 0) plan.music_tracks = musicTracks;
   return plan;
 }
 
@@ -805,6 +844,8 @@ Subcommands:
   find-hooks <file>             Find top viral hook segments (30-60s) from transcript or video
   render <editplan.json>        Validate EditPlan contract and execute cuts/captions via ffmpeg
   qa <artifact.mp4>             Run automated ffprobe QA verification on rendered video artifact
+  cutout <video>                Recorta a pessoa e compõe sobre um pack (requer Python/rembg)
+  caption-templates [--json]     Lista os templates de legenda disponíveis
 
 Options:
   --dest <path>                 Custom studio workspace destination directory
@@ -815,9 +856,33 @@ Options:
   --openai                      Forçar uso da API OpenAI Whisper
   --local                       Forçar transcrição Whisper local
   --captions <file.srt>         Arquivo de legendas externo
+  --caption-template <id>       Template de legenda (ver caption-templates)
+  --no-captions                 Gerar corte sem legendas (pula transcrição)
+  --broll <file>                B-roll/cena de apoio (pode ser repetido)
+  --music <file.mp3>            Música de fundo
+  --layout <layout>             Layout do B-roll: fullscreen, pip ou split_bottom
+  --overlay-duration <mode>     inserts (padrão, 2-4s) ou full (todo o clipe)
+  --background <file>           Pack de fundo do cutout
+  --engine <rembg>              Motor de recorte (padrão: rembg)
+  --fps <n>                     FPS do cutout (padrão: 15)
+  --python <path>               Interpretador Python do motor de recorte
   --json                        Output results in JSON format
   -h, --help                    Show help message`);
     return;
+  }
+
+  if (sub === 'caption-templates') {
+    const templates = listCaptionTemplates();
+    const report = { version: 1, reference_canvas: { width: 640, height: 360 }, templates };
+    if (flags.json) {
+      console.log(JSON.stringify(report, null, 2));
+      return report;
+    }
+    console.log('Templates de legenda disponíveis:');
+    for (const template of templates) {
+      console.log(`- ${template.id} (${template.name}) — ${template.font}, ${template.font_size}px`);
+    }
+    return report;
   }
 
   if (sub === 'detect-silence') {
@@ -883,30 +948,34 @@ Options:
     const probe = probeMedia(resolvedSrc);
     const duration = parseFloat(probe.format?.duration || '0');
 
-    const openAiKey = process.env.OPENAI_API_KEY;
-    let useOpenAi = Boolean(flags.openai);
-    if (openAiKey && !flags.local && !flags.openai && process.stdin.isTTY && !flags.json) {
-      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-      const answer = await new Promise((resolve) => {
-        rl.question(`Chave OPENAI_API_KEY detectada no ambiente. Deseja usar OpenAI Whisper para transcrição rápida? [S/n]: `, resolve);
-      });
-      rl.close();
-      useOpenAi = !answer.trim() || answer.trim().toLowerCase().startsWith('s');
-    } else if (openAiKey && !flags.local && !flags.openai) {
-      useOpenAi = true;
+    const captionSource = resolveCaptionSource(flags);
+    if (captionSource.mode === 'missing' || captionSource.mode === 'none') {
+      throw new Error('Transcrição requer --captions <arquivo.srt>, --openai com OPENAI_API_KEY ou --local (requer @xenova/transformers).');
+    }
+    if (captionSource.mode === 'local') await assertLocalTranscriber();
+    if (captionSource.mode === 'openai' && !captionSource.apiKey) {
+      throw new Error('OPENAI_API_KEY não configurada para usar --openai.');
+    }
+    if (captionSource.mode === 'srt' && !fs.existsSync(captionSource.srtPath)) {
+      throw new Error(`Arquivo de legendas não encontrado: ${captionSource.srtPath}`);
     }
 
-    const tmpAudio = path.join(os.tmpdir(), `usk-transcribe-${crypto.randomBytes(4).toString('hex')}.mp3`);
     let words = [];
-    try {
-      execFileSync('ffmpeg', ['-y', '-i', resolvedSrc, '-vn', '-ar', '16000', '-ac', '1', '-b:a', '64k', tmpAudio], { stdio: 'ignore' });
-      words = await transcribeAudio(tmpAudio, {
-        apiKey: openAiKey,
-        useOpenai: useOpenAi,
-        srtPath: flags.captions,
-      });
-    } finally {
-      if (fs.existsSync(tmpAudio)) fs.unlinkSync(tmpAudio);
+    if (captionSource.mode === 'srt') {
+      words = await transcribeAudio(null, { srtPath: captionSource.srtPath });
+    } else {
+      const tmpAudio = path.join(os.tmpdir(), `usk-transcribe-${crypto.randomBytes(4).toString('hex')}.mp3`);
+      try {
+        execFileSync('ffmpeg', ['-y', '-i', resolvedSrc, '-vn', '-ar', '16000', '-ac', '1', '-b:a', '64k', tmpAudio], { stdio: 'ignore' });
+        words = await transcribeAudio(tmpAudio, {
+          apiKey: captionSource.apiKey,
+          useOpenai: captionSource.mode === 'openai',
+          srtPath: null,
+          requireLocal: captionSource.mode === 'local',
+        });
+      } finally {
+        if (fs.existsSync(tmpAudio)) fs.unlinkSync(tmpAudio);
+      }
     }
 
     const segments = [];
@@ -1032,6 +1101,133 @@ Options:
     return report;
   }
 
+  if (sub === 'cutout') {
+    const srcFile = positionals[1];
+    if (!srcFile) {
+      console.error('Error: Missing video file. Usage: esquadrao studio cutout <video> --background <pack.mp4> [options]');
+      process.exit(1);
+    }
+    if (!flags.background) {
+      console.error('Error: Missing --background <pack.mp4>. O cutout precisa de um vídeo de fundo.');
+      process.exit(1);
+    }
+    const resolvedSrc = path.resolve(srcFile);
+    const resolvedBg = path.resolve(flags.background);
+    if (!fs.existsSync(resolvedSrc)) {
+      console.error(`Error: Source video file not found: ${srcFile}`);
+      process.exit(1);
+    }
+    if (!fs.existsSync(resolvedBg)) {
+      console.error(`Error: Background file not found: ${flags.background}`);
+      process.exit(1);
+    }
+    if (!checkBinary('ffmpeg') || !checkBinary('ffprobe')) {
+      console.error('Error: ffmpeg/ffprobe not found. Install ffmpeg to use video studio features.');
+      process.exit(1);
+    }
+
+    const engine = flags.engine || 'rembg';
+    if (engine !== 'rembg') {
+      console.error(`Error: Engine de cutout não suportado: ${engine}. Use rembg.`);
+      process.exit(1);
+    }
+    const format = flags.format || '9:16';
+    if (format !== '9:16') {
+      console.error('Error: studio cutout suporta apenas --format 9:16 nesta versão.');
+      process.exit(1);
+    }
+    const fps = parseFloat(flags.fps || '15');
+    if (!Number.isFinite(fps) || fps <= 0 || fps > 30) {
+      console.error('Error: --fps deve estar entre 1 e 30.');
+      process.exit(1);
+    }
+    const python = flags.python || process.env.ESQUADRAO_PYTHON || 'python3';
+    const deps = spawnSync(python, ['-c', 'import rembg, cv2, numpy, PIL'], { encoding: 'utf8' });
+    if (deps.error || deps.status !== 0) {
+      console.error(`Error: motor de recorte indisponível em '${python}'.`);
+      console.error('Instale: python3 -m pip install "rembg[cpu]" onnxruntime opencv-python-headless numpy Pillow');
+      process.exit(1);
+    }
+
+    const wsDir = findWorkspaceDir(flags.dest);
+    fs.mkdirSync(path.join(wsDir, 'artifacts'), { recursive: true });
+    fs.mkdirSync(path.join(wsDir, 'packages'), { recursive: true });
+    const artifactId = `ART-${crypto.randomBytes(4).toString('hex')}`;
+    const artifactPath = path.join(wsDir, 'artifacts', `${artifactId}.mp4`);
+    const scriptPath = fileURLToPath(new URL('../../scripts/cutout.py', import.meta.url));
+    if (!fs.existsSync(scriptPath)) {
+      console.error(`Error: Script de cutout não encontrado: ${scriptPath}`);
+      process.exit(1);
+    }
+
+    const child = spawn(python, [
+      scriptPath,
+      '--input', resolvedSrc,
+      '--background', resolvedBg,
+      '--output', artifactPath,
+      '--fps', String(fps),
+      '--width', '1080',
+      '--height', '1920',
+      '--model', 'u2net_human_seg',
+    ], { stdio: ['ignore', 'pipe', 'inherit'] });
+
+    let stdout = '';
+    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    const exitCode = await new Promise((resolve, reject) => {
+      child.on('error', reject);
+      child.on('close', (code) => resolve(code));
+    });
+    if (exitCode !== 0) {
+      if (fs.existsSync(artifactPath)) {
+        try { fs.unlinkSync(artifactPath); } catch {}
+      }
+      console.error(`Error: cutout falhou (exit ${exitCode}).`);
+      process.exit(1);
+    }
+
+    let engineReport = null;
+    const lines = stdout.split(/\r?\n/).filter(Boolean);
+    if (lines.length > 0) {
+      try { engineReport = JSON.parse(lines[lines.length - 1]); } catch {}
+    }
+
+    const artifactRecord = {
+      id: artifactId,
+      path: path.relative(wsDir, artifactPath).replace(/\\/g, '/'),
+      engine: 'rembg',
+      rendered_at: new Date().toISOString(),
+      size_bytes: fs.existsSync(artifactPath) ? fs.statSync(artifactPath).size : 0,
+    };
+    const manifestPath = path.join(wsDir, 'studio.json');
+    const manifest = loadManifest(manifestPath);
+    manifest.artifacts = manifest.artifacts || [];
+    manifest.artifacts.push(artifactRecord);
+    saveManifestAtomic(manifestPath, manifest);
+
+    const qaReport = verifyArtifact(artifactPath);
+    if (!qaReport.passed) {
+      console.error(`Error: Post-render QA validation failed:\n${qaReport.errors.map((e) => `  - ${e}`).join('\n')}`);
+      process.exit(1);
+    }
+    const result = {
+      status: 'ok',
+      engine: 'rembg',
+      fps,
+      artifact: artifactRecord,
+      frames: engineReport?.frames ?? null,
+      elapsed_s: engineReport?.elapsed_s ?? null,
+      qa: qaReport,
+    };
+    if (flags.json) {
+      console.log(JSON.stringify(result, null, 2));
+      return result;
+    }
+    console.log(`Cutout concluído: ${artifactRecord.path} (${artifactRecord.size_bytes} bytes)`);
+    console.log(`- Frames: ${result.frames ?? 'n/d'}; tempo: ${result.elapsed_s ?? 'n/d'}s`);
+    console.log(`- QA: ${qaReport.passed ? 'Aprovado ✓' : 'Falha ✗'}`);
+    return result;
+  }
+
   if (sub === 'auto-clip') {
     const srcFile = positionals[1];
     if (!srcFile) {
@@ -1047,6 +1243,19 @@ Options:
     if (!checkBinary('ffmpeg') || !checkBinary('ffprobe')) {
       console.error('Error: ffmpeg/ffprobe not found. Install ffmpeg to use video studio features.');
       process.exit(1);
+    }
+
+    if (flags['caption-template']) getCaptionTemplate(flags['caption-template']);
+    const captionSource = resolveCaptionSource(flags);
+    if (captionSource.mode === 'missing') {
+      throw new Error('Legendas não configuradas. Use --captions <arquivo.srt>, --openai com OPENAI_API_KEY, --local (requer @xenova/transformers) ou --no-captions para gerar apenas o corte.');
+    }
+    if (captionSource.mode === 'local') await assertLocalTranscriber();
+    if (captionSource.mode === 'openai' && !captionSource.apiKey) {
+      throw new Error('OPENAI_API_KEY não configurada para usar --openai.');
+    }
+    if (captionSource.mode === 'srt' && !fs.existsSync(captionSource.srtPath)) {
+      throw new Error(`Arquivo de legendas não encontrado: ${captionSource.srtPath}`);
     }
 
     const wsDir = findWorkspaceDir(flags.dest);
@@ -1072,34 +1281,23 @@ Options:
     const silences = detectSilence(assetPath, { noiseThreshold: silenceThresh, minDurationSec: silenceDuration });
     const speechIntervals = computeSpeechIntervals(totalDurationSec, silences);
 
-    // 3. Audio transcription decision (OpenAI vs Local vs SRT)
+    // 3. Transcribe only when captions are enabled
     let words = [];
-    const openAiKey = process.env.OPENAI_API_KEY;
-    let useOpenAi = Boolean(flags.openai);
-
-    if (openAiKey && !flags.local && !flags.openai && process.stdin.isTTY && !flags.json) {
-      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-      const answer = await new Promise((resolve) => {
-        rl.question(`Chave OPENAI_API_KEY detectada no ambiente. Deseja usar OpenAI Whisper para transcrição rápida? [S/n]: `, resolve);
-      });
-      rl.close();
-      useOpenAi = !answer.trim() || answer.trim().toLowerCase().startsWith('s');
-    } else if (openAiKey && !flags.local && !flags.openai) {
-      useOpenAi = true;
-    }
-
-    const tmpAudio = path.join(os.tmpdir(), `usk-audio-${crypto.randomBytes(4).toString('hex')}.mp3`);
-    try {
-      execFileSync('ffmpeg', ['-y', '-i', assetPath, '-vn', '-ar', '16000', '-ac', '1', '-b:a', '64k', tmpAudio], { stdio: 'ignore' });
-      words = await transcribeAudio(tmpAudio, {
-        apiKey: openAiKey,
-        useOpenai: useOpenAi,
-        srtPath: flags.captions,
-      });
-    } catch (err) {
-      if (!flags.json) console.warn(`[Warning] Transcription skipped or failed: ${err.message}`);
-    } finally {
-      if (fs.existsSync(tmpAudio)) fs.unlinkSync(tmpAudio);
+    if (captionSource.mode === 'srt') {
+      words = await transcribeAudio(null, { srtPath: captionSource.srtPath });
+    } else if (captionSource.mode !== 'none') {
+      const tmpAudio = path.join(os.tmpdir(), `usk-audio-${crypto.randomBytes(4).toString('hex')}.mp3`);
+      try {
+        execFileSync('ffmpeg', ['-y', '-i', assetPath, '-vn', '-ar', '16000', '-ac', '1', '-b:a', '64k', tmpAudio], { stdio: 'ignore' });
+        words = await transcribeAudio(tmpAudio, {
+          apiKey: captionSource.apiKey,
+          useOpenai: captionSource.mode === 'openai',
+          srtPath: captionSource.srtPath,
+          requireLocal: captionSource.mode === 'local',
+        });
+      } finally {
+        if (fs.existsSync(tmpAudio)) fs.unlinkSync(tmpAudio);
+      }
     }
 
     // 4. Captions grouping and remapping
@@ -1109,28 +1307,58 @@ Options:
 
     // Handle broll overlays if flags.broll provided
     const overlays = [];
+    const overlayLayout = flags.layout || 'fullscreen';
+    if (!['fullscreen', 'pip', 'split_bottom'].includes(overlayLayout)) {
+      throw new Error(`Layout de overlay inválido: ${overlayLayout}. Use fullscreen, pip ou split_bottom (split_top está pendente em CLI-06).`);
+    }
+    const overlayDuration = flags['overlay-duration'] || 'inserts';
+    if (!['inserts', 'full'].includes(overlayDuration)) {
+      throw new Error(`Duração de overlay inválida: ${overlayDuration}. Use inserts ou full.`);
+    }
+    if (!flags.broll && (flags.layout || flags['overlay-duration'])) {
+      throw new Error('--layout e --overlay-duration exigem --broll.');
+    }
     if (flags.broll) {
       const brollFiles = Array.isArray(flags.broll) ? flags.broll : [flags.broll];
-      let brollIdx = 0;
-      let overlayCursorSec = 4.0;
+      const importedBrolls = [];
+      for (const file of brollFiles) {
+        const brollAsset = await silentIfJson(() => run({ positionals: ['import', path.resolve(file)], flags: { dest: wsDir, json: false } }));
+        if (brollAsset && brollAsset.id) importedBrolls.push(brollAsset);
+      }
       const totalTimelineSec = speechIntervals.reduce((acc, s) => acc + s.durationSec, 0);
-
-      while (overlayCursorSec < totalTimelineSec - 3.0 && brollIdx < brollFiles.length * 3) {
-        const fileToUse = brollFiles[brollIdx % brollFiles.length];
-        const brollAsset = await silentIfJson(() => run({ positionals: ['import', path.resolve(fileToUse)], flags: { dest: wsDir, json: false } }));
-        if (brollAsset && brollAsset.id) {
-          const ovDurSec = Math.min(3.0, (brollAsset.metadata?.duration_s || 3.0));
-          overlays.push({
-            asset_id: brollAsset.id,
-            layout: 'fullscreen',
-            in_ms: 0,
-            out_ms: Math.round(ovDurSec * 1000),
-            timeline_start_ms: Math.round(overlayCursorSec * 1000),
-            duration_ms: Math.round(ovDurSec * 1000),
+      if (overlayDuration === 'full' && importedBrolls.length > 0 && totalTimelineSec >= 0.5) {
+        if (importedBrolls.length > 1 && !flags.json) {
+          console.error('Aviso: --overlay-duration full usa apenas o primeiro --broll; os demais são ignorados.');
+        }
+        overlays.push({
+          asset_id: importedBrolls[0].id,
+          layout: overlayLayout,
+          in_ms: 0,
+          out_ms: Math.round(totalTimelineSec * 1000),
+          timeline_start_ms: 0,
+          duration_ms: Math.round(totalTimelineSec * 1000),
+          loop: true,
+        });
+      } else if (overlayDuration === 'inserts') {
+        const maxOverlays = Math.max(1, Math.floor(totalTimelineSec / 1.5));
+        const selected = importedBrolls.slice(0, maxOverlays);
+        if (selected.length > 0 && totalTimelineSec >= 2) {
+          const slotSec = totalTimelineSec / selected.length;
+          const targetDurSec = Math.min(3.0, slotSec * 0.9);
+          selected.forEach((brollAsset, index) => {
+            const startSec = index * slotSec + (slotSec - targetDurSec) / 2;
+            const durSec = Math.min(targetDurSec, brollAsset.metadata?.duration_s || targetDurSec, totalTimelineSec - startSec);
+            if (durSec < 0.5) return;
+            overlays.push({
+              asset_id: brollAsset.id,
+              layout: overlayLayout,
+              in_ms: 0,
+              out_ms: Math.round(durSec * 1000),
+              timeline_start_ms: Math.round(startSec * 1000),
+              duration_ms: Math.round(durSec * 1000),
+            });
           });
         }
-        overlayCursorSec += 7.0;
-        brollIdx++;
       }
     }
 
@@ -1157,6 +1385,7 @@ Options:
       overlays,
       musicTracks,
     });
+    if (flags['caption-template']) plan.caption_template = flags['caption-template'];
     validateEditPlan(plan);
 
     const packagesDir = path.join(wsDir, 'packages');
@@ -1165,7 +1394,7 @@ Options:
     fs.writeFileSync(planPath, JSON.stringify(plan, null, 2) + '\n');
 
     // 6. Render
-    const artifact = await silentIfJson(() => run({ positionals: ['render', planPath], flags: { dest: wsDir, json: false, verbose: flags.verbose } }));
+    const artifact = await silentIfJson(() => run({ positionals: ['render', planPath], flags: { dest: wsDir, json: false, verbose: flags.verbose, 'caption-template': flags['caption-template'] } }));
     if (!artifact || !artifact.path) {
       throw new Error('Failed to render auto-clip video artifact');
     }
@@ -1183,6 +1412,8 @@ Options:
       silence_cut_s: parseFloat(totalSilenceSec.toFixed(3)),
       speech_clips_count: speechIntervals.length,
       captions_count: remappedCaptions.length,
+      caption_mode: captionSource.mode,
+      pipeline: 'auto-clip',
       artifact,
       qa: qaReport,
     };
@@ -1301,6 +1532,7 @@ Options:
   }
 
   if (sub === 'render') {
+    if (flags['caption-template']) getCaptionTemplate(flags['caption-template']);
     const planFile = positionals[1];
     if (!planFile) {
       console.error('Error: Missing edit plan file. Usage: esquadrao studio render <editplan.json>');
@@ -1390,7 +1622,7 @@ Options:
           f1.vFilter,
           f1.aFilter,
           `[v0][a0][v1][a1]concat=n=2:v=1:a=1[basev][outa]`,
-          buildCaptionFilters(plan.captions || [], '[basev]', tempFiles),
+          buildCaptionFilters(plan.captions || [], '[basev]', tempFiles, 'default', { width, height, template: plan.caption_template || flags['caption-template'] }),
         ];
 
         const args = [
@@ -1412,13 +1644,14 @@ Options:
         const inputArgs = [];
         const filterParts = [];
         const concatInputs = [];
+        const hasSplitBottomFull = (plan.overlays || []).some((ov) => ov.layout === 'split_bottom' && ov.loop);
 
         for (let i = 0; i < videoClips.length; i++) {
           const c = videoClips[i];
           const clipPath = resolveAsset(wsDir, c);
           inputArgs.push('-i', clipPath);
           const gain = plan.audio_tracks?.[i]?.gain_db || 0;
-          const { vFilter, aFilter } = buildClipFilters(i, c, clipPath, wsDir, width, height, gain);
+          const { vFilter, aFilter } = buildClipFilters(i, c, clipPath, wsDir, width, height, gain, { splitBottom: hasSplitBottomFull });
           filterParts.push(vFilter, aFilter);
           concatInputs.push(`[v${i}][a${i}]`);
         }
@@ -1441,6 +1674,7 @@ Options:
           for (let k = 0; k < plan.overlays.length; k++) {
             const ov = plan.overlays[k];
             const ovPath = resolveAsset(wsDir, ov);
+            if (ov.loop) inputArgs.push('-stream_loop', '-1');
             inputArgs.push('-i', ovPath);
             const inSec = ((ov.in_ms || 0) / 1000).toFixed(3);
             const outSec = ((ov.out_ms || (ov.in_ms || 0) + 3000) / 1000).toFixed(3);
@@ -1456,7 +1690,7 @@ Options:
               filterParts.push(`${currentV}[ov_${k}]overlay=(W-w)/2:(H-h)/2:enable='between(t\\,${startSec}\\,${endSec})'[v_ov_${k}]`);
             } else if (layout === 'split_bottom') {
               const splitH = Math.round(height / 2);
-              filterParts.push(`[${nextInputIdx}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${splitH}:force_original_aspect_ratio=decrease,pad=${width}:${splitH}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[ov_${k}]`);
+              filterParts.push(`[${nextInputIdx}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${splitH}:force_original_aspect_ratio=increase,crop=${width}:${splitH},setsar=1,fps=30[ov_${k}]`);
               filterParts.push(`${currentV}[ov_${k}]overlay=0:${splitH}:enable='between(t\\,${startSec}\\,${endSec})'[v_ov_${k}]`);
             } else {
               // Fullscreen default
@@ -1468,7 +1702,7 @@ Options:
           }
         }
 
-        filterParts.push(buildCaptionFilters(captions, currentV, tempFiles));
+        filterParts.push(buildCaptionFilters(captions, currentV, tempFiles, 'default', { width, height, template: plan.caption_template || flags['caption-template'] }));
 
         // Background Music Tracks with Ducking
         let finalA = speechA;

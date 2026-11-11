@@ -6,6 +6,69 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 
 ---
 
+## [1.6.0] - 2026-11-11
+
+### Adicionado
+- **Split permanente no `auto-clip` (CLI-13):** `--layout split_bottom` + `--overlay-duration full` mantém o orador no topo e o pack na base durante todo o clipe, com pack silenciado em loop e áudio original.
+- **Layout configurável no `auto-clip`:** `--layout fullscreen|pip|split_bottom` e `--overlay-duration inserts|full`; `split_top` continua pendente (CLI-06).
+- **Recorte de pessoa (CLI-14, experimental):** `studio cutout <video> --background <pack>` com `rembg`/`u2net_human_seg`, refino GrabCut, composição 1080×1920, áudio original e QA.
+- **Motor Python opcional:** `scripts/cutout.py` chamado via `--python`; dependências `rembg`, `onnxruntime`, `opencv-python-headless`, `numpy` e Pillow não entram no npm.
+- **Ajuda:** `--broll`, `--music`, `--layout`, `--overlay-duration`, `--background`, `--engine`, `--fps` e `--python` documentados no `--help` (CLI-10).
+
+### Corrigido
+- **Split sem tarjas:** o overlay `split_bottom` usa `scale` + `crop` para preencher a metade, em vez de `pad`.
+- **Loop de pack:** overlays com `loop: true` usam `-stream_loop -1` no render, permitindo pack curto cobrir clipe longo.
+- **Cor do cutout:** conversão explícita RGBA→BGRA evita a troca de vermelho/azul que deixava a pele azul.
+- **Halo do cutout:** máscara do `u2net` refinada com GrabCut em resolução cheia; a franja escura ao redor da cabeça é removida.
+
+### Testes
+- **91/91 testes** (4 novos: split permanente, contrato do cutout, engine inválido e help) e lint em 38 arquivos.
+- Teste de split cobre plano `split_bottom`, `loop: true`, duração total e QA.
+
+### Documentação
+- `SPEC`, `ROADMAP`, `README`, `GLOSSARY`, `SKILL.md`, guia de agentes e `references/composicoes-especiais.md` sincronizados com o estado 1.6.0.
+- Cutout qualificado como experimental: ~18–20 min de CPU por 60 s em 15 fps, sem cache de máscaras ou GPU.
+
+---
+
+## [1.5.0] - 2026-11-11
+
+### Adicionado
+- **Motor nativo de templates de legenda (CLI-12):** `--caption-template <id>` em `studio auto-clip`/`studio render`, `caption_template` e `captions[].template` no EditPlan, e `studio caption-templates --json`.
+- **Nove presets:** MrBeast Yellow, TikTok White, Gold Stroke, Green Stroke, Neon Glitch, Minimal Lower Third, Red Stroke, Heavy White e Mono Clean, todos sem fundo sólido.
+- **Fontes empacotadas:** Anton, Bebas Neue e Poppins em `assets/fonts` (OFL 1.1), com fallback para Liberation/DejaVu/Poppins.
+- **Validação:** ID desconhecido falha com código 1 e lista os templates disponíveis.
+
+### Corrigido
+- **Escala vertical:** a segunda linha usa `lineGap * font_size`, mantendo o bloco compacto em 9:16 em vez de abrir um vão proporcional à altura.
+- **Heavy White:** contorno reduzido de 10 px para 8 px para não fechar o espaço entre as palavras.
+
+### Testes
+- 87/87 testes (8 novos) e lint em 37 arquivos cobrindo catálogo, fontes, divisão de linhas, geometria vertical, validação de ID, listagem CLI e render ponta a ponta.
+
+---
+
+## [1.4.0] - 2026-11-11
+
+### Adicionado
+- **Onboarding real no modo `podcast_clip`:** `esquadrao onboard --mode podcast_clip` agora executa o pipeline `auto-clip` (detecção de silêncio, cortes, legendas e QA), com `--captions`, `--openai`, `--local` e `--no-captions`.
+- **Corte explícito sem legendas:** flag `--no-captions` em `studio auto-clip` e `onboard` para gerar o vídeo sem transcrição de forma intencional.
+- **Motor local opcional:** `@xenova/transformers@^2.17.2` declarado em `optionalDependencies`; ausência gera erro acionável e não quebra a instalação.
+- **Testes:** 79/79 (6 novos) cobrindo falha sem legenda, `--no-captions`, ausência do motor local, `transcribe` sem fonte, onboarding real e overlays/música no plano.
+
+### Corrigido
+- `auto-clip` e `transcribe` falham com código `1` e mensagem acionável quando não há SRT, OpenAI nem motor local, em vez de renderizar sem legendas.
+- `--captions` funciona em vídeo sem faixa de áudio (SRT não exige extração).
+- `auto-clip --broll` e `--music` agora anexam overlays e `music_tracks` ao EditPlan; antes eram construídos e descartados por um retorno antecipado. A distribuição usa todos os b-rolls informados em cortes de ~2,4 s.
+- `onboard` em `podcast_clip` sem motor de legenda gera corte real com aviso explícito, sem legenda fixa.
+- Documentação sincronizada: SPEC §8, ROADMAP, GLOSSARY, README, `skill-media-producer` e referências refletem o estado entregue.
+
+### Documentação
+- **Catálogo de templates de legenda:** `skill-media-producer/references/caption-templates.md` documenta nove presets (MrBeast Yellow, TikTok White, Gold Stroke, Green Stroke, Neon Glitch, Minimal Lower Third, Red Stroke, Heavy White e Mono Clean), com fonte, cores, contorno, sombra, posição e animação, todos sem fundo sólido.
+- **Status explícito:** o CLI 1.4.0 expõe apenas `impact|word|full`; `--caption-template` e `captions[].template` ficam no backlog CLI-12.
+
+---
+
 ## [1.3.1] - 2026-11-10
 
 ### Modificado

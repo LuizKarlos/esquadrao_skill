@@ -1,6 +1,8 @@
 // Media Producer / Creative Director Role
 // Portable specification and validation engine for local-first short-form video pipelines.
 
+import { getCaptionTemplate } from '../captionTemplates.js';
+
 export const definition = {
   id: 'media-producer',
   title: 'Media Producer',
@@ -68,6 +70,13 @@ export function validateEditPlan(plan) {
   if (plan.schema_version !== 1) throw new Error(`Unsupported schema_version: ${plan.schema_version}`);
   if (!['edit_only', 'dark', 'podcast_clip'].includes(plan.mode)) {
     throw new Error(`Unsupported mode: ${plan.mode}`);
+  }
+
+  if (plan.caption_template) getCaptionTemplate(plan.caption_template);
+  if (Array.isArray(plan.captions)) {
+    for (const caption of plan.captions) {
+      if (caption.template) getCaptionTemplate(caption.template);
+    }
   }
 
   // Clips validation

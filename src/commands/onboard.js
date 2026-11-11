@@ -260,6 +260,11 @@ async function runSilentIfJson(isJson, fn) {
   }
 }
 
+function displayPath(p) {
+  const rel = path.relative(process.cwd(), p).replace(/\\/g, '/');
+  return rel.startsWith('..') ? p : rel;
+}
+
 export async function run({ positionals = [], flags = {}, io = {} } = {}) {
   if (flags.help || positionals[0] === 'help') {
     console.log(`Esquadrão Onboard Agent
@@ -274,6 +279,11 @@ Options:
   --format <format>   Aspect ratio: 9:16 (vertical mobile) | 16:9 (widescreen) (default: 9:16)
   --dest <path>       Workspace destination directory (defaults to cwd or saved profile)
   --file <path>       Media file to import for edit_only or podcast_clip (can repeat)
+  --captions <path>   SRT file for podcast_clip captions
+  --caption-template <id> Caption template (see studio caption-templates)
+  --openai            Use OpenAI Whisper for podcast_clip captions (requires OPENAI_API_KEY)
+  --local             Use local @xenova/transformers engine for podcast_clip captions
+  --no-captions       Render podcast_clip cuts without captions
   --json              Output results in JSON format
   -h, --help          Show help message`);
     return;
@@ -440,43 +450,109 @@ Options:
     if (!flags.json) console.log(`\n⏳ [1/4] Preparando seu estúdio em ${targetDir}...`);
     await runSilentIfJson(flags.json, () => studioRun({ positionals: ['init'], flags: { dest: targetDir, json: false, verbose: flags.verbose } }));
 
-    if (!flags.json) console.log(`🎬 [2/4] Importando seus arquivos de vídeo...`);
-    const importedAssets = [];
-    for (const f of files) {
-      const asset = await runSilentIfJson(flags.json, () => studioRun({ positionals: ['import', path.resolve(f)], flags: { dest: targetDir, json: false, verbose: flags.verbose } }));
-      if (asset) importedAssets.push(asset);
-    }
+    let planPath = null;
+    let artifact = null;
+    let artifactFullPath = null;
+    let qaReport = null;
+    let pipeline = mode === 'podcast_clip' ? 'auto-clip' : 'plan';
+    let captionMode = null;
+    let captionsCount = null;
 
-    if (importedAssets.length === 0 && mode !== 'dark') {
-      const manifestPath = path.join(targetDir, 'studio.json');
-      if (fs.existsSync(manifestPath)) {
-        try {
-          const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-          importedAssets.push(...(m.assets || []));
-        } catch (err) {
-          throw new Error(`Corrupted studio manifest at ${manifestPath}: ${err.message}`);
+    if (mode === 'podcast_clip') {
+      if (!flags.json) console.log('🎬 [2/4] Executando o pipeline real de auto-clip...');
+      let sourceFile = files[0];
+      if (!sourceFile) {
+        const manifestPath = path.join(targetDir, 'studio.json');
+        if (fs.existsSync(manifestPath)) {
+          try {
+            const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+            const first = (m.assets || [])[0];
+            if (first) sourceFile = path.resolve(targetDir, first.path);
+          } catch (err) {
+            throw new Error(`Corrupted studio manifest at ${manifestPath}: ${err.message}`);
+          }
         }
+      }
+      if (!sourceFile) throw new Error('podcast_clip requires at least one media file.');
+
+      const autoFlags = {
+        dest: targetDir,
+        json: false,
+        verbose: flags.verbose,
+        format,
+        captions: flags.captions,
+        'caption-template': flags['caption-template'],
+        openai: flags.openai,
+        local: flags.local,
+        'no-captions': flags['no-captions'],
+        'silence-thresh': flags['silence-thresh'],
+        'silence-duration': flags['silence-duration'],
+        'caption-style': flags['caption-style'],
+      };
+      const hasCaptionChoice = autoFlags.captions || autoFlags.openai || autoFlags.local || autoFlags['no-captions'] || process.env.OPENAI_API_KEY;
+      if (!hasCaptionChoice) {
+        // A presença do pacote opcional não é uma escolha do usuário: o
+        // onboarding só usa legenda quando --captions/--openai/--local é
+        // explícito. Isso evita tentar baixar o modelo Whisper em CI/offline.
+        autoFlags['no-captions'] = true;
+        if (!flags.json) console.warn('⚠️  Nenhum motor de legenda escolhido; gerando corte real sem legendas. Use --captions, --openai ou --local para legendas.');
+      }
+
+      const autoResult = await runSilentIfJson(flags.json, () => studioRun({
+        positionals: ['auto-clip', path.resolve(sourceFile)],
+        flags: autoFlags,
+      }));
+      if (!autoResult || !autoResult.artifact) throw new Error('Failed to render auto-clip artifact');
+      artifact = autoResult.artifact;
+      artifactFullPath = path.resolve(targetDir, artifact.path);
+      qaReport = autoResult.qa;
+      captionMode = autoResult.caption_mode || null;
+      captionsCount = autoResult.captions_count ?? null;
+      planPath = autoResult.plan_path ? path.resolve(targetDir, autoResult.plan_path) : null;
+      if (!flags.json) console.log('✂️ [3/4] Cortes e legendas processados.');
+      if (!flags.json) console.log('🔍 [4/4] QA concluído.');
+    } else {
+      if (!flags.json) console.log('🎬 [2/4] Importando seus arquivos de vídeo...');
+      const importedAssets = [];
+      for (const f of files) {
+        const asset = await runSilentIfJson(flags.json, () => studioRun({ positionals: ['import', path.resolve(f)], flags: { dest: targetDir, json: false, verbose: flags.verbose } }));
+        if (asset) importedAssets.push(asset);
+      }
+
+      if (importedAssets.length === 0 && mode !== 'dark') {
+        const manifestPath = path.join(targetDir, 'studio.json');
+        if (fs.existsSync(manifestPath)) {
+          try {
+            const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+            importedAssets.push(...(m.assets || []));
+          } catch (err) {
+            throw new Error(`Corrupted studio manifest at ${manifestPath}: ${err.message}`);
+          }
+        }
+      }
+
+      const plan = buildOnboardPlan({ mode, assets: importedAssets, format });
+      validateEditPlan(plan);
+
+      const packagesDir = path.join(targetDir, 'packages');
+      fs.mkdirSync(packagesDir, { recursive: true });
+      planPath = path.join(packagesDir, 'onboard-plan.json');
+      fs.writeFileSync(planPath, JSON.stringify(plan, null, 2) + '\n');
+
+      if (!flags.json) console.log(`✂️ [3/4] Fatiando silêncios e gerando vídeo (${mode})...`);
+      artifact = await runSilentIfJson(flags.json, () => studioRun({ positionals: ['render', planPath], flags: { dest: targetDir, json: false, verbose: flags.verbose } }));
+      if (!artifact || !artifact.path) {
+        throw new Error('Failed to render video artifact');
+      }
+      artifactFullPath = path.resolve(targetDir, artifact.path);
+
+      if (!flags.json) console.log('🔍 [4/4] Verificando conformidade técnica de qualidade (QA)...');
+      qaReport = await runSilentIfJson(flags.json, () => studioRun({ positionals: ['qa', artifactFullPath], flags: { dest: targetDir, plan: planPath, json: false, verbose: flags.verbose } }));
+      if (!qaReport || !qaReport.passed) {
+        throw new Error(`QA verification failed: ${qaReport?.errors?.join(', ') || 'QA check failed'}`);
       }
     }
 
-    const plan = buildOnboardPlan({ mode, assets: importedAssets, format });
-    validateEditPlan(plan);
-
-    const packagesDir = path.join(targetDir, 'packages');
-    fs.mkdirSync(packagesDir, { recursive: true });
-    const planPath = path.join(packagesDir, 'onboard-plan.json');
-    fs.writeFileSync(planPath, JSON.stringify(plan, null, 2) + '\n');
-
-    if (!flags.json) console.log(`✂️ [3/4] Fatiando silêncios e gerando vídeo (${mode})...`);
-    const artifact = await runSilentIfJson(flags.json, () => studioRun({ positionals: ['render', planPath], flags: { dest: targetDir, json: false, verbose: flags.verbose } }));
-    if (!artifact || !artifact.path) {
-      throw new Error('Failed to render video artifact');
-    }
-
-    const artifactFullPath = path.resolve(targetDir, artifact.path);
-
-    if (!flags.json) console.log(`🔍 [4/4] Verificando conformidade técnica de qualidade (QA)...`);
-    const qaReport = await runSilentIfJson(flags.json, () => studioRun({ positionals: ['qa', artifactFullPath], flags: { dest: targetDir, plan: planPath, json: false, verbose: flags.verbose } }));
     if (!qaReport || !qaReport.passed) {
       throw new Error(`QA verification failed: ${qaReport?.errors?.join(', ') || 'QA check failed'}`);
     }
@@ -496,12 +572,15 @@ Options:
         status: 'ok',
         workspace: targetDir,
         mode,
+        pipeline,
+        caption_mode: captionMode,
+        captions_count: captionsCount,
         artifact,
         qa: qaReport,
         profile: profileData,
         next_steps: [
-          `esquadrao studio render ${path.relative(process.cwd(), planPath).replace(/\\/g, '/')}`,
-          `esquadrao studio qa ${path.relative(process.cwd(), artifactFullPath).replace(/\\/g, '/')}`,
+          ...(planPath ? [`esquadrao studio render ${displayPath(planPath)}`] : []),
+          `esquadrao studio qa ${displayPath(artifactFullPath)}`,
         ],
       }, null, 2));
       return;
@@ -522,7 +601,7 @@ Perfil salvo em:  ${path.join(targetDir, '.esquadrao', 'profile.json')}
 Modo preferido:   ${mode}
 =================================================================
 `);
-    return { status: 'ok', artifact, qa: qaReport, profile: profileData };
+    return { status: 'ok', pipeline, caption_mode: captionMode, captions_count: captionsCount, artifact, qa: qaReport, profile: profileData };
   } catch (err) {
     if (rl) {
       try { rl.close(); } catch {}

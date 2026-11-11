@@ -52,9 +52,9 @@ node $cli setup
 if ($LASTEXITCODE -ne 0) { throw "Falha ao instalar as skills para Claude Code." }
 ```
 
-Abra o agente nessa pasta em uma nova sessão para carregar `skill-media-producer`. `assets/` guarda cópias das fontes, `packages/` guarda os planos, `artifacts/` recebe os MP4 e `studio.json` registra as importações e resultados.
+Abra o agente nessa pasta em uma nova sessão para carregar `skill-media-producer`. `assets/` guarda cópias das fontes, `packages/` guarda os planos, `artifacts/` recebe os MP4 e `studio.json` registra as importações e resultados. `studio init` cria exclusivamente essas pastas e arquivos.
 
-Para experimentar o fluxo guiado com valores padrão, use `node $cli onboard`. Para controlar proporção, cortes e legendas explicitamente, siga os próximos passos.
+Para experimentar o fluxo guiado com valores padrão, use `node $cli onboard --mode podcast_clip --file <video> --captions <legendas.srt>`. Sem SRT/OpenAI/motor local, o onboard aplica `--no-captions`, gera um corte real sem legendas e avisa. Para controlar proporção, cortes e legendas explicitamente, siga os próximos passos.
 
 ## 3. Importar um vídeo com áudio
 
@@ -182,7 +182,7 @@ Cor, tamanho, fonte, contorno, fundo, posição e quebra automática de linha ai
 
 Para remover as legendas, use `$plano.captions = @()`.
 
-O ganho de cada corte aceita -60 a +12 dB. Zero preserva o volume, valores negativos reduzem e valores positivos aumentam. Confira distorção ao aumentar o ganho.
+O ganho de cada corte aceita -60 a +12 dB. Zero preserva o volume, valores negativos reduzem e valores positivos aumentam. Confira distorção ao aumentar o ganho. Caso utilize trilha musical (`music_tracks`) com `ducking: true`, a atenuação aplicada é fixa em `-22dB` via mixagem `amix`, e não ducking dinâmico via sidechain (previsto no backlog CLI-05).
 
 ```powershell
 $plano.audio_tracks[0].gain_db = 0
@@ -217,14 +217,23 @@ O QA compara dimensões, fps e duração com o plano e verifica os streams. Assi
 
 ## 8. Esteira rápida de auto-corte de silêncios e legendas (`auto-clip`)
 
-Se você possui um vídeo falado (ex.: podcast, aula ou gravação direta) e deseja cortar automaticamente pausas e silêncios maiores que 0.8s aplicando legendas dinâmicas estilo impacto viral (Opção A):
+Se você possui um vídeo falado (ex.: podcast, aula ou gravação direta) e deseja cortar pausas e silêncios maiores que 0.8s:
 
 ```powershell
-# Auto-corte completo com detecção de silêncio, Whisper e QA:
-node $cli studio auto-clip .\originais\meu-video.mp4 --dest .
+# Auto-corte com arquivo SRT de legendas, gerando plano em packages/ e MP4 em artifacts/:
+node $cli studio auto-clip $origem --dest $projeto --captions (Join-Path $projeto "packages\legendas.srt")
 
 # Ou apenas analisar silêncios e pausas mortas antes de renderizar:
-node $cli studio detect-silence .\originais\meu-video.mp4
+node $cli studio detect-silence $origem
 ```
 
-O comando expurga as pausas, transcreve com Whisper, remapeia as legendas com sincronia labial e valida o arquivo MP4 final.
+O comando expurga as pausas, transcreve o áudio caso um arquivo SRT ou provedor de transcrição esteja configurado, remapeia as legendas quando existentes para a linha de tempo pós-corte e valida o arquivo MP4 final em `artifacts/`.
+
+Três caminhos de legendas no `auto-clip`:
+1. `--captions <arquivo.srt>`: Determinístico, offline e testado (recomendado).
+2. `--openai`: Requer a variável de ambiente `OPENAI_API_KEY` para transcrição via API remota da OpenAI.
+3. `--local`: Utiliza `@xenova/transformers` + `Xenova/whisper-tiny`, declarada em `optionalDependencies`. Se o pacote opcional não estiver instalado, o comando falha com instrução acionável; use `--no-captions` para cortar sem legendas.
+
+> **Templates:** o catálogo de nove presets está em [`caption-templates.md`](caption-templates.md). Use `--caption-template <id>` no `auto-clip`/`render` ou `captions[].template` no EditPlan; `--caption-style impact|word|full` continua como legado.
+
+Caso adicione trilha de fundo (`--music`), a atenuação aplicada é fixa em `-22dB`, sem ducking dinâmico por sidechain.
