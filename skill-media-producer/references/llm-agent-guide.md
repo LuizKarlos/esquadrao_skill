@@ -113,6 +113,8 @@ O comando emite o resumo com total de silêncio expurgado, quantidade de cortes 
 > 2. `--openai`: Requer a variável de ambiente `OPENAI_API_KEY` para transcrição via API remota OpenAI Whisper.
 > 3. `--local`: Utiliza `@xenova/transformers` + `Xenova/whisper-tiny` (declarada em `optionalDependencies`). Se o pacote opcional não estiver instalado, o comando falha com instrução acionável; use `--no-captions` para cortar sem legendas.
 > O agente deve sempre solicitar um arquivo SRT, instruir a configuração de `OPENAI_API_KEY` ou instalar o modelo local antes de prometer legendas no corte.
+>
+> **Templates de legenda:** existem nove presets documentados em [`caption-templates.md`](caption-templates.md), mas o CLI 1.4.0 só expõe `--caption-style impact|word|full`. Não prometa `--caption-template` até o backlog CLI-12 ser entregue.
 
 ---
 

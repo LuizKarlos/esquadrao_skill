@@ -21,6 +21,10 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 - `onboard` em `podcast_clip` sem motor de legenda gera corte real com aviso explícito, sem legenda fixa.
 - Documentação sincronizada: SPEC §8, ROADMAP, GLOSSARY, README, `skill-media-producer` e referências refletem o estado entregue.
 
+### Documentação
+- **Catálogo de templates de legenda:** `skill-media-producer/references/caption-templates.md` documenta nove presets (MrBeast Yellow, TikTok White, Gold Stroke, Green Stroke, Neon Glitch, Minimal Lower Third, Red Stroke, Heavy White e Mono Clean), com fonte, cores, contorno, sombra, posição e animação, todos sem fundo sólido.
+- **Status explícito:** o CLI 1.4.0 expõe apenas `impact|word|full`; `--caption-template` e `captions[].template` ficam no backlog CLI-12.
+
 ---
 
 ## [1.3.1] - 2026-11-10

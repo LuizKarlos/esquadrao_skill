@@ -143,6 +143,11 @@ Orienta agentes a selecionar trechos de 30s a 60s (ajustáveis conforme a ideia)
 - Não existe comando `esquadrao studio batch` no CLI atual.
 - Múltiplos planos de edição são orquestrados externamente por meio de scripts de shell, Makefile ou automações, invocando sequencialmente ou em paralelo o comando `esquadrao studio render <editplan.json>` para cada plano (lacuna CLI-07 no §8).
 
+#### 2.2.14. Catálogo de Templates de Legenda
+- O catálogo canônico de nove presets visuais está em [`skill-media-producer/references/caption-templates.md`](./skill-media-producer/references/caption-templates.md).
+- Os presets definem fonte, preenchimento, contorno, sombra, posição, animação e fallback, sempre **sem fundo sólido**.
+- **Estado:** nove presets de referência validados em grid 3×3; o CLI 1.4.0 expõe apenas `--caption-style impact|word|full`. A flag `--caption-template` e o campo `captions[].template` do EditPlan estão planejados no backlog **CLI-12**.
+
 ### 2.3. Configuração Multi-Harness (`esquadrao setup`)
 Distribui as 18 skills empacotadas para os diretórios locais dos diferentes agentes de IA presentes no workspace do usuário:
 - **Grok Build:** `.agents/skills/`
@@ -262,6 +267,7 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.4.0) foi execu
 | Binário canônico e alias | Parcial | Higienização | Binário `esquadrao` ativo; alias legado `esquadrao-skill` ainda exposto. | CLI-09 |
 | Interface CLI (`--help`) | Parcial | Documentação | Flags `--broll` e `--music` operacionais mas ausentes no texto de ajuda. | CLI-10 |
 | Documentação do estúdio | Corrigido | Sincronizado | Estrutura de pastas e métricas de teste alinhadas aos fatos reais. | CLI-11 |
+| Templates de legenda (9 presets) | Especificado | Pendente | Catálogo em `skill-media-producer/references/caption-templates.md`; o CLI 1.4.0 expõe só `impact`, `word` e `full`. | CLI-12 |
 
 ### 8.3. Backlog Técnico Priorizado
 
@@ -296,6 +302,9 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.4.0) foi execu
 - **CLI-08: Matriz de integração contínua multiplataforma**
   *Contexto:* A suíte de testes é executada apenas em ambiente Linux x86_64 na esteira atual.
   *Meta:* Adicionar runners de Windows e macOS na esteira de CI validando a resolução de caminhos e binários FFmpeg.
+- **CLI-12: Motor nativo de templates de legenda**
+  *Contexto:* Os nove presets de `skill-media-producer/references/caption-templates.md` foram validados em grid 3×3, mas o CLI só oferece `impact`, `word` e `full`; não há flag nem campo de EditPlan para escolher um template.
+  *Meta:* Implementar `--caption-template <id>` e `captions[].template`, com validação de ID, fallback de fonte, renderização sem fundo sólido e teste por template.
 
 #### Prioridade P2 (Polimento de Interface e Higiene de Repositório)
 - **CLI-09: Depreciação e remoção do alias legado `esquadrao-skill`**

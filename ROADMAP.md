@@ -145,6 +145,9 @@
 - [ ] **CLI-08: Matriz de integração contínua multiplataforma**
   *Critério de aceite:* Validar execução de testes em ambientes Windows e macOS no GitHub Actions.
 
+- [ ] **CLI-12: Motor nativo de templates de legenda**
+  *Critério de aceite:* Implementar `--caption-template <id>` e `captions[].template` com os nove IDs de [`references/caption-templates.md`](./skill-media-producer/references/caption-templates.md), fallback de fontes e teste de render por template.
+
 ### Prioridade P2 (Polimento de Interface e Higiene de Repositório)
 - [ ] **CLI-09: Depreciação e remoção do alias legado `esquadrao-skill`**
   *Critério de aceite:* Remover o alias do campo `bin` no `package.json`, expondo exclusivamente o comando canônico `esquadrao`.
