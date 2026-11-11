@@ -113,7 +113,7 @@ Fornece o pipeline operacional de criação, importação de mídias, renderiza�
 O contrato `EditPlan v1` estende o suporte a cenas de apoio (`overlays`) aplicadas sobre a timeline contígua:
 - **`layout: "fullscreen"` (Padrão, entregue):** O B-roll preenche 100% da tela durante 2 a 4 segundos enquanto o áudio da voz principal continua ativo sem interrupção.
 - **`layout: "pip"` (Picture-in-Picture, entregue):** O B-roll é renderizado em janela flutuante centralizada sobre o orador.
-- **`layout: "split_bottom"` (Entregue):** Tela dividida com orador no topo e B-roll na metade inferior.
+- **`layout: "split_bottom"` (Parcial):** O renderizador sabe dividir a tela com orador no topo e B-roll na metade inferior, mas o layout é um **overlay com janela de tempo**; o `auto-clip --broll` grava `fullscreen` fixo e não expõe `--layout`. Split permanente de duração total só é possível via `EditPlan` manual + `studio render` (lacuna CLI-13 no §8).
 - **`layout: "split_top"` (Pendente):** Aceito na validação do schema, mas o pipeline atual renderiza como fallback para `fullscreen` (lacuna CLI-06 no §8).
 
 #### 2.2.9. Trilha Sonora de Fundo e Atenuação de Áudio
@@ -147,6 +147,13 @@ Orienta agentes a selecionar trechos de 30s a 60s (ajustáveis conforme a ideia)
 - O catálogo canônico de nove presets visuais está em [`skill-media-producer/references/caption-templates.md`](./skill-media-producer/references/caption-templates.md).
 - Os presets definem fonte, preenchimento, contorno, sombra, posição, animação e fallback, sempre **sem fundo sólido**.
 - **Estado:** implementado no CLI 1.5.0. `--caption-template <id>` em `auto-clip`/`render` e `captions[].template` no EditPlan aplicam os nove presets; IDs inválidos falham com código 1 e lista de opções. `--caption-style impact|word|full` permanece como legado.
+
+#### 2.2.15. Composições Especiais: Split Permanente e Recorte de Pessoa
+- O CLI 1.5.0 **não** possui comando de split permanente nem de recorte de pessoa com troca de fundo.
+- **Split permanente:** `split_bottom` é um overlay temporário de B-roll. Para manter o pack na base durante todo o clipe, é necessário montar um `EditPlan` manual com overlay de duração total e chamar `studio render`; o `auto-clip --broll` não oferece `--layout` e fixa `fullscreen` (CLI-13).
+- **Recorte de pessoa:** não há segmentação, chroma key, máscara alfa ou composição de pack atrás do orador. O protótipo validado usou `rembg`/`u2net_human_seg` + OpenCV + FFmpeg fora do CLI; custo de ~8 min de CPU por 60 s em 15 fps e halo em cabelo/fone (CLI-14).
+- **Regra de comunicação:** enquanto CLI-13/CLI-14 não forem entregues, README, SKILL.md, landing page e respostas de agentes não devem afirmar que o CLI faz esses formatos nativamente.
+- **Especificação completa, comandos propostos e critérios de aceite:** [`skill-media-producer/references/composicoes-especiais.md`](./skill-media-producer/references/composicoes-especiais.md).
 
 ### 2.3. Configuração Multi-Harness (`esquadrao setup`)
 Distribui as 18 skills empacotadas para os diretórios locais dos diferentes agentes de IA presentes no workspace do usuário:
@@ -257,8 +264,10 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.5.0) foi execu
 | `auto-clip` local / sem chaves | Entregue | Operacional | `--local` exige a dependência opcional; sem qualquer fonte, falha com código 1; `--no-captions` gera corte explícito. | CLI-02, CLI-03 |
 | `studio transcribe` local | Entregue (opcional) | Operacional | Motor local via `optionalDependencies`; ausência gera diagnóstico acionável. | CLI-04 |
 | B-roll `fullscreen` e `pip` | Entregue | Operacional | Aplica overlays de tela cheia ou janela flutuante sobre a voz. | §2.2.8 |
-| B-roll `split_bottom` | Entregue | Operacional | Divide tela com orador no topo e B-roll na metade inferior. | §2.2.8 |
+| B-roll `split_bottom` | Parcial | Overlay temporário | O renderizador divide a tela, mas o layout é uma janela de B-roll; `auto-clip --broll` fixa `fullscreen` e não há split permanente. | §2.2.8 / CLI-13 |
 | B-roll `split_top` | Parcial | Lacuna | Aceito na validação do plano, mas renderizado em tela cheia (fallback). | CLI-06 |
+| Split permanente no `auto-clip` | Pendente | Lacuna | `split_bottom` só existe como overlay temporário; `auto-clip --broll` fixa `fullscreen`; sem flag de layout. | CLI-13 |
+| Recorte de pessoa (cutout) | Pendente | Não implementado | Sem segmentação, chroma key ou troca de fundo; protótipo externo com `rembg`. | CLI-14 |
 | Música de fundo com atenuação | Entregue | Operacional | Aplica atenuação estática de -22dB e mixagem via filtro `amix`. | §2.2.9 |
 | Audio ducking dinâmico | Pendente | Não implementado | Sidechain ducking via compressor não existe no código de render. | CLI-05 |
 | `studio find-hooks` | Entregue | Heurística | Classifica segmentos de texto por heurística determinística de copy. | §2.2.11 |
@@ -306,6 +315,10 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.5.0) foi execu
   *Status:* **RESOLVIDO em 1.5.0** — `--caption-template`, `captions[].template`, listagem JSON e validação de IDs; testes em `tests/caption_templates.test.js`.
   *Contexto:* Os nove presets de `skill-media-producer/references/caption-templates.md` foram validados em grid 3×3, mas o CLI só oferece `impact`, `word` e `full`; não há flag nem campo de EditPlan para escolher um template.
   *Meta:* Implementar `--caption-template <id>` e `captions[].template`, com validação de ID, fallback de fonte, renderização sem fundo sólido e teste por template.
+- **CLI-13: Split permanente no `auto-clip`**
+  *Status:* **PENDENTE** — `split_bottom` existe no renderizador, mas só como overlay temporário; `auto-clip --broll` fixa `fullscreen` e não há `--layout`.
+  *Contexto:* O formato "podcast em cima + pack embaixo" é obtido hoje apenas com `EditPlan` manual e `studio render`.
+  *Meta:* Expor `--layout split_bottom` e duração de overlay total no `auto-clip`, com pack silenciado, loop/corte e teste de render.
 
 #### Prioridade P2 (Polimento de Interface e Higiene de Repositório)
 - **CLI-09: Depreciação e remoção do alias legado `esquadrao-skill`**
@@ -317,6 +330,10 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.5.0) foi execu
 - **CLI-11: Alinhamento contínuo de referências documentais**
   *Contexto:* Documentações anteriores citavam diretórios inexistentes (`editplans/`, `renders/`, `qa/`) e contagens desatualizadas de testes.
   *Meta:* Manter testes automatizados de documentação prevenindo descompassos entre o código e as especificações.
+- **CLI-14: Recorte de pessoa com troca de fundo (cutout)**
+  *Status:* **PENDENTE / EXPERIMENTAL** — nenhum comando ou dependência no CLI; protótipo externo validado com `rembg` + OpenCV + FFmpeg.
+  *Contexto:* O formato "pessoa recortada sobre pack" exige segmentação por frame, máscara alfa, composição e correção de cor RGB/BGR; custo de CPU alto e halo em cabelo/fone.
+  *Meta:* Avaliar `studio cutout` com `--background`, motor `rembg` opcional, cache de máscaras, erro acionável e teste de cor; não empacotar modelo sem decisão de licença/tamanho.
 
 ### 8.4. Critérios de Aceite para Resolução do Backlog
 1. **P0 Resolvido:** `onboard --mode podcast_clip` processa áudio real ou encerra com instrução acionável; falhas de transcrição local emitem saída de erro diagnóstica com código diferente de zero;

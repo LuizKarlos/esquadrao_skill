@@ -34,6 +34,9 @@ A tabela a seguir estabelece as equivalências obrigatórias entre os conceitos 
 | `esquadrao studio find-hooks` | **Detector de Ganchos Virais** | Heurística determinística de copy baseada em pontuação de frases (perguntas e marcadores) para sugerir cortes de 30-60s; não é garantia de viralidade. |
 | `esquadrao studio transcribe` | **Transcrição Estruturada** | Extração de áudio e transcrição estruturada com timestamps para análise de copy (requer `--captions` SRT, `--openai` com API key ou `--local` via `@xenova/transformers`). |
 | `B-Roll Overlay` | **Cena de Apoio Dinâmica** | Imagem ou vídeo sobreposto à fala em tela cheia (`fullscreen`), janela (`pip`) ou tela dividida (`split_bottom`); `split_top` é aceito no schema mas renderiza como fullscreen (CLI-06). |
+| `Split permanente` | **Tela Dividida Contínua** | Orador no topo e pack na base durante todo o clipe. O CLI 1.5.0 só tem `split_bottom` como overlay temporário; o formato contínuo está previsto em CLI-13. |
+| `Cutout` / `Recorte de pessoa` | **Pessoa Sobre Fundo Trocado** | Segmentação da pessoa por frame para removê-la do fundo e compô-la sobre um pack. Não implementado no CLI; protótipo externo com `rembg` e OpenCV, previsto em CLI-14. |
+| `Pack de fundo` | **Vídeo de Apoio ao Cutout** | Vídeo do catálogo usado atrás da pessoa recortada; deve ser silenciado, repetido/cortado e escolhido pelo tema da fala. |
 | `Audio Ducking` | **Atenuação de Trilha** | Redução fixa de -22dB via `amix`; ducking dinâmico por sidechain pendente (CLI-05). |
 | `Gancho de Retenção` | **Hook de Abertura (0-3s)** | Primeiro trecho selecionado pela copy para prender a atenção e maximizar a retenção. |
 | `esquadrao studio detect-silence` | **Detector de Silêncios** | Análise por FFmpeg silencedetect para identificar pausas e duração de fala ativa. |

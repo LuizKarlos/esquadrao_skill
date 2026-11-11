@@ -147,6 +147,8 @@
 
 - [x] **CLI-12: Motor nativo de templates de legenda** — resolvido em 1.5.0; `--caption-template` e `captions[].template`.
   *Critério de aceite:* Implementar `--caption-template <id>` e `captions[].template` com os nove IDs de [`references/caption-templates.md`](./skill-media-producer/references/caption-templates.md), fallback de fontes e teste de render por template.
+- [ ] **CLI-13: Split permanente no `auto-clip`**
+  *Critério de aceite:* `auto-clip --broll pack.mp4 --layout split_bottom` gera 1080×1920 com orador no topo e pack na base durante todo o clipe, pack silenciado e em loop, áudio original preservado e teste de render.
 
 ### Prioridade P2 (Polimento de Interface e Higiene de Repositório)
 - [ ] **CLI-09: Depreciação e remoção do alias legado `esquadrao-skill`**
@@ -155,6 +157,8 @@
   *Critério de aceite:* Documentar flags `--broll` e `--music` na saída de `esquadrao studio auto-clip --help`.
 - [ ] **CLI-11: Alinhamento contínuo de referências documentais**
   *Critério de aceite:* Manter métricas de teste (87 testes), contagem de lint (37 arquivos) e estrutura real do estúdio sincronizadas nos testes de documentação.
+- [ ] **CLI-14: Recorte de pessoa com troca de fundo (cutout)**
+  *Critério de aceite:* Avaliar `studio cutout --background pack.mp4 --engine rembg` com dependências opcionais, máscara por frame, correção RGB/BGR, erro acionável sem `rembg`, cache de máscaras e teste de fixture curto. Custo de CPU e licença do modelo documentados antes de promover.
 
 ### Critérios de Aceite Globais
 - **P0 Resolvido:** `podcast_clip` executa corte dinâmico real e ausência de legendas bloqueia renderização com código de erro.

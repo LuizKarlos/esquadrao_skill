@@ -343,6 +343,8 @@ All scripts run directly with Node.js stdlib (zero dependencies):
 - **Sem processamento em lote nativo:** não há comando `batch`; renderizações em lote devem ser orquestradas externamente via chamadas sucessivas de `esquadrao studio render`.
 - **Ducking de áudio fixo:** a opção `ducking: true` em `music_tracks` aplica atenuação fixa de volume em `-22dB` via filtro `amix`; ducking dinâmico via sidechain está pendente de implementação (CLI-05).
 - **Layout de overlay `split_top`:** embora aceito na validação do schema do EditPlan, o pipeline de renderização trata apenas `fullscreen`, `pip` e `split_bottom`; overlays com `split_top` são renderizados como tela cheia (`fullscreen`) (CLI-06).
+- **Split permanente:** `split_bottom` existe no renderizador, mas é um overlay temporário de B-roll. `auto-clip --broll` fixa `fullscreen` e não expõe `--layout`; para manter o pack na base durante todo o clipe é preciso montar um `EditPlan` manual com overlay de duração total e chamar `studio render` (CLI-13).
+- **Recorte de pessoa com troca de fundo:** não existe no CLI. Não há segmentação, chroma key, máscara alfa nem composição de pack atrás do orador; o protótipo validado usou `rembg` + OpenCV + FFmpeg fora do CLI (CLI-14). Detalhes e critérios em [`skill-media-producer/references/composicoes-especiais.md`](./skill-media-producer/references/composicoes-especiais.md).
 - **Alias legado no package.json:** o binário canônico oficial é `esquadrao`; o alias `esquadrao-skill` ainda consta no campo `bin` do `package.json` para compatibilidade retroativa e sua remoção está mapeada em backlog (CLI-09).
 
 ## Testing

@@ -312,7 +312,9 @@ esquadrao studio auto-clip ./caminho/meu-video.mp4 --dest ./workspace --json
    - `music_tracks.ducking`: Aplica atenuação estática de volume (`-22dB` via mixagem `amix`), e não ducking dinâmico sidechain (backlog CLI-05).
 6. **Overlays e Layouts:**
    - Layouts funcionais no renderizador: `fullscreen`, `pip` e `split_bottom`.
+   - `split_bottom` é um **overlay temporário** de B-roll (janela de tempo), não um split permanente de todo o clipe. `auto-clip --broll` fixa `fullscreen` e não expõe `--layout`; split contínuo depende de `EditPlan` manual + `studio render` (CLI-13).
    - O layout `split_top` é aceito no schema de validação, mas não está implementado no renderizador atual (cai em tela cheia; pendente no backlog CLI-06).
+   - **Recorte de pessoa com troca de fundo:** não existe no CLI. Não prometa cutout/green screen; o protótipo usou `rembg` + OpenCV + FFmpeg fora do CLI (CLI-14). Detalhes em [`references/composicoes-especiais.md`](./references/composicoes-especiais.md).
 7. **Verificação Técnica Independente:** Sempre execute `studio qa` com `--plan` para validar integridade antes de concluir a tarefa.
 8. **Onboarding Real:** O comando `esquadrao onboard --mode podcast_clip` usa o pipeline real de `auto-clip`; os modos `dark` e `edit_only` continuam gerando planos guiados.
 

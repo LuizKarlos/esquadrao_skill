@@ -6,6 +6,15 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 
 ---
 
+## [Não lançado]
+
+### Documentação
+- **Composições especiais:** documentados o split permanente (CLI-13) e o recorte de pessoa com troca de fundo (CLI-14), com estado real, limites, comandos propostos e critérios de aceite em `skill-media-producer/references/composicoes-especiais.md`.
+- **Split `split_bottom`:** esclarecido que é overlay temporário; `auto-clip --broll` fixa `fullscreen` e não expõe `--layout`.
+- **Cutout:** registrado como não implementado; protótipo externo com `rembg`/OpenCV/FFmpeg, incluindo o cuidado de cor RGB/BGR e o custo de CPU.
+
+---
+
 ## [1.5.0] - 2026-11-11
 
 ### Adicionado
