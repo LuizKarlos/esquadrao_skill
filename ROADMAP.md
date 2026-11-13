@@ -115,10 +115,10 @@
   - [x] Testes unitários com cobertura total de 95 testes (skips condicionais de Whisper local).
   - [x] Linting nativo `node scripts/lint.js` aprovado em todos os 40 arquivos.
   - [x] Documentação canônica integrada (`SPEC.md`, `ROADMAP.md`, `GLOSSARY.md`, `README.md`).
-  - [ ] Abertura do repositório para visibilidade pública no GitHub.
-  - [x] Publicação do pacote no registro npm oficial (`@esquadrao/cli@1.6.0`, staged e aprovado com 2FA em 2026-11-11).
+  - [x] Abertura do repositório para visibilidade pública no GitHub (`LuizKarlos/esquadrao_skill` público).
+  - [x] Publicação do pacote no registro npm oficial (`@esquadrao/cli@1.7.0` publicado e ativo em latest).
 - [ ] **5.2. Validação Externa em Diretório Limpo:**
-  - [x] Execução de teste em ambiente limpo via `npx @esquadrao/cli@1.6.0 --version` e instalação global com `setup` + `onboard --mode dark` (1080x1920, QA aprovado).
+  - [x] Execução de teste em ambiente limpo via `npx @esquadrao/cli@1.7.0 --version` e instalação global com `setup` + `onboard --mode dark` (1080x1920, QA aprovado).
   - [ ] Verificação de integração pós-compra no painel do funil (`/app` com `NEXT_PUBLIC_CLI_NPM_PUBLISHED=true`); render do Estado 2 validado, fluxo pós-compra real pendente.
 
 ---
