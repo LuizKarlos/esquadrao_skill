@@ -35,7 +35,9 @@ jobs:
 
       - name: Install FFmpeg (macOS)
         if: runner.os == 'macOS'
-        run: brew install ffmpeg
+        run: |
+          brew tap homebrew-ffmpeg/ffmpeg
+          brew install homebrew-ffmpeg/ffmpeg/ffmpeg --with-freetype --with-fontconfig || brew install ffmpeg
 
       - name: Verify FFmpeg
         run: |
