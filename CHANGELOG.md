@@ -6,6 +6,25 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 
 ---
 
+## [1.7.0] - 2026-11-11
+
+### Adicionado
+- **Layout `split_top` (CLI-06):** orador na metade inferior e pack na metade superior, com loop e áudio original; disponível em `auto-clip --layout split_top` e no EditPlan.
+- **Renderização em lote (CLI-07):** `esquadrao studio batch <dir>` renderiza todos os planos `*.json` do diretório em sequência e agrega o relatório de QA; `--stop-on-error` interrompe na primeira falha.
+- **Ducking dinâmico (CLI-05):** `ducking: true` usa `sidechaincompress` com a fala como chave; `ducking: false` mantém a atenuação fixa de -22 dB via `amix`.
+- **Whisper local real (CLI-04):** áudio convertido para PCM 16 kHz e passado como `Float32Array` ao `@xenova/transformers`; teste opt-in em `tests/local_whisper.integration.test.js` e job `local-whisper` no GitHub Actions.
+- **CI multiplataforma (CLI-08):** matriz Ubuntu, Windows e macOS.
+
+### Alterado
+- **Binário único (CLI-09):** removido o alias `esquadrao-skill` do `package.json`; apenas `esquadrao` é exposto.
+- **Testes de documentação (CLI-11):** `tests/documentation.test.js` verifica versão, binário, perfil e flags do `--help`.
+
+### Testes
+- 94 testes ativos + 1 opt-in de Whisper local; lint em 39 arquivos.
+- Novos testes de split_top, batch, sidechain e documentação.
+
+---
+
 ## [1.6.0] - 2026-11-11
 
 ### Adicionado

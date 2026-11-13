@@ -39,6 +39,7 @@ const { values: flags, positionals } = parseArgs({
     python: { type: 'string' },
     'min-dur': { type: 'string' },
     'max-dur': { type: 'string' },
+    'stop-on-error': { type: 'boolean' },
   },
   allowPositionals: true,
   strict: false,
@@ -62,7 +63,7 @@ Usage:
 Commands:
   setup       Instala os skills nos ambientes de agentes (.agents, .claude, .codex, .cursor)
   role        Lista, inspeciona e executa papéis canônicos da esteira
-  studio      Estúdio local de vídeo: init, import, render, qa, auto-clip, cutout, caption-templates
+  studio      Estúdio local de vídeo: init, import, render, qa, batch, auto-clip, cutout, caption-templates
   onboard     Guia interativo: da mídia bruta ao primeiro corte renderizado
   version     Exibe a versão do CLI
   help        Exibe mensagens de ajuda
@@ -85,7 +86,7 @@ Options:
   --no-captions             Gerar corte sem legendas (pula transcrição)
   --broll <file>            Arquivo de B-roll/cena de apoio (pode ser repetido)
   --music <file.mp3>        Arquivo de música de fundo para ducking
-  --layout <layout>         Layout do B-roll: fullscreen, pip ou split_bottom
+  --layout <layout>         Layout do B-roll: fullscreen, pip, split_bottom ou split_top
   --overlay-duration <mode> inserts (2-4s) ou full (todo o clipe)
   --background <file>       Pack de fundo para studio cutout
   --engine <rembg>          Motor de recorte de pessoa (padrão: rembg)

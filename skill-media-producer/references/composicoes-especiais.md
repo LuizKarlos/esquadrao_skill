@@ -16,7 +16,7 @@ esquadrao studio auto-clip entrada.mp4 \
 
 Regras:
 
-- `--layout` aceita `fullscreen`, `pip` e `split_bottom`. `split_top` continua pendente (CLI-06).
+- `--layout` aceita `fullscreen`, `pip`, `split_bottom` e `split_top` (CLI-06 resolvido em 1.7.0).
 - `--overlay-duration inserts` (padrão) distribui B-rolls de 2–4 s; `full` usa o primeiro `--broll` durante toda a linha do tempo.
 - O pack é silenciado e repetido em loop; se for mais longo que o clipe, é cortado.
 - O áudio do orador é preservado; o pack não entra no mix.
@@ -27,7 +27,7 @@ Limites:
 
 - Apenas o primeiro `--broll` é usado no modo `full`; os demais são ignorados com aviso.
 - O pack não é escolhido automaticamente por tema; a seleção é editorial.
-- `split_top` não está implementado.
+- `split_top` está implementado: orador na metade inferior e pack na superior.
 
 Critérios de aceite:
 
@@ -36,7 +36,7 @@ Critérios de aceite:
 - [x] Áudio original preservado; pack silenciado.
 - [x] `--help` documenta `--layout` e `--overlay-duration`.
 - [x] Teste de render em `tests/autoclip.test.js` verifica plano, loop e QA.
-- [ ] `split_top` (CLI-06).
+- [x] `split_top` (CLI-06, 1.7.0).
 
 ## 2. Recorte de pessoa com troca de fundo (cutout)
 
@@ -90,7 +90,7 @@ Critérios de aceite:
 
 - Pode afirmar que o CLI 1.6.0 faz split permanente e cutout, **desde que** qualifique o cutout como experimental e informe as dependências Python e o custo de CPU.
 - Não prometa tempo real, qualidade de estúdio ou ausência total de halo.
-- `split_top` e ducking dinâmico continuam pendentes.
+- `split_top` e ducking dinâmico foram entregues em 1.7.0; o cutout segue experimental.
 
 ## 4. Evidências
 

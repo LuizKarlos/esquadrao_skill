@@ -161,12 +161,12 @@ Para evitar que o corte fique monótono ("cabeça falante"), a LLM insere B-roll
 - **`layout: "fullscreen"` (Padrão):** Insira a cada 5 a 8 segundos cenas de apoio temáticas (ex: dinheiro, mansões, carros, trabalho) cobrindo 100% da tela durante 2 a 3 segundos, mantendo a voz do orador contínua.
 - **`layout: "split_bottom"` (Dupla Retenção):** Para canais de alta velocidade (TikTok/Shorts), divida a tela com o orador em cima e o vídeo de apoio/pack embaixo. Use `--overlay-duration full` para manter o pack na base durante todo o clipe; sem essa flag, o layout é uma janela de B-roll de 2–4 s.
 - **`layout: "pip"` (Picture-in-Picture):** Quando o orador estiver apontando para um objeto ou reagindo a algo.
-- **`layout: "split_top"` (Pendente / Backlog CLI-06):** Previsto no schema (orador embaixo e B-roll em cima), porém não implementado no renderizador atual (cai em tela cheia). O agente deve utilizar `"split_bottom"`, `"fullscreen"` ou `"pip"`.
+- **`layout: "split_top"` (Entregue em 1.7.0):** Orador embaixo e B-roll em cima, com loop. Use `--overlay-duration full` para manter o pack durante todo o clipe.
 - **Recorte de pessoa / cutout (experimental / CLI-14):** `studio cutout --background <pack> --python <interpretador>` remove o fundo e compõe o pack atrás do orador. Exige Python com `rembg`/OpenCV e custa ~18–20 min de CPU por 60 s em 15 fps; não prometa tempo real. Consulte [`composicoes-especiais.md`](./composicoes-especiais.md).
 
 ### Passo 4: Trilha Sonora com Ducking
 Importe a música de fundo e configure a atenuação de volume:
-- **Atenuação Estática de Volume:** A propriedade `ducking: true` em `music_tracks` aplica uma redução fixa de `-22dB` via mixagem `amix`. Não se trata de ducking dinâmico por sidechain com compressão em tempo real sobre a voz (previsto no backlog CLI-05). O volume fixo reduz a trilha para não encobrir a fala.
+- **Ducking Dinâmico:** A propriedade `ducking: true` em `music_tracks` usa `sidechaincompress` com a fala como chave. Com `ducking: false`, aplica redução fixa de `-22 dB` via `amix` (CLI-05 resolvido em 1.7.0).
 
 ### Passo 5: Geração do EditPlan Completo e Renderização
 Exemplo canônico de EditPlan com cortes, B-rolls, música e legendas estilo impacto:

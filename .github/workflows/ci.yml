@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches: ["**"]
   pull_request:
@@ -12,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [18, 20, 22]
 
     steps:
@@ -32,6 +33,10 @@ jobs:
         if: runner.os == 'Windows'
         run: choco install ffmpeg -y
 
+      - name: Install FFmpeg (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
+
       - name: Verify FFmpeg
         run: |
           ffmpeg -version
@@ -45,3 +50,32 @@ jobs:
 
       - name: Test
         run: npm test
+
+  local-whisper:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install optional local engine
+        run: |
+          npm ci --include=optional
+          npm rebuild sharp
+
+      - name: Download speech fixture
+        run: curl -sL -o /tmp/jfk.wav https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/jfk.wav
+
+      - name: Real local Whisper test
+        env:
+          ESQUADRAO_LOCAL_WHISPER: "1"
+          ESQUADRAO_WHISPER_SAMPLE: /tmp/jfk.wav
+        run: node --test tests/local_whisper.integration.test.js

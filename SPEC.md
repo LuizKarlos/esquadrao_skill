@@ -2,7 +2,7 @@
 
 > **Repositório:** `LuizKarlos/esquadrao_skill`  
 > **Funil Integrado:** `LuizKarlos/esquadrao_funil`  
-> **Versão:** 1.6.0\
+> **Versão:** 1.7.0\
 > **Status:** Ativo / Homologado  
 > **Pacote npm:** `@esquadrao/cli`  
 > **Nome Comercial:** Esquadrão de Conteúdo  
@@ -105,7 +105,7 @@ Fornece o pipeline operacional de criação, importação de mídias, renderiza�
 
 #### 2.2.7. `esquadrao studio transcribe <video.mp4> [opções]`
 - Extrai áudio de gravações longas (podcasts de 30min a 2h) e executa transcrição estruturada com Whisper via API OpenAI ou motor local.
-- *Motor local:* compartilha `transcribeAudio`; `@xenova/transformers` é `optionalDependencies`. Se o pacote não estiver instalado, `--local` retorna erro acionável (diagnóstico CLI-04).
+- *Motor local:* compartilha `transcribeAudio`; `@xenova/transformers` é `optionalDependencies`. O áudio é convertido para PCM 16 kHz e transcrito localmente; ausência do pacote ou falha do binário `sharp` retorna erro acionável (CLI-04 resolvido em 1.7.0).
 - Gera `workspace/packages/transcript.json` com segmentos temporais exatos (`start_s`, `end_s`, `text`) e marcações de palavras, além de exportar `.srt`.
 - Permite que modelos de linguagem analisem o conteúdo textual estruturado para seleção de cortes.
 
@@ -114,11 +114,11 @@ O contrato `EditPlan v1` estende o suporte a cenas de apoio (`overlays`) aplicad
 - **`layout: "fullscreen"` (Padrão, entregue):** O B-roll preenche 100% da tela durante 2 a 4 segundos enquanto o áudio da voz principal continua ativo sem interrupção.
 - **`layout: "pip"` (Picture-in-Picture, entregue):** O B-roll é renderizado em janela flutuante centralizada sobre o orador.
 - **`layout: "split_bottom"` (Entregue em 1.6.0):** O renderizador divide a tela com orador no topo e B-roll na metade inferior. O `auto-clip` aceita `--layout split_bottom` e `--overlay-duration full`; o pack é repetido em loop e cobre toda a linha do tempo, com áudio original preservado.
-- **`layout: "split_top"` (Pendente):** Aceito na validação do schema, mas o pipeline atual renderiza como fallback para `fullscreen` (lacuna CLI-06 no §8).
+- **`layout: "split_top"` (Entregue em 1.7.0):** O orador ocupa a metade inferior e o B-roll a metade superior; `auto-clip` aceita `--layout split_top` e o pack é repetido em loop.
 
 #### 2.2.9. Trilha Sonora de Fundo e Atenuação de Áudio
 - O estúdio aceita arquivos de música de fundo via catálogo de áudio ou arquivos importados pelo usuário (`music_tracks`).
-- O plano aceita o parâmetro `ducking`, mas a implementação atual aplica atenuação estática fixa de -22dB somada via filtro `amix`. Ducking dinâmico via sidechain não está implementado (lacuna CLI-05 no §8).
+- O plano aceita o parâmetro `ducking`; quando verdadeiro, o áudio da fala é usado como sidechain no filtro `sidechaincompress`, reduzindo a música apenas nos intervalos de voz. `ducking: false` mantém a atenuação fixa de -22 dB via `amix` (CLI-05 resolvido em 1.7.0).
 
 #### 2.2.10. Metodologia de Copy para Agentes de IA em Vídeos Longos
 Orienta agentes a selecionar trechos de 30s a 60s (ajustáveis conforme a ideia) com 3 pilares editoriais:
@@ -137,12 +137,12 @@ Orienta agentes a selecionar trechos de 30s a 60s (ajustáveis conforme a ideia)
 
 #### 2.2.12. Auto-Clip com B-Rolls e Trilha Sonora
 - O comando `esquadrao studio auto-clip` aceita as flags `--broll <arquivo>` (múltiplas cenas), `--music <arquivo>`, `--layout <fullscreen|pip|split_bottom>` e `--overlay-duration <inserts|full>`.
-- Quando informados, o estúdio distribui as cenas de apoio sobre a fala (mantendo a voz ininterrupta) e aplica a música com atenuação fixa de -22dB via `amix`. Ducking dinâmico via sidechain não está implementado (lacuna CLI-05 no §8).
+- Quando informados, o estúdio distribui as cenas de apoio sobre a fala (mantendo a voz ininterrupta) e aplica a música com ducking dinâmico por sidechain quando `ducking: true`; sem ducking, usa atenuação fixa de -22 dB via `amix`.
 - Com `--overlay-duration full`, o primeiro `--broll` cobre toda a linha do tempo e é repetido em loop; com `split_bottom`, o resultado é o split permanente (orador no topo, pack na base).
 
 #### 2.2.13. Renderização em Lote
-- Não existe comando `esquadrao studio batch` no CLI atual.
-- Múltiplos planos de edição são orquestrados externamente por meio de scripts de shell, Makefile ou automações, invocando sequencialmente ou em paralelo o comando `esquadrao studio render <editplan.json>` para cada plano (lacuna CLI-07 no §8).
+- O comando `esquadrao studio batch <dir>` varre os arquivos `*.json` do diretório, renderiza cada plano sequencialmente e agrega o relatório de QA (CLI-07 resolvido em 1.7.0).
+- A renderização permanece sequencial; paralelismo pode ser orquestrado externamente para volumes maiores.
 
 #### 2.2.14. Catálogo de Templates de Legenda
 - O catálogo canônico de nove presets visuais está em [`skill-media-producer/references/caption-templates.md`](./skill-media-producer/references/caption-templates.md).
@@ -150,9 +150,9 @@ Orienta agentes a selecionar trechos de 30s a 60s (ajustáveis conforme a ideia)
 - **Estado:** implementado no CLI 1.5.0. `--caption-template <id>` em `auto-clip`/`render` e `captions[].template` no EditPlan aplicam os nove presets; IDs inválidos falham com código 1 e lista de opções. `--caption-style impact|word|full` permanece como legado.
 
 #### 2.2.15. Composições Especiais: Split Permanente e Recorte de Pessoa
-- **Split permanente (CLI-13, entregue em 1.6.0):** `esquadrao studio auto-clip <video> --no-captions --broll <pack> --layout split_bottom --overlay-duration full` gera 1080×1920 com o orador no topo e o pack na base durante todo o clipe. O pack é silenciado, repetido em loop e o áudio original é preservado. `split_top` continua pendente (CLI-06).
+- **Split permanente (CLI-13, entregue em 1.6.0):** `esquadrao studio auto-clip <video> --no-captions --broll <pack> --layout split_bottom --overlay-duration full` gera 1080×1920 com o orador no topo e o pack na base durante todo o clipe. O pack é silenciado, repetido em loop e o áudio original é preservado. `split_top` também está disponível desde 1.7.0 (CLI-06).
 - **Recorte de pessoa (CLI-14, entregue em 1.6.0 como opcional):** `esquadrao studio cutout <video> --background <pack> --python <interpretador>` recorta a pessoa com `rembg`/`u2net_human_seg`, refina a máscara com GrabCut e compõe sobre o pack. Requer `rembg`, `onnxruntime`, `opencv-python-headless`, `numpy` e Pillow no Python escolhido; sem eles, o comando falha com instrução acionável. Saída 9:16, 15 fps por padrão, áudio original; custo de ~18–20 min de CPU por 60 s.
-- **Limites:** o cutout é experimental, não tem cache de máscaras nem aceleração GPU; halo pode aparecer em cabelo/fone em frames difíceis. Split `split_top` e ducking dinâmico continuam pendentes.
+- **Limites:** o cutout é experimental, não tem cache de máscaras nem aceleração GPU; halo pode aparecer em cabelo/fone em frames difíceis.
 - **Especificação completa, comandos e critérios:** [`skill-media-producer/references/composicoes-especiais.md`](./skill-media-producer/references/composicoes-especiais.md).
 
 ### 2.3. Configuração Multi-Harness (`esquadrao setup`)
@@ -209,18 +209,18 @@ Todos os scripts são construídos com biblioteca padrão do Node.js e executam 
 
 ## 5. Garantia da Qualidade e Suíte de Testes
 
-A integridade do CLI é atestada deterministicamente pelo test runner nativo do Node.js (91 testes aprovados) e pelo linter (38 arquivos verificados):
+A integridade do CLI é atestada deterministicamente pelo test runner nativo do Node.js (95 testes, com skips condicionais para Whisper local e ausência do motor) e pelo linter (40 arquivos verificados):
 ```bash
 npm test
 npm run lint
 ```
 A suíte cobre:
-- CLI core: argumentos, ajuda, versão e códigos de erro de saída (91/91 testes verdes).
+- CLI core: argumentos, ajuda, versão e códigos de erro de saída (95 testes; skips condicionais de Whisper local).
 - Onboard em todos os 3 modos (`dark`, `edit_only`, `podcast_clip`).
 - Studio engine: integridade do `studio.json`, cancelamento via SIGINT, proteção de caracteres de legendas e validação de QA.
 - Oráculos de papéis e autoridades (12 papéis canônicos).
 - Testes de estresse com 50 nós lineares e paralelos nos scripts autônomos.
-- Verificação de estilo em 38 arquivos via lint sem pendências.
+- Verificação de estilo em 40 arquivos via lint sem pendências.
 
 ---
 
@@ -230,7 +230,7 @@ A suíte cobre:
 - **Status:** **CONFORMIDADE ESTABELECIDA**.
 - **Ações Realizadas:**
   1. Pacote npm: Marca canônica `@esquadrao/cli`.
-  2. Binários: binário canônico `esquadrao`; o alias legado `esquadrao-skill` ainda é exposto no `package.json` (pendência CLI-09).
+  2. Binários: binário canônico `esquadrao`; o alias legado `esquadrao-skill` foi removido do `package.json` em 1.7.0 (CLI-09).
   3. Manifesto do estúdio: Saneado para `esquadrao-studio`.
   4. Perfil do workspace: Saneado para `<workspace>/.esquadrao/profile.json` (com espelho em `studio.json`).
   5. Esteira de vídeo: Comandos atualizados para refletir o nome limpo.
@@ -240,9 +240,9 @@ A suíte cobre:
 ## 8. Registro de Auditoria de Capacidades (2026-11-11)
 
 ### 8.1. Método de Verificação e Evidências Operacionais
-A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.6.0) foi executada em 2026-11-11 por inspeção direta de código, verificação do manifesto e execução determinística de testes:
-1. **Suíte de Testes Unitários e Integração:** `npm test` executou 91 testes distribuídos em 13 arquivos de teste com 100% de aprovação (`91/91 pass, 0 fail`).
-2. **Auditoria Estática de Código:** `npm run lint` validou a conformidade sintática e estilística em 38 arquivos de código-fonte sem avisos ou falhas.
+A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.7.0) foi executada em 2026-11-11 por inspeção direta de código, verificação do manifesto e execução determinística de testes:
+1. **Suíte de Testes Unitários e Integração:** `npm test` executou 95 testes distribuídos em 15 arquivos de teste, com skips condicionais para Whisper local e ausência do motor (`0 fail`).
+2. **Auditoria Estática de Código:** `npm run lint` validou a conformidade sintática e estilística em 40 arquivos de código-fonte sem avisos ou falhas.
 3. **Inspeção de Estrutura do Estúdio:** Execução real de `esquadrao studio init` em diretório temporário isolado confirmou a criação exclusiva dos diretórios `assets/`, `packages/`, `artifacts/` e do arquivo `studio.json`. Os diretórios `editplans/`, `renders/` e `qa/` não são gerados pelo comando.
 4. **Inspeção de Dependências e Runtime:** O manifesto `package.json` declara `dependencies: {}` e `optionalDependencies: { "@xenova/transformers": "^2.17.2" }`. O motor local é opcional: se a instalação do pacote opcional falhar, `--local` retorna erro acionável e o restante do CLI permanece funcional.
 5. **Inventário de Papéis e Habilidades:** Validação via `esquadrao role list --json` confirmou os 12 papéis técnicos canônicos. O comando `esquadrao setup` distribui 18 skills empacotadas para os diretórios dos agentes suportados.
@@ -262,19 +262,19 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.6.0) foi execu
 | `auto-clip` com `--captions` | Entregue | Operacional | Sincroniza legendas SRT sobre corte de silêncio determinístico. | §2.2.6 |
 | `auto-clip` com `--openai` | Entregue | Operacional | Transcreve via API externa mediante presença de chave de acesso. | §2.2.6 |
 | `auto-clip` local / sem chaves | Entregue | Operacional | `--local` exige a dependência opcional; sem qualquer fonte, falha com código 1; `--no-captions` gera corte explícito. | CLI-02, CLI-03 |
-| `studio transcribe` local | Entregue (opcional) | Operacional | Motor local via `optionalDependencies`; ausência gera diagnóstico acionável. | CLI-04 |
+| `studio transcribe` local | Entregue (opcional) | Operacional | Motor local via `optionalDependencies`, PCM 16 kHz; teste real opt-in em `tests/local_whisper.integration.test.js`. | CLI-04 |
 | B-roll `fullscreen` e `pip` | Entregue | Operacional | Aplica overlays de tela cheia ou janela flutuante sobre a voz. | §2.2.8 |
 | B-roll `split_bottom` | Entregue | Operacional | `auto-clip --layout split_bottom --overlay-duration full` mantém orador no topo e pack na base, em loop. | §2.2.8 / CLI-13 |
-| B-roll `split_top` | Parcial | Lacuna | Aceito na validação do plano, mas renderizado em tela cheia (fallback). | CLI-06 |
+| B-roll `split_top` | Entregue | Operacional | Orador na metade inferior e pack na superior, com loop e áudio original. | CLI-06 |
 | Split permanente no `auto-clip` | Entregue | Operacional | `--layout split_bottom --overlay-duration full` mantém o pack na base em loop, com áudio original. | CLI-13 |
 | Recorte de pessoa (cutout) | Entregue (opcional) | Experimental | `studio cutout` recorta com `rembg`/GrabCut; requer Python e dependências; ~18–20 min/60 s em CPU. | §2.2.15 / CLI-14 |
 | Música de fundo com atenuação | Entregue | Operacional | Aplica atenuação estática de -22dB e mixagem via filtro `amix`. | §2.2.9 |
-| Audio ducking dinâmico | Pendente | Não implementado | Sidechain ducking via compressor não existe no código de render. | CLI-05 |
+| Audio ducking dinâmico | Entregue | Operacional | `ducking: true` usa `sidechaincompress` com a fala como chave. | CLI-05 |
 | `studio find-hooks` | Entregue | Heurística | Classifica segmentos de texto por heurística determinística de copy. | §2.2.11 |
-| Renderização em lote | Parcial | Orquestração externa | Não existe comando `batch`; requer loop externo de comandos. | CLI-07 |
-| Suporte multi-plataforma | Parcial | Lacuna | Validado em Linux; testes automatizados não cobrem Windows e macOS. | CLI-08 |
-| Binário canônico e alias | Parcial | Higienização | Binário `esquadrao` ativo; alias legado `esquadrao-skill` ainda exposto. | CLI-09 |
-| Interface CLI (`--help`) | Entregue | Operacional | Help 1.6.0 lista `--broll`, `--music`, `--layout`, `--overlay-duration`, `--background`, `--engine`, `--fps` e `--python`. | CLI-10 |
+| Renderização em lote | Entregue | Operacional | `studio batch <dir>` renderiza todos os planos e agrega QA. | CLI-07 |
+| Suporte multi-plataforma | Entregue | CI | Matriz GitHub Actions com Ubuntu, Windows e macOS. | CLI-08 |
+| Binário canônico e alias | Entregue | Higienização | Apenas o binário `esquadrao` é exposto no `package.json`. | CLI-09 |
+| Interface CLI (`--help`) | Entregue | Operacional | Help 1.7.0 lista `--broll`, `--music`, `--layout`, `--overlay-duration`, `--background`, `--engine`, `--fps`, `--python` e `--stop-on-error`. | CLI-10 |
 | Documentação do estúdio | Corrigido | Sincronizado | Estrutura de pastas e métricas de teste alinhadas aos fatos reais. | CLI-11 |
 | Templates de legenda (9 presets) | Entregue | Operacional | `--caption-template` e `captions[].template` aplicam os nove presets, sem fundo sólido. | CLI-12 |
 
@@ -296,19 +296,23 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.6.0) foi execu
 
 #### Prioridade P1 (Completude Funcional do Pipeline de Mídia)
 - **CLI-04: Resiliência e diagnóstico na transcrição local (`studio transcribe`)**
-  *Status:* **PARCIALMENTE RESOLVIDO em 1.4.0** — erros acionáveis implementados; falta teste com o motor local real em CI.
+  *Status:* **RESOLVIDO em 1.7.0** — áudio convertido para PCM 16 kHz, teste real opt-in em `tests/local_whisper.integration.test.js` e job `local-whisper` no GitHub Actions.
   *Contexto:* Falhas na importação de bibliotecas locais de inferência ocorriam de forma silenciosa ou opaca.
   *Meta:* Exibir diagnóstico claro orientando a instalação das extensões necessárias ou fornecimento de chave de API externa.
 - **CLI-05: Implementação de áudio ducking dinâmico via sidechain**
+  *Status:* **RESOLVIDO em 1.7.0** — `ducking: true` usa `sidechaincompress` com a fala como chave; teste em `tests/cli_improvements.test.js`.
   *Contexto:* A atenuação da trilha sonora é estática (-22dB fixos) durante toda a duração do clipe.
   *Meta:* Implementar compressão sidechain no grafo de filtros FFmpeg para rebaixar o volume musical exclusivamente durante intervalos de fala ativa.
 - **CLI-06: Suporte ao layout visual `split_top` no renderizador**
+  *Status:* **RESOLVIDO em 1.7.0** — orador na metade inferior, pack na superior, com loop; teste de render em `tests/cli_improvements.test.js`.
   *Contexto:* O schema de `EditPlan` valida `split_top`, mas o gerador FFmpeg executa o corte em modo fullscreen.
   *Meta:* Adicionar o ramo de composição com B-roll no quadrante superior e orador no quadrante inferior no construtor de filtros.
 - **CLI-07: Subcomando de renderização em lote (`studio batch`)**
+  *Status:* **RESOLVIDO em 1.7.0** — `studio batch <dir>` renderiza todos os planos e agrega QA; teste em `tests/cli_improvements.test.js`.
   *Contexto:* A produção de múltiplos vídeos a partir de diretórios de planos requer scripts de shell externos.
   *Meta:* Introduzir comando dedicado para varredura de diretórios de planos, execução controlada e relatório consolidado de QA.
 - **CLI-08: Matriz de integração contínua multiplataforma**
+  *Status:* **RESOLVIDO em 1.7.0** — matriz Ubuntu, Windows e macOS no workflow de CI.
   *Contexto:* A suíte de testes é executada apenas em ambiente Linux x86_64 na esteira atual.
   *Meta:* Adicionar runners de Windows e macOS na esteira de CI validando a resolução de caminhos e binários FFmpeg.
 - **CLI-12: Motor nativo de templates de legenda**
@@ -322,12 +326,14 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.6.0) foi execu
 
 #### Prioridade P2 (Polimento de Interface e Higiene de Repositório)
 - **CLI-09: Depreciação e remoção do alias legado `esquadrao-skill`**
+  *Status:* **RESOLVIDO em 1.7.0** — `bin` expõe apenas `esquadrao`; teste de documentação verifica o manifesto.
   *Contexto:* O campo `bin` do `package.json` ainda referencia `esquadrao-skill` em desacordo com a marca canônica única.
   *Meta:* Remover o alias secundário preservando estritamente o binário canônico `esquadrao`.
 - **CLI-10: Atualização do manual de ajuda de `studio`**
   *Status:* **RESOLVIDO em 1.6.0** — `--broll`, `--music`, `--layout`, `--overlay-duration`, `--background`, `--engine`, `--fps` e `--python` constam no `--help`.
   *Contexto:* As opções `--broll` e `--music` operavam no código de `auto-clip`, mas não constavam na saída de `--help`.
 - **CLI-11: Alinhamento contínuo de referências documentais**
+  *Status:* **RESOLVIDO em 1.7.0** — `tests/documentation.test.js` verifica versão, binário, perfil e flags do help.
   *Contexto:* Documentações anteriores citavam diretórios inexistentes (`editplans/`, `renders/`, `qa/`) e contagens desatualizadas de testes.
   *Meta:* Manter testes automatizados de documentação prevenindo descompassos entre o código e as especificações.
 - **CLI-14: Recorte de pessoa com troca de fundo (cutout)**
@@ -352,22 +358,22 @@ O pacote instala 18 skills, mas a cobertura de execução é heterogênea: 12 sk
 | `skill-audit` | Merkle SHA-256, recibos ed25519 e time-travel replay | `scripts/merkle_verify.js` | Parcial — recibos e replay não executam |
 | `skill-context` | AST, OpenAPI 3.1 e context packets <3k tokens | `scripts/ast_slice.js` | Parcial — OpenAPI e packet não executam |
 | `skill-ui` | WCAG, alvos 44x44, DOM semântico e visual TDD | `scripts/wcag_check.js` | Parcial — DOM e visual TDD não executam |
-| `skill-media-producer` | Pipeline de vídeo, legendas, overlays, split e cutout | Comandos `studio` e `onboard` | Entregue com limites (CLI-05/06/07) |
+| `skill-media-producer` | Pipeline de vídeo, legendas, overlays, split, cutout e batch | Comandos `studio` e `onboard` | Entregue; cutout experimental sem cache/GPU (CLI-14) |
 | 11 skills de papel | Autoridade, prompt e outputs permitidos | `esquadrao role list/info/prompt/matrix` | Entregue como prompt; enforcement de outputs é advisory |
 
 ### 8.6. Gaps entre Promessa Comercial e Capacidade Entregue
 
-| # | Promessa comercial | Onde aparece | Realidade no CLI 1.6.0 | ID |
+| # | Promessa comercial | Onde aparece | Realidade no CLI 1.7.0 | ID |
 | :--- | :--- | :--- | :--- | :--- |
-| 1 | Renderização em lote e semanas de postagens | `COPY.md` §1.1/§3, `hero.tsx`, `faq.tsx` | Não existe `studio batch`; cada execução processa um plano, com loop externo | CLI-07 |
+| 1 | Renderização em lote e semanas de postagens | `COPY.md` §1.1/§3, `hero.tsx`, `faq.tsx` | Entregue via `studio batch <dir>` (sequencial, com relatório agregado) | CLI-07 resolvido |
 | 2 | 20 a 40 cortes dinâmicos de uma gravação longa | `COPY.md` §5.1 | `auto-clip` entrega um vídeo consolidado; `find-hooks` apenas ranqueia trechos | CLI-07 |
 | 3 | Enquadramento inteligente | `COPY.md` §5.1 | Fonte 16:9 em 9:16 usa `scale=decrease` + `pad` (tarjas), sem tracking | — |
 | 4 | Legendas automáticas palavra por palavra | `hero.tsx`, `faq.tsx`, `capabilities.tsx` | Exige SRT, OpenAI ou motor local; SRT distribui o tempo linearmente; sem fonte, o `onboard` corta sem legenda | CLI-03 |
-| 5 | Rebaixamento automático de volume durante a fala | `COPY.md` §3.5 | Ducking fixo de -22 dB via `amix`; sidechain não implementado | CLI-05 |
+| 5 | Rebaixamento automático de volume durante a fala | `COPY.md` §3.5 | Entregue via `sidechaincompress` quando `ducking: true` | CLI-05 resolvido |
 | 6 | Retenção de mais de 70% do público | `capabilities.tsx` | Métrica não medida; deve ser removida ou qualificada | — |
 | 7 | 18 skills como esquadrão completo | `GLOSSARY.md` §4, `README.md` | 12 prompts + 6 skills de engenharia parciais; só `media-producer` executa o pipeline de vídeo | CLI-11 |
 
-**Conclusão:** o núcleo de corte de silêncio, templates, split permanente e cutout está entregue. As lacunas de promessa estão em lote, múltiplos cortes por gravação, enquadramento de fonte widescreen, legendas sem fonte, ducking dinâmico e métrica de retenção.
+**Conclusão:** corte de silêncio, templates, split (top/bottom), batch, ducking dinâmico e cutout estão entregues. As lacunas restantes são de copy/produto: múltiplos cortes separados por gravação, enquadramento inteligente de fonte widescreen, legendas sem fonte e métrica de retenção; o cutout segue experimental sem cache/GPU.
 
 ### 8.7. Cláusula de Precedência Normativa
 Em caso de conflito, ambiguidade ou divergência técnica entre os contratos conceituais descritos nas Seções 1 a 7 e o inventário factual registrado nesta Seção 8, **prevalecem as disposições desta Seção 8** como a expressão autoritativa do estado de entrega e do backlog oficial do software.

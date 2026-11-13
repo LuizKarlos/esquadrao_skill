@@ -1,11 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = join(fileURLToPath(import.meta.url), '../..');
 const read = (rel) => readFileSync(join(repoRoot, rel), 'utf8');
+const pkg = JSON.parse(read('package.json'));
+const help = execFileSync(process.execPath, [join(repoRoot, 'bin', 'cli.js'), '--help'], { encoding: 'utf8' });
 
 test('Documentação Canônica: presença, integridade e referências cruzadas', () => {
   for (const doc of ['SPEC.md', 'ROADMAP.md', 'GLOSSARY.md', 'README.md']) {
@@ -58,6 +61,16 @@ test('Documentação Canônica: presença, integridade e referências cruzadas',
   for (const code of ['`0`', '`1`', '`130`']) {
     assert.ok(glossary.includes(code), `GLOSSARY.md deve documentar código ${code}`);
   }
+
+  // Contratos de versão, binário, perfil e flags (CLI-11)
+  assert.ok(spec.includes(`**Versão:** ${pkg.version}`), `SPEC.md deve declarar a versão ${pkg.version}`);
+  assert.deepEqual(Object.keys(pkg.bin), ['esquadrao'], 'package.json deve expor apenas o binário esquadrao');
+  assert.ok(spec.includes('<workspace>/.esquadrao/profile.json'), 'SPEC.md deve documentar o perfil no workspace');
+  for (const flag of ['--broll', '--music', '--layout', '--overlay-duration', '--background', '--engine', '--fps', '--python']) {
+    assert.ok(help.includes(flag), `--help deve listar ${flag}`);
+  }
+  assert.ok(spec.includes('split_top'), 'SPEC.md deve documentar split_top');
+  assert.ok(spec.includes('studio batch') || spec.includes('`batch`'), 'SPEC.md deve documentar o batch');
 });
 
 test('Documentação Anti-Delírio: ausência de termos enganosos ou promessas falsas', () => {

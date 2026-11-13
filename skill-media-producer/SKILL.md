@@ -309,14 +309,15 @@ esquadrao studio auto-clip ./caminho/meu-video.mp4 --dest ./workspace --json
    - Caracteres especiais são tratados pelo motor: `%` vira `\%`, `'` vira `\'`, `\` vira `\\`.
 5. **Ganho de Áudio e Ducking:**
    - Intervalo restrito entre `-60` dB e `+12` dB. `0` dB preserva o volume original.
-   - `music_tracks.ducking`: Aplica atenuação estática de volume (`-22dB` via mixagem `amix`), e não ducking dinâmico sidechain (backlog CLI-05).
+   - `music_tracks.ducking`: Com `true`, aplica ducking dinâmico via `sidechaincompress` usando a fala como chave; com `false`, usa atenuação fixa de `-22 dB` via `amix` (CLI-05 resolvido em 1.7.0).
 6. **Overlays e Layouts:**
-   - Layouts funcionais no renderizador: `fullscreen`, `pip` e `split_bottom`.
+   - Layouts funcionais no renderizador: `fullscreen`, `pip`, `split_bottom` e `split_top`.
    - **Split permanente:** `auto-clip --broll <pack> --layout split_bottom --overlay-duration full` mantém o orador no topo e o pack na base durante todo o clipe; o pack é repetido em loop e o áudio original é preservado.
-   - O layout `split_top` é aceito no schema de validação, mas não está implementado no renderizador atual (cai em tela cheia; pendente no backlog CLI-06).
+   - O layout `split_top` está implementado desde 1.7.0: orador na metade inferior e pack na metade superior, com loop (CLI-06).
    - **Recorte de pessoa com troca de fundo:** disponível em `studio cutout <video> --background <pack> --python <interpretador>`, como experimental. Requer Python com `rembg`, `onnxruntime`, `opencv-python-headless`, `numpy` e Pillow; ~18–20 min de CPU por 60 s em 15 fps. Não prometa tempo real nem qualidade de estúdio. Detalhes em [`references/composicoes-especiais.md`](./references/composicoes-especiais.md).
 7. **Verificação Técnica Independente:** Sempre execute `studio qa` com `--plan` para validar integridade antes de concluir a tarefa.
-8. **Onboarding Real:** O comando `esquadrao onboard --mode podcast_clip` usa o pipeline real de `auto-clip`; os modos `dark` e `edit_only` continuam gerando planos guiados.
+8. **Renderização em Lote:** Para múltiplos planos, use `esquadrao studio batch <dir> --dest <workspace> --json`; o comando renderiza em sequência e agrega o QA (CLI-07).
+9. **Onboarding Real:** O comando `esquadrao onboard --mode podcast_clip` usa o pipeline real de `auto-clip`; os modos `dark` e `edit_only` continuam gerando planos guiados.
 
 ---
 

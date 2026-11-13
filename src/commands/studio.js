@@ -168,20 +168,45 @@ export function buildCaptionFilters(captions, baseV, tempFiles, captionStyle = '
   return `${baseV}${textFilters}[outv]`;
 }
 
-export function buildClipFilters(inputIndex, clip, clipPath, wsDir, width, height, gainDb = 0, { splitBottom = false } = {}) {
+export function buildClipFilters(inputIndex, clip, clipPath, wsDir, width, height, gainDb = 0, { split = null } = {}) {
   const inSec = ((clip.in_ms || 0) / 1000).toFixed(3);
   const outSec = ((clip.out_ms || (clip.in_ms || 0) + 1000) / 1000).toFixed(3);
   const durSec = Math.max(0.001, ((clip.out_ms || (clip.in_ms || 0) + 1000) - (clip.in_ms || 0)) / 1000).toFixed(3);
 
   const halfH = Math.round(height / 2);
-  const vFilter = splitBottom
+  const splitFilter = split === 'bottom'
     ? `[${inputIndex}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${halfH}:force_original_aspect_ratio=increase,crop=${width}:${halfH},pad=${width}:${height}:0:0:black,setsar=1,fps=30[v${inputIndex}]`
-    : `[${inputIndex}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v${inputIndex}]`;
+    : split === 'top'
+      ? `[${inputIndex}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${halfH}:force_original_aspect_ratio=increase,crop=${width}:${halfH},pad=${width}:${height}:0:${halfH}:black,setsar=1,fps=30[v${inputIndex}]`
+      : null;
+  const vFilter = splitFilter || `[${inputIndex}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v${inputIndex}]`;
   const aFilter = hasAudio(wsDir, clipPath, clip)
     ? `[${inputIndex}:a]atrim=start=${inSec}:end=${outSec},asetpts=PTS-STARTPTS,volume=${gainDb}dB[a${inputIndex}]`
     : `anullsrc=channel_layout=stereo:sample_rate=44100,atrim=duration=${durSec}[a${inputIndex}]`;
 
   return { vFilter, aFilter };
+}
+
+export function buildMusicFilters({ speechLabel, tracks = [], startInputIndex = 0, durationSec = 0 }) {
+  const parts = [];
+  const label = (value) => (value.startsWith('[') ? value : `[${value}]`);
+  let currentA = speechLabel;
+  let nextInputIndex = startInputIndex;
+  tracks.forEach((track, index) => {
+    const gain = track.gain_db !== undefined ? track.gain_db : -22;
+    const trim = durationSec > 0 ? `,atrim=duration=${durationSec.toFixed(3)}` : '';
+    parts.push(`[${nextInputIndex}:a]volume=${gain}dB,aloop=loop=-1:size=2e+09${trim}[mus_${index}]`);
+    if (track.ducking) {
+      parts.push(`${label(currentA)}asplit=2[sp_mix_${index}][sp_sc_${index}]`);
+      parts.push(`[mus_${index}][sp_sc_${index}]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=300[mus_duck_${index}]`);
+      parts.push(`[sp_mix_${index}][mus_duck_${index}]amix=inputs=2:duration=first:dropout_transition=2[outa_mix_${index}]`);
+    } else {
+      parts.push(`${label(currentA)}[mus_${index}]amix=inputs=2:duration=first:dropout_transition=2[outa_mix_${index}]`);
+    }
+    currentA = `[outa_mix_${index}]`;
+    nextInputIndex++;
+  });
+  return { parts, finalA: currentA, nextInputIndex };
 }
 
 function hasAudio(wsDir, clipPath, clip) {
@@ -695,7 +720,10 @@ export async function transcribeAudio(audioPath, { apiKey, useOpenai, srtPath, r
     const mod = await import('@xenova/transformers');
     const pipeline = mod.pipeline;
     const transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny');
-    const result = await transcriber(audioPath, { return_timestamps: 'word' });
+    // transformers.js needs raw PCM samples in Node, not a filesystem path.
+    const pcm = execFileSync('ffmpeg', ['-v', 'error', '-i', audioPath, '-f', 'f32le', '-ac', '1', '-ar', '16000', 'pipe:1'], { maxBuffer: 512 * 1024 * 1024 });
+    const samples = new Float32Array(pcm.buffer.slice(pcm.byteOffset, pcm.byteOffset + pcm.byteLength));
+    const result = await transcriber(samples, { sampling_rate: 16000, return_timestamps: 'word' });
     if (result.chunks && Array.isArray(result.chunks)) {
       return result.chunks.map((c) => ({
         word: c.text,
@@ -703,9 +731,12 @@ export async function transcribeAudio(audioPath, { apiKey, useOpenai, srtPath, r
         end: c.timestamp[1] || c.timestamp[0] + 0.5,
       }));
     }
+    if (result.text) {
+      return [{ word: result.text, start: 0, end: 1 }];
+    }
   } catch (err) {
     if (requireLocal) {
-      throw new Error("Transcrição local indisponível: instale '@xenova/transformers' ou use --captions/--openai.");
+      throw new Error(`Transcrição local falhou: ${err.message}. Verifique '@xenova/transformers' e o binário 'sharp'.`);
     }
   }
 
@@ -844,6 +875,7 @@ Subcommands:
   find-hooks <file>             Find top viral hook segments (30-60s) from transcript or video
   render <editplan.json>        Validate EditPlan contract and execute cuts/captions via ffmpeg
   qa <artifact.mp4>             Run automated ffprobe QA verification on rendered video artifact
+  batch <dir>                   Renderiza todos os planos *.json de um diretório e agrega o QA
   cutout <video>                Recorta a pessoa e compõe sobre um pack (requer Python/rembg)
   caption-templates [--json]     Lista os templates de legenda disponíveis
 
@@ -860,8 +892,9 @@ Options:
   --no-captions                 Gerar corte sem legendas (pula transcrição)
   --broll <file>                B-roll/cena de apoio (pode ser repetido)
   --music <file.mp3>            Música de fundo
-  --layout <layout>             Layout do B-roll: fullscreen, pip ou split_bottom
+  --layout <layout>             Layout do B-roll: fullscreen, pip, split_bottom ou split_top
   --overlay-duration <mode>     inserts (padrão, 2-4s) ou full (todo o clipe)
+  --stop-on-error               No batch, interrompe no primeiro plano com falha
   --background <file>           Pack de fundo do cutout
   --engine <rembg>              Motor de recorte (padrão: rembg)
   --fps <n>                     FPS do cutout (padrão: 15)
@@ -869,6 +902,58 @@ Options:
   --json                        Output results in JSON format
   -h, --help                    Show help message`);
     return;
+  }
+
+  if (sub === 'batch') {
+    const dirArg = positionals[1];
+    if (!dirArg) {
+      console.error('Error: Missing plan directory. Usage: esquadrao studio batch <dir> [--dest <path>] [--stop-on-error] [--json]');
+      process.exit(1);
+    }
+    const planDir = path.resolve(dirArg);
+    if (!fs.existsSync(planDir) || !fs.statSync(planDir).isDirectory()) {
+      console.error(`Error: Plan directory not found: ${dirArg}`);
+      process.exit(1);
+    }
+    const wsDir = findWorkspaceDir(flags.dest);
+    const ignored = new Set(['studio.json', 'transcript.json', 'package.json', 'package-lock.json']);
+    const plans = fs.readdirSync(planDir)
+      .filter((name) => name.endsWith('.json') && !ignored.has(name))
+      .sort()
+      .map((name) => path.join(planDir, name));
+    if (plans.length === 0) {
+      console.error(`Error: No EditPlan JSON files found in ${dirArg}`);
+      process.exit(1);
+    }
+
+    const cliPath = fileURLToPath(new URL('../../bin/cli.js', import.meta.url));
+    const results = [];
+    const failures = [];
+    for (const planPath of plans) {
+      const res = spawnSync(process.execPath, [cliPath, 'studio', 'render', planPath, '--dest', wsDir, '--json'], { encoding: 'utf8' });
+      if (res.status !== 0) {
+        failures.push({ plan: path.basename(planPath), error: (res.stderr || res.stdout || `exit ${res.status}`).trim() });
+        if (flags['stop-on-error']) break;
+        continue;
+      }
+      try {
+        results.push(JSON.parse(res.stdout));
+      } catch (err) {
+        failures.push({ plan: path.basename(planPath), error: `invalid JSON output: ${err.message}` });
+        if (flags['stop-on-error']) break;
+      }
+    }
+
+    const report = { plans: plans.length, rendered: results.length, failed: failures.length, results, failures };
+    if (flags.json) {
+      console.log(JSON.stringify(report, null, 2));
+    } else {
+      console.log(`Batch: ${report.rendered}/${report.plans} plano(s) renderizado(s), ${report.failed} falha(s).`);
+      for (const result of results) console.log(`- OK ${result.path}`);
+      for (const failure of failures) console.error(`- FALHA ${failure.plan}: ${failure.error}`);
+    }
+    if (report.failed > 0) process.exitCode = 1;
+    return report;
   }
 
   if (sub === 'caption-templates') {
@@ -1308,8 +1393,8 @@ Options:
     // Handle broll overlays if flags.broll provided
     const overlays = [];
     const overlayLayout = flags.layout || 'fullscreen';
-    if (!['fullscreen', 'pip', 'split_bottom'].includes(overlayLayout)) {
-      throw new Error(`Layout de overlay inválido: ${overlayLayout}. Use fullscreen, pip ou split_bottom (split_top está pendente em CLI-06).`);
+    if (!['fullscreen', 'pip', 'split_bottom', 'split_top'].includes(overlayLayout)) {
+      throw new Error(`Layout de overlay inválido: ${overlayLayout}. Use fullscreen, pip, split_bottom ou split_top.`);
     }
     const overlayDuration = flags['overlay-duration'] || 'inserts';
     if (!['inserts', 'full'].includes(overlayDuration)) {
@@ -1644,14 +1729,14 @@ Options:
         const inputArgs = [];
         const filterParts = [];
         const concatInputs = [];
-        const hasSplitBottomFull = (plan.overlays || []).some((ov) => ov.layout === 'split_bottom' && ov.loop);
+        const splitFullLayout = (plan.overlays || []).find((ov) => ov.loop && (ov.layout === 'split_bottom' || ov.layout === 'split_top'))?.layout || null;
 
         for (let i = 0; i < videoClips.length; i++) {
           const c = videoClips[i];
           const clipPath = resolveAsset(wsDir, c);
           inputArgs.push('-i', clipPath);
           const gain = plan.audio_tracks?.[i]?.gain_db || 0;
-          const { vFilter, aFilter } = buildClipFilters(i, c, clipPath, wsDir, width, height, gain, { splitBottom: hasSplitBottomFull });
+          const { vFilter, aFilter } = buildClipFilters(i, c, clipPath, wsDir, width, height, gain, { split: splitFullLayout });
           filterParts.push(vFilter, aFilter);
           concatInputs.push(`[v${i}][a${i}]`);
         }
@@ -1692,6 +1777,10 @@ Options:
               const splitH = Math.round(height / 2);
               filterParts.push(`[${nextInputIdx}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${splitH}:force_original_aspect_ratio=increase,crop=${width}:${splitH},setsar=1,fps=30[ov_${k}]`);
               filterParts.push(`${currentV}[ov_${k}]overlay=0:${splitH}:enable='between(t\\,${startSec}\\,${endSec})'[v_ov_${k}]`);
+            } else if (layout === 'split_top') {
+              const splitH = Math.round(height / 2);
+              filterParts.push(`[${nextInputIdx}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${splitH}:force_original_aspect_ratio=increase,crop=${width}:${splitH},setsar=1,fps=30[ov_${k}]`);
+              filterParts.push(`${currentV}[ov_${k}]overlay=0:0:enable='between(t\\,${startSec}\\,${endSec})'[v_ov_${k}]`);
             } else {
               // Fullscreen default
               filterParts.push(`[${nextInputIdx}:v]trim=start=${inSec}:end=${outSec},setpts=PTS-STARTPTS,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[ov_${k}]`);
@@ -1704,19 +1793,21 @@ Options:
 
         filterParts.push(buildCaptionFilters(captions, currentV, tempFiles, 'default', { width, height, template: plan.caption_template || flags['caption-template'] }));
 
-        // Background Music Tracks with Ducking
+        // Background Music Tracks with optional sidechain ducking
         let finalA = speechA;
         if (plan.music_tracks && Array.isArray(plan.music_tracks) && plan.music_tracks.length > 0) {
-          for (let m = 0; m < plan.music_tracks.length; m++) {
-            const track = plan.music_tracks[m];
-            const trackPath = resolveAsset(wsDir, track);
-            inputArgs.push('-i', trackPath);
-            const mGain = track.gain_db !== undefined ? track.gain_db : -22;
-            filterParts.push(`[${nextInputIdx}:a]volume=${mGain}dB,aloop=loop=-1:size=2e+09[mus_${m}]`);
-            filterParts.push(`${finalA}[mus_${m}]amix=inputs=2:duration=first:dropout_transition=2[outa_mix_${m}]`);
-            finalA = `[outa_mix_${m}]`;
-            nextInputIdx++;
+          for (const track of plan.music_tracks) {
+            inputArgs.push('-i', resolveAsset(wsDir, track));
           }
+          const musicChain = buildMusicFilters({
+            speechLabel: speechA,
+            tracks: plan.music_tracks,
+            startInputIndex: nextInputIdx,
+            durationSec: computeExpectedDuration(plan),
+          });
+          filterParts.push(...musicChain.parts);
+          finalA = musicChain.finalA;
+          nextInputIdx = musicChain.nextInputIndex;
         }
         filterParts.push(`${finalA}anull[outa]`);
 

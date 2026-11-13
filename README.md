@@ -56,7 +56,7 @@ esquadrao onboard [--mode <mode>] [--format <9:16|16:9>] [--dest <path>] [--file
 
 # Auto-corte integrado: detecta silêncio, expurga pausas e renderiza com QA
 # Legendas: use --captions <file.srt>, --openai (com OPENAI_API_KEY) ou --local (Whisper local opcional)
-esquadrao studio auto-clip <video.mp4> [--captions <file.srt>] [--openai] [--local] [--broll <file>] [--music <file.mp3>] [--layout fullscreen|pip|split_bottom] [--overlay-duration inserts|full] [--silence-thresh -30dB] [--silence-duration 0.8] [--format 9:16] [--caption-style impact]
+esquadrao studio auto-clip <video.mp4> [--captions <file.srt>] [--openai] [--local] [--broll <file>] [--music <file.mp3>] [--layout fullscreen|pip|split_bottom|split_top] [--overlay-duration inserts|full] [--silence-thresh -30dB] [--silence-duration 0.8] [--format 9:16] [--caption-style impact]
 
 # Detector rápido de silêncio e pausas mortas
 esquadrao studio detect-silence <video.mp4> [--json]
@@ -74,8 +74,9 @@ esquadrao role [list | info <id> | prompt <id> | matrix] [--json]
 esquadrao studio init [--dest <path>]
 esquadrao studio import <file>
 
-# Renderizar plano manual ou executar QA
+# Renderizar plano manual, lote de planos ou executar QA
 esquadrao studio render <editplan.json>
+esquadrao studio batch <dir> [--dest <path>] [--stop-on-error] [--json]
 esquadrao studio qa <artifact.mp4> [--plan <editplan.json>]
 esquadrao studio cutout <video.mp4> --background <pack.mp4> [--python <interpretador>] [--fps 15]
 ```
@@ -342,16 +343,12 @@ All scripts run directly with Node.js stdlib (zero dependencies):
 
 ## Limitações atuais
 
-- **Legendas automáticas:** a transcrição no `studio auto-clip` e `studio transcribe` depende de SRT (`--captions <file.srt>`), da API OpenAI (`--openai` com `OPENAI_API_KEY`) ou do motor local (`--local`, `@xenova/transformers` em `optionalDependencies`). Sem nenhum deles, o comando falha com código `1` e instrução acionável; use `--no-captions` para gerar o corte explicitamente sem legendas (CLI-02/CLI-03 resolvidos em 1.4.0).
-- **Sem processamento em lote nativo:** não há comando `batch`; renderizações em lote devem ser orquestradas externamente via chamadas sucessivas de `esquadrao studio render` (CLI-07).
-- **Saída consolidada no auto-clip:** cada execução entrega um vídeo final com os trechos de fala concatenados; não gera dezenas de cortes separados por gravação. Para vários arquivos, use um loop externo.
+- **Legendas automáticas:** a transcrição no `studio auto-clip` e `studio transcribe` depende de SRT (`--captions <file.srt>`), da API OpenAI (`--openai` com `OPENAI_API_KEY`) ou do motor local (`--local`, `@xenova/transformers` em `optionalDependencies`). Sem nenhum deles, o comando falha com código `1` e instrução acionável; use `--no-captions` para gerar o corte explicitamente sem legendas (CLI-02/CLI-03 resolvidos em 1.4.0). O motor local foi validado com áudio real em 1.7.0; teste opt-in em `tests/local_whisper.integration.test.js`.
+- **Lote sequencial:** `esquadrao studio batch <dir>` renderiza todos os planos `*.json` do diretório e agrega o QA; a execução é sequencial, sem paralelismo interno (CLI-07).
+- **Saída consolidada no auto-clip:** cada execução entrega um vídeo final com os trechos de fala concatenados; não gera dezenas de cortes separados por gravação. Para vários planos, use `studio batch`.
 - **Enquadramento de fonte widescreen:** uma fonte 16:9 em saída 9:16 é ajustada com `scale=decrease` + `pad` (tarjas); não há recorte inteligente com tracking de rosto.
 - **Legendas palavra por palavra:** timestamps reais por palavra vêm de `--openai` ou `--local`; com `--captions` SRT, o tempo é distribuído linearmente entre as palavras do bloco.
-- **Ducking de áudio fixo:** a opção `ducking: true` em `music_tracks` aplica atenuação fixa de volume em `-22dB` via filtro `amix`; ducking dinâmico via sidechain está pendente de implementação (CLI-05).
-- **Layout de overlay `split_top`:** embora aceito na validação do schema do EditPlan, o pipeline de renderização trata apenas `fullscreen`, `pip` e `split_bottom`; overlays com `split_top` são renderizados como tela cheia (`fullscreen`) (CLI-06).
-- **Split permanente:** disponível em `auto-clip --broll <pack> --layout split_bottom --overlay-duration full`; o pack cobre toda a linha do tempo em loop e o áudio original é preservado (CLI-13). `split_top` continua pendente (CLI-06).
 - **Recorte de pessoa com troca de fundo:** `studio cutout` é experimental e exige Python com `rembg`, `onnxruntime`, `opencv-python-headless` e `numpy`; sem isso, falha com instrução. Saída 9:16, 15 fps por padrão, ~18–20 min de CPU por 60 s. Sem cache de máscaras ou GPU nesta versão. Detalhes em [`skill-media-producer/references/composicoes-especiais.md`](./skill-media-producer/references/composicoes-especiais.md).
-- **Alias legado no package.json:** o binário canônico oficial é `esquadrao`; o alias `esquadrao-skill` ainda consta no campo `bin` do `package.json` para compatibilidade retroativa e sua remoção está mapeada em backlog (CLI-09).
 
 ## Testing
 

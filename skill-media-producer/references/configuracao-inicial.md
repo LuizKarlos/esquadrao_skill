@@ -182,7 +182,7 @@ Cor, tamanho, fonte, contorno, fundo, posição e quebra automática de linha ai
 
 Para remover as legendas, use `$plano.captions = @()`.
 
-O ganho de cada corte aceita -60 a +12 dB. Zero preserva o volume, valores negativos reduzem e valores positivos aumentam. Confira distorção ao aumentar o ganho. Caso utilize trilha musical (`music_tracks`) com `ducking: true`, a atenuação aplicada é fixa em `-22dB` via mixagem `amix`, e não ducking dinâmico via sidechain (previsto no backlog CLI-05).
+O ganho de cada corte aceita -60 a +12 dB. Zero preserva o volume, valores negativos reduzem e valores positivos aumentam. Confira distorção ao aumentar o ganho. Caso utilize trilha musical (`music_tracks`) com `ducking: true`, a fala atua como chave no `sidechaincompress` e a trilha é atenuada dinamicamente; com `ducking: false`, a atenuação é fixa em `-22 dB` via `amix` (CLI-05 resolvido em 1.7.0).
 
 ```powershell
 $plano.audio_tracks[0].gain_db = 0
@@ -236,4 +236,4 @@ Três caminhos de legendas no `auto-clip`:
 
 > **Templates:** o catálogo de nove presets está em [`caption-templates.md`](caption-templates.md). Use `--caption-template <id>` no `auto-clip`/`render` ou `captions[].template` no EditPlan; `--caption-style impact|word|full` continua como legado.
 
-Caso adicione trilha de fundo (`--music`), a atenuação aplicada é fixa em `-22dB`, sem ducking dinâmico por sidechain.
+Caso adicione trilha de fundo (`--music`) com `ducking: true`, a atenuação é dinâmica via sidechain; sem ducking, fica fixa em `-22 dB`.

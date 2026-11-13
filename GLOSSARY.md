@@ -29,19 +29,20 @@ A tabela a seguir estabelece as equivalências obrigatórias entre os conceitos 
 | :--- | :--- | :--- |
 | `@esquadrao/cli` | **Esquadrão de Conteúdo** | Pacote executável em Node.js com stdlib pura e comandos de terminal. |
 | `esquadrao onboard` | **Primeiro Vídeo Guiado** | Fluxo guiado que leva do zero ao primeiro vídeo com QA. No modo `podcast_clip`, executa o pipeline real de `auto-clip`, com `--captions`, `--openai`, `--local` ou `--no-captions`. |
-| `esquadrao` | **Esquadrão CLI** | Comando de linha unificado para orquestração de papéis e estúdio de vídeo (binário canônico oficial; alias legado `esquadrao-skill` ainda mantido no `package.json`, pendente CLI-09). |
+| `esquadrao` | **Esquadrão CLI** | Comando de linha unificado para orquestração de papéis e estúdio de vídeo (binário canônico oficial; único exposto no `package.json` desde 1.7.0). |
 | `esquadrao studio auto-clip` | **Esteira de Auto-Corte** | Pipeline de detecção de silêncio, corte de pausas e renderização. Possui três caminhos de legenda: 1. `--captions <arquivo.srt>` (offline e determinístico); 2. `--openai` (transcrição via API externa); 3. `--local` (modelo local via `@xenova/transformers`, `optionalDependencies`). Sem nenhum deles, falha com erro acionável; `--no-captions` gera o corte sem legendas. |
 | `esquadrao studio find-hooks` | **Detector de Ganchos Virais** | Heurística determinística de copy baseada em pontuação de frases (perguntas e marcadores) para sugerir cortes de 30-60s; não é garantia de viralidade. |
 | `esquadrao studio transcribe` | **Transcrição Estruturada** | Extração de áudio e transcrição estruturada com timestamps para análise de copy (requer `--captions` SRT, `--openai` com API key ou `--local` via `@xenova/transformers`). |
-| `B-Roll Overlay` | **Cena de Apoio Dinâmica** | Imagem ou vídeo sobreposto à fala em tela cheia (`fullscreen`), janela (`pip`) ou tela dividida (`split_bottom`); `split_bottom` com `--overlay-duration full` vira split permanente; `split_top` renderiza como fullscreen (CLI-06). |
-| `Split permanente` | **Tela Dividida Contínua** | Orador no topo e pack na base durante todo o clipe. Entregue em 1.6.0 via `auto-clip --broll <pack> --layout split_bottom --overlay-duration full`, com pack em loop e áudio original. |
+| `B-Roll Overlay` | **Cena de Apoio Dinâmica** | Imagem ou vídeo sobreposto à fala em tela cheia (`fullscreen`), janela (`pip`) ou tela dividida (`split_bottom`/`split_top`); com `--overlay-duration full` vira split permanente (CLI-06/CLI-13). |
+| `Split permanente` | **Tela Dividida Contínua** | Orador no topo (`split_bottom`) ou na base (`split_top`), com o pack na metade oposta durante todo o clipe. Entregue via `auto-clip --broll <pack> --layout split_bottom|split_top --overlay-duration full`, com pack em loop e áudio original. |
 | `Cutout` / `Recorte de pessoa` | **Pessoa Sobre Fundo Trocado** | Segmentação da pessoa por frame para removê-la do fundo e compô-la sobre um pack. Entregue em 1.6.0 como experimental via `studio cutout`, com `rembg`/GrabCut e dependências Python. |
 | `Pack de fundo` | **Vídeo de Apoio ao Cutout** | Vídeo do catálogo usado atrás da pessoa recortada ou na metade inferior do split; deve ser silenciado, repetido/cortado e escolhido pelo tema da fala. |
-| `Audio Ducking` | **Atenuação de Trilha** | Redução fixa de -22dB via `amix`; ducking dinâmico por sidechain pendente (CLI-05). |
+| `Audio Ducking` | **Atenuação de Trilha** | `ducking: true` usa `sidechaincompress` com a fala como chave; `ducking: false` mantém -22 dB fixo via `amix` (CLI-05 resolvido em 1.7.0). |
 | `Gancho de Retenção` | **Hook de Abertura (0-3s)** | Primeiro trecho selecionado pela copy para prender a atenção e maximizar a retenção. |
 | `esquadrao studio detect-silence` | **Detector de Silêncios** | Análise por FFmpeg silencedetect para identificar pausas e duração de fala ativa. |
 | `esquadrao studio init` | **Inicialização de Workspace** | Criação atômica da estrutura de pastas (`assets/`, `packages/`, `artifacts/`) e do manifesto `studio.json`. |
 | `esquadrao studio` | **Estúdio Local de Produção** | Pipeline de decupagem, junção de fontes e aplicação de filtros de áudio/vídeo em `assets/`, `packages/` e `artifacts/`. |
+| `esquadrao studio batch` | **Renderização em Lote** | Renderiza todos os planos `*.json` de um diretório em sequência e agrega o QA (CLI-07). |
 | `EditPlan v1` | **Plano de Corte e Edição** | Esquema JSON determinístico com trilhas, cortes milimétricos e textos. |
 | `mode: "dark"` | **Canais Dark / Vídeo Rápido** | Renderização sem necessidade de gravação prévia, usando fundos e tipografia. |
 | `mode: "edit_only"` | **Decupagem Contígua** | Seleção e união rápida de trechos com transições suaves e ritmo acelerado. |
@@ -50,7 +51,7 @@ A tabela a seguir estabelece as equivalências obrigatórias entre os conceitos 
 | `drawtext` | **Legendas Sincronizadas** | Renderização tipográfica direta no fluxo de vídeo com escape de caracteres. |
 | `--caption-template` | **Template de Legenda** | Preset nomeado de fonte, cor, contorno, sombra e posição, sem fundo sólido. Disponível no CLI 1.5.0; catálogo em `skill-media-producer/references/caption-templates.md`. |
 | `impact` / `word` / `full` | **Estilos Legados de Legenda** | Os três estilos históricos via `--caption-style`; o CLI 1.5.0 adiciona os nove templates via `--caption-template`. |
-| `amix` (atenuação fixa de volume) | **Trilha Sonora com Atenuação** | Atenuação fixa de -22dB com amix; ducking dinâmico pendente (CLI-05). |
+| `amix` (atenuação fixa de volume) | **Trilha Sonora com Atenuação** | Atenuação fixa de -22 dB com `amix`; para ducking dinâmico, `sidechaincompress` com a fala como chave. |
 
 ---
 
@@ -60,7 +61,7 @@ A tabela a seguir estabelece as equivalências obrigatórias entre os conceitos 
 | :--- | :--- |
 | **"O CLI força fundo preto ou proporção widescreen por padrão?"** | **NÃO.** Nem fundo escuro nem widescreen são padrões obrigatórios. O usuário escolhe livremente entre vertical 9:16 (mobile) e horizontal 16:9 (desktop), e define se usará gravações, packs de apoio ou fundo escuro. |
 | **"O CLI envia vídeos para a nuvem para renderizar?"** | **NÃO.** Todo o pipeline de decupagem, mixagem e renderização executa estritamente na máquina local do cliente através do FFmpeg. |
-| **"O CLI exige chave de API ou conexão de rede para funcionar?"** | **NÃO para corte, renderização e QA.** Os comandos de criação, corte, edição, renderização e QA executam completamente offline uma vez que o pacote e o FFmpeg estejam instalados. A geração de legenda automática exige arquivo SRT prévio (`--captions`), chave de API externa (`--openai`) ou modelo local opcional (`--local`, pendente de empacotamento). |
+| **"O CLI exige chave de API ou conexão de rede para funcionar?"** | **NÃO para corte, renderização e QA.** Os comandos de criação, corte, edição, renderização e QA executam completamente offline uma vez que o pacote e o FFmpeg estejam instalados. A geração de legenda automática exige arquivo SRT prévio (`--captions`), chave de API externa (`--openai`) ou modelo local opcional (`--local`, `@xenova/transformers`). |
 | **"O CLI pode apagar arquivos de vídeo originais?"** | **NÃO.** O estúdio opera em modo estritamente não destrutivo. Os arquivos originais importados são mantidos intactos e os novos vídeos são salvos em `artifacts/`. |
 | **"O comando onboard exige parâmetros complexos?"** | **NÃO.** Executado sem parâmetros (`esquadrao onboard`), ele abre um assistente de terminal interativo com perguntas simples de múltipla escolha. |
 | **"O CLI depende de dependências pesadas no package.json?"** | **NÃO.** A seção `dependencies` do `package.json` é vazia (`{}`). O CLI usa estritamente a biblioteca padrão do Node.js. A transcrição local opcional requer `@xenova/transformers`, declarada em `optionalDependencies`; se a instalação opcional falhar, `--local` retorna erro acionável. |
@@ -95,7 +96,7 @@ O subsistema de papéis técnicos normaliza designações históricas para a mat
 
 Em auditoria conjunta realizada via **MegaBrain Atlas MCP** e classificador **Jev**, foram saneadas todas as ocorrências residuais de termos legados neste repositório:
 1. **Nome do Pacote npm:** `@esquadrao/cli` no `package.json` e documentações.
-2. **Binários e Executáveis:** Restrito ao comando canônico `esquadrao`. Nota: o alias legado `esquadrao-skill` ainda consta no `package.json` para compatibilidade transitória e sua remoção está mapeada no backlog (CLI-09).
+2. **Binários e Executáveis:** Restrito ao comando canônico `esquadrao`; o alias `esquadrao-skill` foi removido em 1.7.0 (CLI-09).
 3. **Manifesto do Estúdio:** Criação padrão com `"name": "esquadrao-studio"` em `studio.json`.
 4. **Caminho de Perfil:** Persistência no workspace em `<workspace>/.esquadrao/profile.json`.
 5. **Comandos nos Tutoriais:** Menção aos comandos `esquadrao setup` e `esquadrao onboard`.
