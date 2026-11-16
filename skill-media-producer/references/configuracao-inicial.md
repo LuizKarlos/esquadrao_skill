@@ -176,9 +176,29 @@ $plano.captions[1].timeline_start_ms = 4000
 $plano.captions[1].duration_ms = 4000
 ```
 
-Use frases curtas de até 200 caracteres, sem HTML, com início e duração dentro do vídeo final. O renderizador atual usa texto branco, tamanho 48 pixels, centralizado horizontalmente e posicionado 200 pixels acima da borda inferior. A fonte é do sistema; no Windows, Arial é a primeira opção. As legendas ficam gravadas na imagem. O modo `dark` posiciona seus textos no centro da tela.
+Use frases curtas de até 200 caracteres, sem HTML, com início e duração dentro do vídeo final. As legendas ficam gravadas na imagem; o modo `dark` posiciona seus textos no centro da tela.
 
-Cor, tamanho, fonte, contorno, fundo, posição e quebra automática de linha ainda dependem de alterações no renderizador. Campos extras de estilo no JSON não configuram essas propriedades. Transcrição automática e importação SRT também ficam fora deste fluxo atual.
+O `EditPlan` aceita `"caption_template": "<id>"` na raiz como padrão e `"template": "<id>"` em cada item de `captions[]` como sobrescrita. Exemplo:
+
+```json
+{
+  "caption_template": "mrbeast-yellow",
+  "captions": [
+    {
+      "text": "Sua primeira frase",
+      "timeline_start_ms": 0,
+      "duration_ms": 4000,
+      "template": "heavy-white"
+    }
+  ]
+}
+```
+
+Os nove presets têm os nomes de referência `mrbeast_yellow`, `tiktok_white`, `gold_stroke`, `green_stroke`, `neon_glitch`, `minimal_lower_third`, `red_stroke`, `heavy_white` e `mono_clean`. No CLI 1.7.0, os IDs canônicos retornados e aceitos usam hífen: `mrbeast-yellow`, `tiktok-white`, `gold-stroke`, `green-stroke`, `neon-glitch`, `minimal-lower-third`, `red-stroke`, `heavy-white` e `mono-clean`. Consulte o catálogo real com `node $cli studio caption-templates --json`.
+
+O renderizador usa as fontes Anton, Bebas Neue e Poppins empacotadas em `assets/fonts`, com fallback para fontes do sistema quando necessário. Os templates aplicam quebra automática de linha e mantêm o bloco vertical compacto: a linha seguinte fica em `lineGap * font_size`, sem abrir um vão proporcional à altura do vídeo.
+
+Este guia demonstra a montagem manual do `editplan.json`. A importação de `.srt` por `--captions <arquivo.srt>` já está disponível, assim como a transcrição automática por `studio transcribe` e `studio auto-clip` com `--local` ou, mediante a escolha explícita do usuário e `OPENAI_API_KEY`, `--openai`.
 
 Para remover as legendas, use `$plano.captions = @()`.
 

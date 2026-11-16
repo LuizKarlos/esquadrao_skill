@@ -1,6 +1,6 @@
 # Composições especiais: split permanente e recorte de pessoa
 
-Status: **implementado no CLI 1.6.0**. O split permanente está operacional; o recorte de pessoa é experimental e depende de Python.
+Status: **implementado no CLI 1.7.0**. O split permanente está operacional; o recorte de pessoa é experimental e depende de Python.
 
 ## 1. Split permanente (orador no topo + pack na base)
 
@@ -52,7 +52,7 @@ esquadrao studio cutout entrada.mp4 \
 Pré-requisitos no interpretador Python escolhido:
 
 ```bash
-python3 -m pip install "rembg[cpu]" onnxruntime opencv-python-headless numpy
+python3 -m pip install "rembg[cpu]" onnxruntime opencv-python-headless numpy pillow
 ```
 
 Regras:
@@ -88,7 +88,7 @@ Critérios de aceite:
 
 ## 3. Regra de comunicação
 
-- Pode afirmar que o CLI 1.6.0 faz split permanente e cutout, **desde que** qualifique o cutout como experimental e informe as dependências Python e o custo de CPU.
+- Pode afirmar que o CLI 1.7.0 faz split permanente e cutout, **desde que** qualifique o cutout como experimental e informe as dependências Python e o custo de CPU.
 - Não prometa tempo real, qualidade de estúdio ou ausência total de halo.
 - `split_top` e ducking dinâmico foram entregues em 1.7.0; o cutout segue experimental.
 
@@ -96,4 +96,4 @@ Critérios de aceite:
 
 - Split: `podpah-neymar-split-pack.mp4` (protótipo externo, 60 s, 1080×1920) e teste `split_bottom full loops a short b-roll`.
 - Cutout: `podpah-neymar-cutout-pack.mp4` (protótipo externo, 60 s, 1080×1920, cor corrigida) e teste de contrato do comando.
-- Suíte: 91 testes, lint em 38 arquivos.
+- Suíte: 96 testes (94 aprovados + 2 skips condicionais), lint em 40 arquivos.

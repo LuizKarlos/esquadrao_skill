@@ -70,7 +70,24 @@ test('Documentação Canônica: presença, integridade e referências cruzadas',
     assert.ok(help.includes(flag), `--help deve listar ${flag}`);
   }
   assert.ok(spec.includes('split_top'), 'SPEC.md deve documentar split_top');
+  assert.ok(spec.includes('--layout <fullscreen|pip|split_bottom|split_top>'), 'SPEC.md deve documentar todos os layouts de auto-clip');
   assert.ok(spec.includes('studio batch') || spec.includes('`batch`'), 'SPEC.md deve documentar o batch');
+
+  const initialConfig = read('skill-media-producer/references/configuracao-inicial.md');
+  assert.ok(initialConfig.includes('caption_template'), 'guia inicial deve documentar caption_template');
+  assert.equal(
+    initialConfig.includes('Transcrição automática e importação SRT também ficam fora deste fluxo atual'),
+    false,
+    'guia inicial não deve negar recursos já implementados',
+  );
+
+  const specialCompositions = read('skill-media-producer/references/composicoes-especiais.md');
+  assert.match(
+    specialCompositions,
+    /python3 -m pip install "rembg\[cpu\]" onnxruntime opencv-python-headless numpy pillow/,
+    'guia de cutout deve listar pillow',
+  );
+  assert.ok(specialCompositions.includes('CLI 1.7.0'), 'guia de composições especiais deve referenciar CLI 1.7.0');
 });
 
 test('Documentação Anti-Delírio: ausência de termos enganosos ou promessas falsas', () => {

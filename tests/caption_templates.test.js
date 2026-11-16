@@ -49,6 +49,11 @@ test('Caption templates: catalog exposes nine unique, font-ready presets', () =>
   }
 });
 
+test('Caption templates: underscore spelling resolves to the canonical id', () => {
+  assert.equal(getCaptionTemplate('mrbeast_yellow').id, 'mrbeast-yellow');
+  assert.equal(getCaptionTemplate('mono_clean').id, 'mono-clean');
+});
+
 test('Caption templates: unknown id fails with the available list', () => {
   assert.throws(() => getCaptionTemplate('does-not-exist'), /Available: mrbeast-yellow/);
 });

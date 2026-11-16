@@ -149,7 +149,8 @@ export const CAPTION_TEMPLATES = Object.freeze([
 ]);
 
 export function getCaptionTemplate(id) {
-  const key = String(id || '').trim().toLowerCase();
+  // Accept the underscore spelling documented in the guides (mrbeast_yellow) as an alias of the canonical id.
+  const key = String(id || '').trim().toLowerCase().replace(/_/g, '-');
   const template = CAPTION_TEMPLATES.find((item) => item.id === key);
   if (!template) {
     throw new Error(`Unknown caption template '${id}'. Available: ${CAPTION_TEMPLATES.map((item) => item.id).join(', ')}`);

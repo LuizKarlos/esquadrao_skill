@@ -18,7 +18,7 @@ O **Esquadrão de Conteúdo CLI** (`@esquadrao/cli`) é um framework autônomo e
 
 ### 1.1. Invariantes Arquiteturais e Limites Estritos
 1. **Zero Dependências Obrigatórias em Runtime (`dependencies: {}`):** O projeto utiliza estritamente as bibliotecas nativas do Node.js (`node:fs`, `node:path`, `node:child_process`, `node:crypto`, `node:readline`, `node:os`). A transcrição local usa `@xenova/transformers` como `optionalDependencies`; nenhum recurso obrigatório depende dela.
-2. **Execução 100% Local:** Todo o processamento de áudio, decupagem, queima de legendas e renderização em lote ocorre na CPU/GPU da máquina do usuário. Proibido envio de gravações para servidores externos ou taxímetro de créditos por minuto.
+2. **Execução 100% Local:** Todo o processamento de áudio, decupagem, queima de legendas e renderização em lote ocorre na CPU/GPU da máquina do usuário. Proibido envio automático ou oculto de gravações para servidores externos ou taxímetro de créditos por minuto. Todo o processamento padrão é estritamente local; o envio de áudio para a API remota da OpenAI ocorre única e exclusivamente quando o usuário aciona de forma explícita a flag opt-in `--openai` com sua própria chave `OPENAI_API_KEY`.
 3. **Soberania Digital e Posse Vitalícia:** Sem DRM, sem validação periódica de chaves em nuvem, sem restrição de dispositivos e sem telemetria oculta. O cliente é dono definitivo do seu ambiente e dos seus arquivos.
 4. **Decisão do Usuário sobre Formato e Fundo (Anti-Padrão Forçado):** O sistema e os agentes de IA NUNCA forçam fundo preto (`dark`) ou widescreen (`16:9`) como padrão. O usuário define ativamente o formato (Vertical 9:16 para mobile ou Widescreen 16:9 para desktop) e o estilo de edição (cortes com legendas `podcast_clip`, decupagem `edit_only` com packs/fontes ou tipografia `dark`).
 5. **Resiliência a Falhas do FFmpeg:** Todo comando FFmpeg é executado com captura de streams e sanitização de logs. Falhas de execução limpam artefatos temporários parciais (`SIGINT`) e exibem diagnósticos objetivos sem despejar comandos quilométricos por padrão.
@@ -73,7 +73,7 @@ Fornece o pipeline operacional de criação, importação de mídias, renderiza�
   - Rejeita planos com `speed` diferente de `1` (o contrato v1 aceita apenas velocidade 1).
 - Monta filtros complexos do FFmpeg:
   - Filtro de corte e velocidade: `[0:v]trim=start_pts=...:end_pts=...,setpts=...[v0]`.
-  - Tratamento de caracteres especiais em legendas (`drawtext`): escape obrigatório de `%` (`\%`), apóstrofo `'` (`\'`) e contra-barra `\`.
+  - Tratamento de caracteres especiais em legendas (`drawtext`): o texto é gravado em `textfile` com `expansion=none`, sem ser concatenado ao `filter_complex`; assim, legendas com `%`, apóstrofo, contra-barra, `:`, `,` e `;` não quebram o filtro. Se algum valor precisar ser interpolado diretamente, aplique o escape completo `%` (`\%`), apóstrofo `'` (`\'`), contra-barra (`\\`), dois-pontos (`\:`), vírgula (`\,`) e ponto e vírgula (`\;`). Os caminhos de `textfile` já escapam contra-barra, apóstrofo e dois-pontos.
   - Fallback automático para fontes de vídeo sem áudio: sintetiza stream de silêncio (`anullsrc`) impedindo falhas na multiplexação final.
   - Interrupção segura (`SIGINT`): captura o sinal de cancelamento, encerra o processo filho do FFmpeg e remove o arquivo de vídeo parcial incompleto do disco.
 
@@ -136,7 +136,7 @@ Orienta agentes a selecionar trechos de 30s a 60s (ajustáveis conforme a ideia)
   - *Heurística determinística:* `find-hooks` é uma ferramenta de triagem textual com regras determinísticas de pontuação, não uma garantia de viralidade ou alcance em plataformas externas.
 
 #### 2.2.12. Auto-Clip com B-Rolls e Trilha Sonora
-- O comando `esquadrao studio auto-clip` aceita as flags `--broll <arquivo>` (múltiplas cenas), `--music <arquivo>`, `--layout <fullscreen|pip|split_bottom>` e `--overlay-duration <inserts|full>`.
+- O comando `esquadrao studio auto-clip` aceita as flags `--broll <arquivo>` (múltiplas cenas), `--music <arquivo>`, `--layout <fullscreen|pip|split_bottom|split_top>` e `--overlay-duration <inserts|full>`.
 - Quando informados, o estúdio distribui as cenas de apoio sobre a fala (mantendo a voz ininterrupta) e aplica a música com ducking dinâmico por sidechain quando `ducking: true`; sem ducking, usa atenuação fixa de -22 dB via `amix`.
 - Com `--overlay-duration full`, o primeiro `--broll` cobre toda a linha do tempo e é repetido em loop; com `split_bottom`, o resultado é o split permanente (orador no topo, pack na base).
 
@@ -209,13 +209,13 @@ Todos os scripts são construídos com biblioteca padrão do Node.js e executam 
 
 ## 5. Garantia da Qualidade e Suíte de Testes
 
-A integridade do CLI é atestada deterministicamente pelo test runner nativo do Node.js (95 testes, com skips condicionais para Whisper local e ausência do motor) e pelo linter (40 arquivos verificados):
+A integridade do CLI é atestada deterministicamente pelo test runner nativo do Node.js (96 testes, com skips condicionais para Whisper local e ausência do motor) e pelo linter (40 arquivos verificados):
 ```bash
 npm test
 npm run lint
 ```
 A suíte cobre:
-- CLI core: argumentos, ajuda, versão e códigos de erro de saída (95 testes; skips condicionais de Whisper local).
+- CLI core: argumentos, ajuda, versão e códigos de erro de saída (96 testes; skips condicionais de Whisper local).
 - Onboard em todos os 3 modos (`dark`, `edit_only`, `podcast_clip`).
 - Studio engine: integridade do `studio.json`, cancelamento via SIGINT, proteção de caracteres de legendas e validação de QA.
 - Oráculos de papéis e autoridades (12 papéis canônicos).
@@ -241,7 +241,7 @@ A suíte cobre:
 
 ### 8.1. Método de Verificação e Evidências Operacionais
 A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.7.0) foi executada em 2026-11-11 por inspeção direta de código, verificação do manifesto e execução determinística de testes:
-1. **Suíte de Testes Unitários e Integração:** `npm test` executou 95 testes distribuídos em 15 arquivos de teste, com skips condicionais para Whisper local e ausência do motor (`0 fail`).
+1. **Suíte de Testes Unitários e Integração:** `npm test` executou 96 testes distribuídos em 15 arquivos de teste, com skips condicionais para Whisper local e ausência do motor (`0 fail`).
 2. **Auditoria Estática de Código:** `npm run lint` validou a conformidade sintática e estilística em 40 arquivos de código-fonte sem avisos ou falhas.
 3. **Inspeção de Estrutura do Estúdio:** Execução real de `esquadrao studio init` em diretório temporário isolado confirmou a criação exclusiva dos diretórios `assets/`, `packages/`, `artifacts/` e do arquivo `studio.json`. Os diretórios `editplans/`, `renders/` e `qa/` não são gerados pelo comando.
 4. **Inspeção de Dependências e Runtime:** O manifesto `package.json` declara `dependencies: {}` e `optionalDependencies: { "@xenova/transformers": "^2.17.2" }`. O motor local é opcional: se a instalação do pacote opcional falhar, `--local` retorna erro acionável e o restante do CLI permanece funcional.

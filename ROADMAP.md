@@ -4,7 +4,7 @@
 > **Funil Integrado:** `LuizKarlos/esquadrao_funil`
 > **Esteira Viva:** Este roadmap governa o ciclo de desenvolvimento, os testes contínuos e os marcos de entrega do pacote `@esquadrao/cli`.
 > **Autoridades Canônicas:** [`SPEC.md`](./SPEC.md), [`GLOSSARY.md`](./GLOSSARY.md), [`README.md`](./README.md)
-> **Estado de Conformidade (2026-11-11):** 95 testes com skips condicionais de Whisper local, lint em 40 arquivos aprovado; Fases 1 a 4 entregues; Fase 5 em andamento.
+> **Estado de Conformidade (2026-11-11):** 96 testes com skips condicionais de Whisper local, lint em 40 arquivos aprovado; Fases 1 a 4 entregues; Fase 5 em andamento.
 > **Legenda:** `[x]` = implementado e testado; `[ ]` = previsto, pendente ou demonstração.
 
 ---
@@ -112,7 +112,7 @@
 > **Issue GitHub Ativa:** [#26 — Publicar @esquadrao/cli no npm](https://github.com/LuizKarlos/esquadrao_skill/issues/26)
 
 - [ ] **5.1. Homologação da Publicação:**
-  - [x] Testes unitários com cobertura total de 95 testes (skips condicionais de Whisper local).
+  - [x] Testes unitários com cobertura total de 96 testes (skips condicionais de Whisper local).
   - [x] Linting nativo `node scripts/lint.js` aprovado em todos os 40 arquivos.
   - [x] Documentação canônica integrada (`SPEC.md`, `ROADMAP.md`, `GLOSSARY.md`, `README.md`).
   - [x] Abertura do repositório para visibilidade pública no GitHub (`LuizKarlos/esquadrao_skill` público).
@@ -157,7 +157,7 @@
 - [x] **CLI-10: Atualização do manual de ajuda de `studio`** — resolvido em 1.6.0; `--broll`, `--music`, `--layout` e `--overlay-duration` no help.
   *Critério de aceite:* Documentar flags `--broll` e `--music` na saída de `esquadrao studio auto-clip --help`.
 - [x] **CLI-11: Alinhamento contínuo de referências documentais** — resolvido em 1.7.0 com testes de contrato de documentação.
-  *Critério de aceite:* Manter métricas de teste (95 com skips condicionais), contagem de lint (40 arquivos) e estrutura real do estúdio sincronizadas nos testes de documentação.
+  *Critério de aceite:* Manter métricas de teste (96 com skips condicionais), contagem de lint (40 arquivos) e estrutura real do estúdio sincronizadas nos testes de documentação.
 - [x] **CLI-14: Recorte de pessoa com troca de fundo (cutout)** — resolvido em 1.6.0 como experimental; `studio cutout --background`.
   *Critério de aceite:* `studio cutout --background pack.mp4 --engine rembg` com dependências Python, máscara por frame, correção RGB/BGR, refino GrabCut e erro acionável sem `rembg`; cache de máscaras e GPU ainda pendentes.
 
