@@ -73,6 +73,30 @@ test('Documentação Canônica: presença, integridade e referências cruzadas',
   assert.ok(spec.includes('--layout <fullscreen|pip|split_bottom|split_top>'), 'SPEC.md deve documentar todos os layouts de auto-clip');
   assert.ok(spec.includes('studio batch') || spec.includes('`batch`'), 'SPEC.md deve documentar o batch');
 
+  // Toda assinatura de --layout na SPEC deve listar os quatro layouts, incluindo split_top
+  const layoutSignatures = [...spec.matchAll(/--layout <([^>]+)>/g)].map((m) => m[1].split('|'));
+  assert.ok(layoutSignatures.length > 0, 'SPEC.md deve documentar a assinatura de --layout');
+  for (const layouts of layoutSignatures) {
+    assert.deepEqual(layouts, ['fullscreen', 'pip', 'split_bottom', 'split_top'], 'SPEC.md deve listar split_top em toda assinatura de --layout');
+  }
+  assert.ok(readme.includes('split_top') && readme.includes('split_bottom'), 'README.md deve listar split_top e split_bottom');
+  assert.match(help, /fullscreen, pip, split_bottom ou split_top/, '--help deve listar os quatro layouts');
+
+  // Caminho de perfil consistente entre documentação e implementação
+  const profilePath = '<workspace>/.esquadrao/profile.json';
+  const discoveryRule = 'Sem `--dest`, o CLI descobre o workspace subindo a partir do diretório atual até encontrar `studio.json`';
+  for (const [docName, doc] of [['SPEC.md', spec], ['README.md', readme], ['GLOSSARY.md', glossary]]) {
+    assert.ok(doc.includes(profilePath), `${docName} deve documentar ${profilePath}`);
+    assert.equal(doc.includes('~/.esquadrao/profile.json'), false, `${docName} não deve citar perfil fora do workspace`);
+  }
+  assert.ok(spec.includes(discoveryRule), 'SPEC.md deve documentar a descoberta do workspace sem --dest');
+  assert.ok(readme.includes(discoveryRule), 'README.md deve documentar a descoberta do workspace sem --dest');
+  assert.ok(read('skill-media-producer/SKILL.md').includes(profilePath), 'SKILL.md deve documentar o perfil do workspace');
+  const onboardSource = read('src/commands/onboard.js');
+  assert.ok(onboardSource.includes("'.esquadrao', 'profile.json'"), 'onboard deve gravar o perfil no workspace');
+  assert.ok(onboardSource.includes('manifest.profile = profileData'), 'onboard deve espelhar o perfil em studio.json');
+  assert.equal(read('CHANGELOG.md').includes('~/.esquadrao/profile.json'), false, 'CHANGELOG.md não deve citar perfil de usuário inexistente');
+
   const initialConfig = read('skill-media-producer/references/configuracao-inicial.md');
   assert.ok(initialConfig.includes('caption_template'), 'guia inicial deve documentar caption_template');
   assert.equal(

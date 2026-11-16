@@ -48,7 +48,7 @@ Conduz o usuário do zero absoluto até a renderização do seu primeiro vídeo 
     - macOS: `brew install ffmpeg`
     - Linux: `sudo apt update && sudo apt install -y ffmpeg`
 - **Persistência de Perfil:**
-  - O diretório de destino (`--dest`) persiste a configuração no perfil do workspace (`<workspace>/.esquadrao/profile.json`, com espelho em `studio.json`), permitindo execuções subsequentes sem redigitação de caminhos.
+  - O diretório de destino (`--dest`) persiste a configuração no perfil do workspace (`<workspace>/.esquadrao/profile.json`, com espelho em `studio.json`), permitindo execuções subsequentes sem redigitação de caminhos. Sem `--dest`, o CLI descobre o workspace subindo a partir do diretório atual até encontrar `studio.json`.
 
 ### 2.2. Motor de Vídeo Studio (`esquadrao studio`)
 Fornece o pipeline operacional de criação, importação de mídias, renderização via FFmpeg e inspeção de controle de qualidade (QA).
@@ -114,7 +114,7 @@ O contrato `EditPlan v1` estende o suporte a cenas de apoio (`overlays`) aplicad
 - **`layout: "fullscreen"` (Padrão, entregue):** O B-roll preenche 100% da tela durante 2 a 4 segundos enquanto o áudio da voz principal continua ativo sem interrupção.
 - **`layout: "pip"` (Picture-in-Picture, entregue):** O B-roll é renderizado em janela flutuante centralizada sobre o orador.
 - **`layout: "split_bottom"` (Entregue em 1.6.0):** O renderizador divide a tela com orador no topo e B-roll na metade inferior. O `auto-clip` aceita `--layout split_bottom` e `--overlay-duration full`; o pack é repetido em loop e cobre toda a linha do tempo, com áudio original preservado.
-- **`layout: "split_top"` (Entregue em 1.7.0):** O orador ocupa a metade inferior e o B-roll a metade superior; `auto-clip` aceita `--layout split_top` e o pack é repetido em loop.
+- **`layout: "split_top"` (Entregue em 1.7.0):** O orador ocupa a metade inferior e o B-roll a metade superior; `auto-clip` aceita `--layout split_top` e `--overlay-duration full`; o pack é repetido em loop, com áudio original preservado.
 
 #### 2.2.9. Trilha Sonora de Fundo e Atenuação de Áudio
 - O estúdio aceita arquivos de música de fundo via catálogo de áudio ou arquivos importados pelo usuário (`music_tracks`).
@@ -138,7 +138,7 @@ Orienta agentes a selecionar trechos de 30s a 60s (ajustáveis conforme a ideia)
 #### 2.2.12. Auto-Clip com B-Rolls e Trilha Sonora
 - O comando `esquadrao studio auto-clip` aceita as flags `--broll <arquivo>` (múltiplas cenas), `--music <arquivo>`, `--layout <fullscreen|pip|split_bottom|split_top>` e `--overlay-duration <inserts|full>`.
 - Quando informados, o estúdio distribui as cenas de apoio sobre a fala (mantendo a voz ininterrupta) e aplica a música com ducking dinâmico por sidechain quando `ducking: true`; sem ducking, usa atenuação fixa de -22 dB via `amix`.
-- Com `--overlay-duration full`, o primeiro `--broll` cobre toda a linha do tempo e é repetido em loop; com `split_bottom`, o resultado é o split permanente (orador no topo, pack na base).
+- Com `--overlay-duration full`, o primeiro `--broll` cobre toda a linha do tempo e é repetido em loop; com `split_bottom`, o resultado é o split permanente (orador no topo, pack na base); com `split_top`, o orador fica na base e o pack no topo.
 
 #### 2.2.13. Renderização em Lote
 - O comando `esquadrao studio batch <dir>` varre os arquivos `*.json` do diretório, renderiza cada plano sequencialmente e agrega o relatório de QA (CLI-07 resolvido em 1.7.0).

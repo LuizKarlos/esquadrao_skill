@@ -9,6 +9,7 @@ import { stdin as defaultInput, stdout as defaultOutput } from 'node:process';
 import {
   checkBinary,
   findSystemFont,
+  findWorkspaceDir,
   run as studioRun,
   buildCaptionFilters,
   buildClipFilters,
@@ -344,7 +345,7 @@ Options:
   try {
     // 2. Directory Resolution
     let targetDir = flags.dest || positionals[0];
-    const cwdProfile = loadProfile(process.cwd());
+    const cwdProfile = loadProfile(findWorkspaceDir());
 
     if (!targetDir && cwdProfile?.default_dir) {
       targetDir = cwdProfile.default_dir;

@@ -98,7 +98,7 @@ esquadrao onboard --mode podcast_clip --file ./podcast.mp4 --captions ./podcast.
 ### Flags do Onboard:
 - `--mode <podcast_clip | edit_only | dark>`: Modo de vídeo (cortes com legendas, decupagem ou tipografia).
 - `--format <9:16 | 16:9>`: Proporção de tela definida pelo usuário (Vertical 9:16 para mobile ou Widescreen 16:9 para desktop).
-- `--dest <path>`: Diretório do workspace (persiste no perfil para reuso).
+- `--dest <path>`: Diretório do workspace (persiste no perfil do workspace em `<workspace>/.esquadrao/profile.json`, com espelho em `studio.json`). Sem `--dest`, o CLI descobre o workspace subindo a partir do diretório atual até encontrar `studio.json`.
 - `--file <path>`: Arquivo de vídeo fonte (pode ser repetido para múltiplos arquivos).
 - `--captions <file.srt>`: Legenda SRT para o modo `podcast_clip`.
 - `--openai`: Usa OpenAI Whisper (requer `OPENAI_API_KEY`).

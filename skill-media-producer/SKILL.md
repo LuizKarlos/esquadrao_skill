@@ -69,6 +69,8 @@ O usuário escolhe uma pasta no computador para ser seu repositório/workspace p
 # Dentro da pasta do seu projeto/workspace
 esquadrao setup
 ```
+> **Persistência de Perfil:** O perfil do workspace fica em `<workspace>/.esquadrao/profile.json` (espelho em `studio.json`). Sem `--dest`, o CLI descobre o workspace subindo a partir do diretório atual até encontrar `studio.json`.
+
 > **Acervo de Apoio:** Os packs de vídeos e imagens adquiridos na plataforma devem ser descompactados e mantidos dentro dessa mesma pasta de trabalho (ex.: `./packs/`), garantindo acesso imediato aos agentes para cortes e B-rolls.
 
 ### Passo 4: Inicialização do Estúdio

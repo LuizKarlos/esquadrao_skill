@@ -234,8 +234,8 @@ test('Onboard: existing workspace reuses saved profile without --mode', async (t
     const res1 = await runCliAsync(['onboard', '--mode', 'dark', '--dest', tmp, '--json']);
     assert.equal(res1.status, 0);
 
-    // Run 2: omit --mode flag; must reuse dark mode from profile
-    const res2 = await runCliAsync(['onboard', '--dest', tmp, '--json']);
+    // Run 2: run inside the workspace without --dest/--mode; must reuse the saved profile
+    const res2 = await runCliAsync(['onboard', '--json'], {}, tmp);
     assert.equal(res2.status, 0);
 
     const data = JSON.parse(res2.stdout);

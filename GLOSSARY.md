@@ -98,7 +98,7 @@ Em auditoria conjunta realizada via **MegaBrain Atlas MCP** e classificador **Je
 1. **Nome do Pacote npm:** `@esquadrao/cli` no `package.json` e documentações.
 2. **Binários e Executáveis:** Restrito ao comando canônico `esquadrao`; o alias `esquadrao-skill` foi removido em 1.7.0 (CLI-09).
 3. **Manifesto do Estúdio:** Criação padrão com `"name": "esquadrao-studio"` em `studio.json`.
-4. **Caminho de Perfil:** Persistência no workspace em `<workspace>/.esquadrao/profile.json`.
+4. **Caminho de Perfil:** Persistência no workspace em `<workspace>/.esquadrao/profile.json` (com espelho em `studio.json`). Sem `--dest`, o CLI descobre o workspace subindo a partir do diretório atual até encontrar `studio.json`.
 5. **Comandos nos Tutoriais:** Menção aos comandos `esquadrao setup` e `esquadrao onboard`.
 
 Toda a esteira de gravação em Playwright e produção de tutoriais encontra-se em conformidade após a erradicação dos resíduos.

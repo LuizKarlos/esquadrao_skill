@@ -107,7 +107,7 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
   - Pacote oficial renomeado para `@esquadrao/cli` em `package.json` e em todas as referências canônicas.
   - Binários limpos: mantido exclusivamente o comando canônico `esquadrao` (expurgados aliases legados `universal-skill` e `agent-skill`).
   - Manifesto padrão do estúdio saneado de `universal-studio` para `esquadrao-studio` em `src/commands/studio.js`.
-  - Diretório de perfil do usuário saneado de `~/.universal-skill` para `~/.esquadrao/profile.json`.
+  - Perfil do workspace saneado de `<workspace>/.universal-skill/profile.json` para `<workspace>/.esquadrao/profile.json` (com espelho em `studio.json`).
   - Auditoria conjunta Atlas MCP e Jev confirmando zero ocorrências residuais de 'universal' em código e testes.
   - Todos os 73 testes automatizados aprovados sem falhas (`pass: 73, fail: 0`).
 
