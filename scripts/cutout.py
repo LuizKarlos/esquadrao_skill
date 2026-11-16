@@ -30,6 +30,26 @@ def has_audio(path: str) -> bool:
         return False
 
 
+def fg_height_for(requested, out_h: int, src_w: int, src_h: int) -> int:
+    """Altura do primeiro plano composto.
+
+    Entrada vertical entra em tela cheia (não encolhe as laterais); horizontal
+    mantém o recorte de 1000 px do protótipo. --fg-height explícito manda.
+    """
+    if requested is None:
+        requested = out_h if src_w > 0 and src_h >= src_w else min(1000, out_h)
+    return max(1, min(requested, out_h))
+
+
+def erode_kernel(min_side: int) -> int:
+    """Núcleo de erosão ~4,5% do lado menor (49 px em 1080p), sempre ímpar.
+
+    GC_FGD fica estritamente dentro da silhueta; o halo de 15-50 px do u2net
+    permanece como GC_PR_FGD para o GrabCut refinar.
+    """
+    return max(31, int(min_side * 0.045) | 1)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--input', required=True)
@@ -38,7 +58,7 @@ def main() -> int:
     ap.add_argument('--fps', type=float, default=15.0)
     ap.add_argument('--width', type=int, default=1080)
     ap.add_argument('--height', type=int, default=1920)
-    ap.add_argument('--fg-height', type=int, default=1000)
+    ap.add_argument('--fg-height', type=int, default=None)
     ap.add_argument('--fg-y', type=int, default=None)
     ap.add_argument('--model', default='u2net_human_seg')
     ap.add_argument('--crf', type=int, default=20)
@@ -87,7 +107,11 @@ def main() -> int:
             raise RuntimeError('falha ao ler frame do pack de fundo')
         return cv2.resize(bg, (args.width, args.height), interpolation=cv2.INTER_AREA)
 
-    fg_h = max(1, min(args.fg_height, args.height))
+    fg_h = fg_height_for(
+        args.fg_height, args.height,
+        int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) or 0),
+        int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0),
+    )
     fg_y = args.height - fg_h if args.fg_y is None else max(0, min(args.fg_y, args.height - fg_h))
 
     audio = has_audio(args.input)
@@ -108,19 +132,34 @@ def main() -> int:
         '-shortest', '-movflags', '+faststart', args.output,
     ]
 
-    print(f'Carregando modelo {args.model} (primeira execução pode baixar ~176 MB)...', file=sys.stderr, flush=True)
-    session = new_session(args.model)
-    ff = subprocess.Popen(cmd, stdin=subprocess.PIPE)
-    started = time.time()
+    ff = None
     written = 0
-
+    success = False
+    started = time.time()
     try:
-        for i in range(out_frames):
-            cap.set(cv2.CAP_PROP_POS_MSEC, i * 1000.0 / args.fps)
-            ok, frame = cap.read()
-            if not ok:
-                break
-            bg = read_bg(i)
+        print(f'Carregando modelo {args.model} (primeira execução pode baixar ~176 MB)...', file=sys.stderr, flush=True)
+        session = new_session(args.model)
+        ff = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+
+        src_idx = 0
+        last = None
+        while written < out_frames:
+            # Amostragem sequencial: grab avança sem decodificar. Seek por
+            # CAP_PROP_POS_MSEC erra em H.264 com B-frames e trunca o vídeo.
+            target = int(round(written * src_fps / args.fps))
+            while src_idx < target:
+                if not cap.grab():
+                    break
+                src_idx += 1
+            if last is not None and src_idx > target:
+                frame = last  # fps de saída acima do da origem: repete o quadro
+            else:
+                ok, frame = cap.read()
+                if not ok:
+                    break
+                src_idx += 1
+                last = frame
+            bg = read_bg(written)
             cut = remove(
                 Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)),
                 session=session,
@@ -134,7 +173,8 @@ def main() -> int:
             # da cabeça); sem refino, esse fundo vira um halo escuro no composto.
             mask = (fg[:, :, 3] > 127).astype(np.uint8) * 255
             try:
-                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+                k_erode = erode_kernel(min(frame.shape[:2]))
+                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k_erode, k_erode))
                 core = cv2.erode(mask, kernel)
                 outside = cv2.bitwise_not(cv2.dilate(mask, kernel))
                 gc = np.full(mask.shape, cv2.GC_PR_BGD, np.uint8)
@@ -171,15 +211,43 @@ def main() -> int:
             written += 1
             if written % 100 == 0:
                 print(f'{written}/{out_frames} frames — {time.time() - started:.1f}s', file=sys.stderr, flush=True)
+
+        if written == 0:
+            print('nenhum frame da entrada foi decodificado', file=sys.stderr)
+            return 1
+        if written < out_frames:
+            print(f'decodificação interrompida em {written}/{out_frames} frames', file=sys.stderr)
+            return 1
         ff.stdin.close()
         rc = ff.wait()
         if rc != 0:
             print(f'ffmpeg falhou (exit {rc})', file=sys.stderr)
-            return rc
+            return 1
+        success = True
+    except KeyboardInterrupt:
+        print('cutout interrompido pelo usuário', file=sys.stderr)
+        return 130
     except BrokenPipeError:
         print('ffmpeg encerrou antes do fim dos frames', file=sys.stderr)
         return 1
+    except Exception as exc:  # noqa: BLE001 — falha do motor vira exit != 0
+        print(f'falha no cutout: {exc}', file=sys.stderr)
+        return 1
     finally:
+        if ff is not None:
+            try:
+                ff.stdin.close()
+            except (OSError, BrokenPipeError, ValueError):
+                pass
+            if ff.poll() is None:
+                ff.terminate()
+                try:
+                    ff.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    ff.kill()
+                    ff.wait()
+        if not success:
+            Path(args.output).unlink(missing_ok=True)
         cap.release()
         pack.release()
 
