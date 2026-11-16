@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,6 +18,13 @@ test('CLI Execution & Version', () => {
   const binPath = join(repoRoot, 'bin', 'cli.js');
   const stdout = execFileSync(process.execPath, [binPath, '--version'], { encoding: 'utf8' }).trim();
   assert.equal(stdout, pkg.version);
+});
+
+test('Lint Script valida JS e Python', () => {
+  const res = spawnSync(process.execPath, [join(repoRoot, 'scripts', 'lint.js')], { encoding: 'utf8' });
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /Lint passed: verified \d+ files with node --check/);
+  assert.match(res.stdout + res.stderr, /Python files with py_compile|Python interpreter not found/);
 });
 
 test('DAG Validator Script', () => {
