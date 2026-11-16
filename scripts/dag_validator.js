@@ -4,9 +4,39 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 
+const INVALID_INPUT = 'DAG must be an array of tasks or an object with a tasks array';
+
 // ponytail: in-memory Kahn algorithm; upgrade to streaming DAG for 100k+ nodes
-export function validateDAG(tasks = []) {
-  if (!Array.isArray(tasks)) return { valid: false, cycles: [], missing_dependencies: [], waves: [] };
+export function validateDAG(input = []) {
+  const tasks = Array.isArray(input) ? input : (Array.isArray(input?.tasks) ? input.tasks : null);
+  if (!tasks) return { valid: false, cycles: [], missing_dependencies: [], waves: [], errors: [INVALID_INPUT] };
+
+  const errors = [];
+  const seen = new Set();
+  tasks.forEach((t, i) => {
+    if (!t || typeof t !== 'object' || Array.isArray(t)) {
+      errors.push(`Task ${i}: must be an object`);
+      return;
+    }
+    if (typeof t.id !== 'string' || t.id.trim().length === 0) {
+      errors.push(`Task ${i}: id must be a non-empty string`);
+      return;
+    }
+    if (seen.has(t.id)) errors.push(`Task ${i}: duplicate id "${t.id}"`);
+    seen.add(t.id);
+    if (t.depends_on === undefined) return;
+    if (!Array.isArray(t.depends_on)) {
+      errors.push(`Task "${t.id}": depends_on must be an array of strings`);
+      return;
+    }
+    t.depends_on.forEach((dep) => {
+      if (typeof dep !== 'string' || dep.trim().length === 0) {
+        errors.push(`Task "${t.id}": depends_on must contain non-empty strings`);
+      }
+    });
+  });
+
+  if (errors.length > 0) return { valid: false, cycles: [], missing_dependencies: [], waves: [], errors };
 
   const inDegree = new Map();
   const dependents = new Map();
@@ -48,7 +78,7 @@ export function validateDAG(tasks = []) {
   const valid = processed === tasks.length && missing_dependencies.length === 0;
   const cycles = valid ? [] : tasks.filter((t) => (inDegree.get(t.id) || 0) > 0).map((t) => t.id);
 
-  return { valid, cycles, missing_dependencies, waves };
+  return { valid, cycles, missing_dependencies, waves, errors };
 }
 
 export default validateDAG;
@@ -64,6 +94,11 @@ Usage:
 
 Validates DAG acyclicity and computes topological execution waves.`);
     process.exit(0);
+  }
+
+  if (!process.argv[2] && process.stdin.isTTY) {
+    console.error('Usage: node scripts/dag_validator.js <tasks.json> (or pipe JSON via stdin)');
+    process.exit(1);
   }
 
   try {

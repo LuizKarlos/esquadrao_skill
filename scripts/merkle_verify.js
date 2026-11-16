@@ -14,7 +14,7 @@ export function canonicalStringify(val) {
 }
 
 export function computeBlockHash(block) {
-  if (!block || typeof block !== 'object') return '';
+  if (!block || typeof block !== 'object' || Array.isArray(block)) return '';
   const { hash: _, ...payload } = block;
   return createHash('sha256').update(canonicalStringify(payload)).digest('hex');
 }
@@ -69,6 +69,11 @@ Usage:
 
 Validates cryptographic hash continuity and payload integrity across blocks.`);
     process.exit(0);
+  }
+
+  if (!process.argv[2] && process.stdin.isTTY) {
+    console.error('Usage: node scripts/merkle_verify.js <ledger.json> (or pipe JSON via stdin)');
+    process.exit(1);
   }
 
   try {
