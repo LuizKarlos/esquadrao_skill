@@ -6,6 +6,18 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 
 ---
 
+## [1.7.1] - 2026-11-16
+
+### Corrigido
+- **Alias de templates de legenda:** `--caption-template` e `captions[].template` passam a aceitar a grafia com underscore usada nos guias (`mrbeast_yellow`), normalizada para o ID canônico (`mrbeast-yellow`).
+- **Referências do `skill-media-producer`:** `configuracao-inicial.md` e `composicoes-especiais.md` alinhadas ao estado 1.7.0 (templates, fontes empacotadas, `lineGap`, `pillow` no cutout e contagens reais).
+- **SPEC:** §1.1 passa a descrever o envio opt-in via `--openai`; §2.2.3 documenta o escape completo exigido pelo `drawtext`; §2.2.12 alinha `--layout` com `split_top`.
+
+### Testes
+- 96 testes (94 aprovados + 2 skips condicionais), lint em 40 arquivos.
+
+---
+
 ## [1.7.0] - 2026-11-11
 
 ### Adicionado

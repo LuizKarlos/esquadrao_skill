@@ -2,7 +2,7 @@
 
 > **Repositório:** `LuizKarlos/esquadrao_skill`  
 > **Funil Integrado:** `LuizKarlos/esquadrao_funil`  
-> **Versão:** 1.7.0\
+> **Versão:** 1.7.1\
 > **Status:** Ativo / Homologado  
 > **Pacote npm:** `@esquadrao/cli`  
 > **Nome Comercial:** Esquadrão de Conteúdo  
