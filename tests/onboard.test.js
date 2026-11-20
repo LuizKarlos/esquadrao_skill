@@ -77,32 +77,24 @@ function generateSampleVideo(filePath, durationSec = 2) {
   ], { stdio: 'pipe' });
 }
 
-test('Onboard: missing ffmpeg aborts early with actionable per-OS message', async () => {
-  const tmp = path.join(os.tmpdir(), `onboard-no-ffmpeg-${Date.now()}`);
+test('Onboard: zero config rodeia com ffmpeg embutido mesmo sem PATH externo', async () => {
+  // Regra de negócio: o leigo nunca recebe instrução de instalar ffmpeg/brew/winget/apt.
+  // Mesmo com PATH reduzido ao Node, o binário embutido deve permitir o onboard completo.
+  const tmp = path.join(os.tmpdir(), `onboard-zero-config-${Date.now()}`);
   const nodeDir = path.dirname(process.execPath);
   try {
     const res = await runCliAsync(['onboard', '--mode', 'dark', '--dest', tmp], {
       PATH: nodeDir,
       Path: nodeDir,
     });
-    assert.equal(res.status, 1, 'Process should exit with code 1 when ffmpeg is missing');
-    assert.match(res.stderr, /ffmpeg/i);
-    assert.match(res.stderr, /install/i);
 
-    // Verify actionable per-OS install instruction appears in stderr
-    const currentOsInstr = getFfmpegInstallInstructions(process.platform);
-    assert.ok(
-      res.stderr.includes(currentOsInstr),
-      `stderr must contain per-OS message for ${process.platform}: expected "${currentOsInstr}"`
-    );
+    assert.equal(res.status, 0, `Onboard deve concluir com ffmpeg embutido. stderr: ${res.stderr}`);
+    assert.doesNotMatch(res.stderr, /winget|brew install|apt install|sudo/i, 'Sem instrução de instalação manual');
+    assert.doesNotMatch(res.stderr, /not found|not installed/i, 'Binário embutido não pode faltar');
 
-    // Verify actionable per-OS install instruction helper for all supported platforms
-    const winInstr = getFfmpegInstallInstructions('win32');
-    const macInstr = getFfmpegInstallInstructions('darwin');
-    const linuxInstr = getFfmpegInstallInstructions('linux');
-    assert.match(winInstr, /winget/);
-    assert.match(macInstr, /brew/);
-    assert.match(linuxInstr, /apt/);
+    const instr = getFfmpegInstallInstructions();
+    assert.match(instr, /embutido/i);
+    assert.doesNotMatch(instr, /winget|brew|apt/i);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

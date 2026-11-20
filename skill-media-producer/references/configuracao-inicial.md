@@ -4,22 +4,16 @@ Guia para Windows / PowerShell: instalar, escolher proporção, configurar corte
 
 ## 1. Pré-requisitos e instalação
 
-Use Node.js 18 ou superior. Confira:
+Basta Node.js 18 ou superior. O FFmpeg e o ffprobe vêm embutidos no pacote: não instale
+nada por `winget`/`choco`, não edite o PATH e não abra outro terminal.
 
 ```powershell
 node --version
 npm --version
-ffmpeg -version
-ffprobe -version
+npx @esquadrao/cli setup
 ```
 
-Se precisar instalar FFmpeg:
-
-```powershell
-winget install --id Gyan.FFmpeg -e
-```
-
-Abra um novo PowerShell após instalar para atualizar o PATH.
+O `setup` confirma o ambiente e mostra se o FFmpeg embutido está disponível.
 
 Se você já tem o repositório clonado, defina o caminho absoluto para `bin\cli.js`:
 

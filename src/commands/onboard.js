@@ -18,14 +18,8 @@ import {
 import { tryAutoInstallFfmpeg } from './setup.js';
 import { validateEditPlan } from '../roles/mediaProducer.js';
 
-export function getFfmpegInstallInstructions(platform = process.platform) {
-  if (platform === 'win32') {
-    return 'winget install Gyan.FFmpeg (or: choco install ffmpeg)';
-  }
-  if (platform === 'darwin') {
-    return 'brew install ffmpeg';
-  }
-  return 'sudo apt install ffmpeg (Debian/Ubuntu) or your package manager';
+export function getFfmpegInstallInstructions() {
+  return 'o FFmpeg já vem embutido no Esquadrão. Rode "esquadrao setup" para restaurá-lo.';
 }
 
 export function detectEnvironment() {
@@ -35,21 +29,17 @@ export function detectEnvironment() {
   }
 
   let hasFfmpeg = checkBinary('ffmpeg') && checkBinary('ffprobe');
-  let autoInstalledFfmpeg = false;
-  if (!hasFfmpeg) {
-    autoInstalledFfmpeg = tryAutoInstallFfmpeg();
-    hasFfmpeg = checkBinary('ffmpeg') && checkBinary('ffprobe');
-  }
+  if (!hasFfmpeg) hasFfmpeg = tryAutoInstallFfmpeg();
 
   if (!hasFfmpeg) {
     const missing = [!checkBinary('ffmpeg') && 'ffmpeg', !checkBinary('ffprobe') && 'ffprobe'].filter(Boolean).join(' and ');
     throw new Error(
-      `${missing} is not installed or not found on PATH.\nTo install ffmpeg on ${process.platform}:\n  ${getFfmpegInstallInstructions()}`
+      `${missing} não foi encontrado. ${getFfmpegInstallInstructions()}`
     );
   }
 
   const font = findSystemFont();
-  return { nodeVersion: process.versions.node, ffmpeg: true, autoInstalledFfmpeg, font };
+  return { nodeVersion: process.versions.node, ffmpeg: true, font };
 }
 
 export function loadProfile(dir) {

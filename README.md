@@ -27,13 +27,11 @@ Este repositório (`LuizKarlos/esquadrao_skill`) adota engenharia rigorosa centr
 - **Cursor** (`.cursor/rules/*.mdc`)
 - **Hermes / VS Code** (detectados em `~/.hermes/` e `.vscode/`; sem cópia de skills)
 
-## Requisitos
+## Requisitos (zero configuração)
 
-- **Node.js** >= 18.0.0
-- **FFmpeg & ffprobe** no PATH (obrigatório para renderização de vídeo e comandos de studio/onboard):
-  - **Windows**: `winget install Gyan.FFmpeg` ou `choco install ffmpeg`
-  - **macOS**: `brew install ffmpeg`
-  - **Linux (Debian/Ubuntu)**: `sudo apt update && sudo apt install -y ffmpeg`
+- **Node.js** >= 18 para executar o pacote (o `npx` já baixa e roda sem instalação global).
+- **FFmpeg & ffprobe**: vêm **embutidos** no pacote (`ffmpeg-static`/`ffprobe-static`). Não há passo de `brew`, `winget` ou `apt`, nem edição manual de `PATH`; o CLI injeta os binários no processo.
+- **Python 3 + rembg**: apenas para `studio cutout` (recorte de pessoa). Recurso opcional.
 
 ## Installation
 

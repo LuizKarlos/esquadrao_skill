@@ -2,12 +2,17 @@
 import { parseArgs } from 'node:util';
 import { existsSync, readFileSync } from 'node:fs';
 import process from 'node:process';
+import { ensureBundledPath } from '../src/binaries.js';
+
+// FFmpeg/ffprobe embutidos: injeta no PATH antes de qualquer comando.
+ensureBundledPath();
 
 if (typeof process.loadEnvFile === 'function' && existsSync('.env')) {
   try { process.loadEnvFile(); } catch {}
 }
 
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+
 
 const { values: flags, positionals } = parseArgs({
   args: process.argv.slice(2),

@@ -3,6 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
+import { ensureBundledPath, binaryReport } from '../binaries.js';
 
 function checkBinary(name) {
   try {
@@ -14,20 +15,11 @@ function checkBinary(name) {
   }
 }
 
+// Zero config: o ffmpeg vem como optionalDependency do pacote. Nada de brew,
+// winget ou sudo; apenas expomos os binários no PATH do processo.
 export function tryAutoInstallFfmpeg() {
-  if (checkBinary('ffmpeg') && checkBinary('ffprobe')) return true;
-  try {
-    if (process.platform === 'darwin') {
-      execSync('brew install ffmpeg', { stdio: 'ignore', timeout: 60000 });
-    } else if (process.platform === 'win32') {
-      execSync('winget install Gyan.FFmpeg --accept-package-agreements --accept-source-agreements', { stdio: 'ignore', timeout: 60000 });
-    } else {
-      execSync('which apt-get && (apt-get update -qq && apt-get install -y -qq ffmpeg) || sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg', { stdio: 'ignore', timeout: 60000 });
-    }
-    return checkBinary('ffmpeg') && checkBinary('ffprobe');
-  } catch {
-    return false;
-  }
+  ensureBundledPath();
+  return checkBinary('ffmpeg') && checkBinary('ffprobe');
 }
 
 const SKILLS = [
@@ -143,17 +135,14 @@ export async function run({ positionals = [], flags = {} } = {}) {
   const nodeOk = nodeMajor >= 18;
 
   let hasFfmpeg = checkBinary('ffmpeg') && checkBinary('ffprobe');
-  let autoInstalledFfmpeg = false;
-  if (!hasFfmpeg) {
-    autoInstalledFfmpeg = tryAutoInstallFfmpeg();
-    hasFfmpeg = checkBinary('ffmpeg') && checkBinary('ffprobe');
-  }
+  if (!hasFfmpeg) hasFfmpeg = tryAutoInstallFfmpeg();
+  const binaries = binaryReport();
 
   const report = {
     status: nodeOk ? 'ok' : 'degraded',
     prerequisites: {
       node: { version: process.version, valid: nodeOk },
-      ffmpeg: { valid: hasFfmpeg, auto_installed: autoInstalledFfmpeg }
+      ffmpeg: { valid: hasFfmpeg, source: binaries.ffmpeg.source }
     },
     installation: { destination: destDir, installed },
     harnesses,
@@ -164,7 +153,12 @@ export async function run({ positionals = [], flags = {} } = {}) {
   } else {
     console.log(`Esquadrão Setup: ${report.status.toUpperCase()}`);
     console.log(`- Node.js: ${process.version} (${nodeOk ? 'OK' : 'Requires >= 18'})`);
-    console.log(`- FFmpeg & ffprobe: ${hasFfmpeg ? (autoInstalledFfmpeg ? 'Instalado automaticamente com sucesso!' : 'OK') : 'Pendente (peça ao seu agente de IA: "instale o ffmpeg para mim")'}`);
+    const ffmpegLabel = !hasFfmpeg
+      ? 'indisponível (rode "npm install" novamente para restaurar o binário embutido)'
+      : binaries.ffmpeg.source === 'bundled'
+        ? 'embutido no pacote (nada a instalar)'
+        : 'OK (binário do sistema)';
+    console.log(`- FFmpeg & ffprobe: ${ffmpegLabel}`);
     console.log(`- Installed ${installed.length} items to ${destDir}`);
     if (harnesses.length) console.log(`- Harnesses detected: ${harnesses.join(', ')}`);
   }
