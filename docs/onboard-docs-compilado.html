@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
-  <title>Onboard — documentação consolidada | @esquadrao/cli</title>
-  <meta name="description" content="Documentação única do fluxo onboard do Esquadrão: instalação zero configuração, modos, flags, arquivos gerados, QA e solução de problemas." />
+  <title>10 cortes de um podcast de 3 horas — guia do Esquadrão</title>
+  <meta name="description" content="Passo a passo conversacional para transformar um podcast longo em 10 cortes legendados com tela dividida." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -33,392 +33,360 @@
     .doc p + p { margin-top: 1rem; }
     .doc a { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
     .doc code { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .85em; color: #fff; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); border-radius: 5px; padding: .1em .35em; }
-    .doc ul { margin-top: .75rem; display: grid; gap: .5rem; }
-    .doc li { position: relative; padding-left: 1.1rem; color: #c9c9cf; }
-    .doc li::before { content: ""; position: absolute; left: 0; top: .62em; height: 4px; width: 4px; border-radius: 999px; background: rgba(255,255,255,.45); }
+    .term-line { display: grid; grid-template-columns: 16px 1fr; gap: 8px; }
     details > summary { list-style: none; cursor: pointer; }
     details > summary::-webkit-details-marker { display: none; }
     details[open] .chevron { transform: rotate(180deg); }
-    .num { font-variant-numeric: tabular-nums; }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition-duration: .01ms !important; } }
   </style>
 </head>
 <body class="min-h-full bg-ink font-sans text-white selection:bg-white/25 selection:text-black">
   <a href="#conteudo" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-black">
-    Ir para o conteúdo
+    Ir para o guia
   </a>
 
   <div aria-hidden="true" class="pointer-events-none fixed inset-0 glow"></div>
 
   <div class="relative flex min-h-svh flex-col">
     <header class="sticky top-0 z-40 border-b border-white/10 bg-ink/90 backdrop-blur">
-      <div class="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
+      <div class="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
         <a href="#topo" class="inline-flex items-baseline gap-2">
           <span class="text-[13px] font-semibold uppercase tracking-[0.28em] text-white">Esquadrão</span>
           <span class="text-[11px] uppercase tracking-[0.18em] text-subtle">de Conteúdo</span>
         </a>
-        <nav aria-label="Seções do documento" class="hidden items-center gap-6 text-xs text-zinc-400 lg:flex">
-          <a href="#instalacao" class="hover:text-white">Instalação</a>
-          <a href="#fluxo" class="hover:text-white">Fluxo</a>
-          <a href="#modos" class="hover:text-white">Modos</a>
-          <a href="#flags" class="hover:text-white">Flags</a>
-          <a href="#problemas" class="hover:text-white">Problemas</a>
+        <nav aria-label="Passos do guia" class="hidden items-center gap-6 text-xs text-zinc-400 md:flex">
+          <a href="#passo-1" class="hover:text-white">Passo 1</a>
+          <a href="#passo-2" class="hover:text-white">Passo 2</a>
+          <a href="#passo-3" class="hover:text-white">Passo 3</a>
+          <a href="#passo-4" class="hover:text-white">Passo 4</a>
+          <a href="#passo-5" class="hover:text-white">Passo 5</a>
         </nav>
-        <span class="rounded-full border border-white/15 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-subtle">v1.7.1</span>
       </div>
     </header>
 
-    <main id="conteudo" class="mx-auto w-full max-w-6xl flex-1 px-5 pb-20 pt-12 sm:px-8 sm:pt-16">
-      <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle">Documentação consolidada</p>
+    <main id="conteudo" class="mx-auto w-full max-w-5xl flex-1 px-5 pb-20 pt-12 sm:px-8 sm:pt-16">
+      <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle">Guia passo a passo</p>
       <h1 class="mt-3 max-w-3xl font-serif text-4xl leading-[1.05] tracking-tight text-white sm:text-6xl">
-        Onboard, do primeiro comando ao vídeo aprovado
+        Dez cortes virais de um podcast de 3 horas
       </h1>
       <p class="mt-6 max-w-2xl text-base leading-7 text-zinc-300">
-        Esta página reúne o conteúdo de README, SPEC, guia operacional para agentes e configuração
-        inicial em um único documento. A instalação é um passo só: o FFmpeg vai embutido no pacote,
-        sem download manual, sem administrador e sem editar variáveis de ambiente.
+        Você grava, o Esquadrão pergunta, você responde. Em cinco passos o material bruto vira
+        dez vídeos curtos, legendados e com a tela dividida entre você e uma cena de apoio.
+        Nenhum conhecimento técnico é necessário: basta ler as perguntas e escolher um número.
       </p>
 
       <div class="mt-9 grid gap-3 sm:grid-cols-3">
         <div class="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-          <p class="font-mono text-[10px] uppercase tracking-[0.16em] text-subtle">Instalação</p>
-          <p class="mt-2 text-2xl font-semibold text-white num">1 comando</p>
-          <p class="mt-1 text-[11px] leading-5 text-zinc-500">Sem binários externos</p>
+          <p class="font-mono text-[10px] uppercase tracking-[0.16em] text-subtle">Entrada</p>
+          <p class="mt-2 text-2xl font-semibold text-white">1 podcast</p>
+          <p class="mt-1 text-[11px] leading-5 text-zinc-500">3 horas de conversa, com áudio</p>
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-          <p class="font-mono text-[10px] uppercase tracking-[0.16em] text-subtle">Modos</p>
-          <p class="mt-2 text-2xl font-semibold text-white num">3</p>
-          <p class="mt-1 text-[11px] leading-5 text-zinc-500">podcast_clip, dark, edit_only</p>
+          <p class="font-mono text-[10px] uppercase tracking-[0.16em] text-subtle">Saída</p>
+          <p class="mt-2 text-2xl font-semibold text-white">10 cortes</p>
+          <p class="mt-1 text-[11px] leading-5 text-zinc-500">Prontos para publicar</p>
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-          <p class="font-mono text-[10px] uppercase tracking-[0.16em] text-subtle">Binários externos</p>
-          <p class="mt-2 text-2xl font-semibold text-white num">0</p>
-          <p class="mt-1 text-[11px] leading-5 text-zinc-500">Nada de brew, winget ou PATH</p>
+          <p class="font-mono text-[10px] uppercase tracking-[0.16em] text-subtle">Formato</p>
+          <p class="mt-2 text-2xl font-semibold text-white">Tela dividida</p>
+          <p class="mt-1 text-[11px] leading-5 text-zinc-500">Cena de apoio em cima, você embaixo</p>
         </div>
       </div>
 
       <div class="mt-10 rule"></div>
 
-      <div class="mt-12 grid gap-12 lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-14">
-        <aside class="hidden lg:block">
-          <nav aria-label="Sumário" class="sticky top-28 space-y-2.5 text-xs">
-            <p class="mb-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-subtle">Nesta página</p>
-            <a href="#instalacao" class="block text-zinc-300 hover:text-white">1. Instalação</a>
-            <a href="#fluxo" class="block text-subtle hover:text-white">2. O fluxo</a>
-            <a href="#modos" class="block text-subtle hover:text-white">3. Modos</a>
-            <a href="#flags" class="block text-subtle hover:text-white">4. Flags</a>
-            <a href="#arquivos" class="block text-subtle hover:text-white">5. Arquivos gerados</a>
-            <a href="#legendas" class="block text-subtle hover:text-white">6. Legendas e QA</a>
-            <a href="#problemas" class="block text-subtle hover:text-white">7. Problemas comuns</a>
-            <a href="#glossario" class="block text-subtle hover:text-white">8. Glossário</a>
-            <a href="#limites" class="block text-subtle hover:text-white">9. Limites</a>
-          </nav>
-        </aside>
+      <div class="doc mt-12 max-w-[72ch]">
+        <section id="antes" class="scroll-mt-28">
+          <h2 class="font-serif text-3xl tracking-tight text-white">Antes de começar</h2>
+          <p class="mt-4 leading-7">Separe três coisas. Nada além disso é necessário.</p>
+          <ul class="mt-4 grid gap-2 text-[15px] leading-7">
+            <li>O arquivo do podcast completo (o vídeo original, com som).</li>
+            <li>Uma ou duas cenas de apoio para aparecer na metade de cima — pode ser um trecho de vídeo qualquer, sem som.</li>
+            <li>Quinze minutos livres: o processamento roda no seu computador e você acompanha pelo terminal.</li>
+          </ul>
+        </section>
 
-        <div class="doc max-w-[72ch] min-w-0">
-          <section id="instalacao" class="scroll-mt-28">
-            <h2 class="font-serif text-3xl tracking-tight text-white">1. Instalação em um passo</h2>
-            <p class="mt-4 leading-7">
-              Um único comando baixa o pacote, instala os skills nos ambientes de agentes e confirma o
-              ambiente. O FFmpeg e o ffprobe já viajam dentro do pacote: não existe etapa de download de
-              binário nem configuração de <code>PATH</code>.
-            </p>
+        <section id="passo-1" class="mt-14 scroll-mt-28">
+          <div class="flex items-baseline gap-3">
+            <span class="font-mono text-xs text-subtle num">PASSO 1</span>
+            <div class="h-px flex-1 bg-white/10"></div>
+          </div>
+          <h2 class="mt-4 font-serif text-3xl tracking-tight text-white">Abra o assistente</h2>
+          <p class="mt-4 leading-7">
+            A instalação é um comando só, e tudo o que o Esquadrão precisa já vem junto — não há
+            nada para baixar depois, nem tela de configuração. Copie a linha abaixo, cole na janela
+            do terminal e aperte Enter.
+          </p>
 
-            <div class="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-panel">
-              <div class="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
-                <span class="font-mono text-[11px] text-subtle">terminal</span>
-                <button type="button" data-copy="npx @esquadrao/cli setup" class="copy-btn inline-flex min-h-9 items-center gap-1.5 rounded-md border border-white/15 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
-                  <span>Copiar</span>
-                </button>
-              </div>
-              <pre class="overflow-x-auto p-4 font-mono text-[13px] leading-6 text-zinc-200"><span class="text-subtle">$</span> npx @esquadrao/cli setup</pre>
+          <div class="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-panel">
+            <div class="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+              <span class="font-mono text-[11px] text-subtle">cole na janela do terminal</span>
+              <button type="button" data-copy="npx @esquadrao/cli setup" class="copy-btn inline-flex min-h-9 items-center gap-1.5 rounded-md border border-white/15 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                <span>Copiar</span>
+              </button>
             </div>
+            <pre class="overflow-x-auto p-4 font-mono text-[13px] leading-6 text-zinc-200"><span class="text-subtle">$</span> npx @esquadrao/cli setup</pre>
+          </div>
 
-            <p class="mt-4 leading-7">O relatório do <code>setup</code> mostra três linhas:</p>
-            <div class="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/40">
-              <pre class="overflow-x-auto p-4 font-mono text-[12px] leading-6 text-zinc-300">Esquadrão Setup: OK
-- Node.js: v22.x (OK)
-- FFmpeg &amp; ffprobe: embutido no pacote (nada a instalar)
-- Installed 19 items to .agents/skills</pre>
+          <p class="mt-4 leading-7">
+            Quando terminar, o próprio assistente abre as perguntas do próximo passo. Se ele não abrir
+            sozinho, digite <code>esquadrao onboard</code>.
+          </p>
+        </section>
+
+        <section id="passo-2" class="mt-14 scroll-mt-28">
+          <div class="flex items-baseline gap-3">
+            <span class="font-mono text-xs text-subtle num">PASSO 2</span>
+            <div class="h-px flex-1 bg-white/10"></div>
+          </div>
+          <h2 class="mt-4 font-serif text-3xl tracking-tight text-white">Responda as quatro perguntas</h2>
+          <p class="mt-4 leading-7">
+            O assistente conversa com você. Cada pergunta tem uma resposta certa para este projeto —
+            está tudo destacado abaixo, na ordem em que aparece na tela.
+          </p>
+
+          <div class="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-black/50">
+            <div class="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+              <span class="font-mono text-[11px] text-subtle">o que aparece na sua tela</span>
+              <span class="font-mono text-[10px] uppercase tracking-[0.14em] text-subtle">respostas marcam com &gt;</span>
             </div>
-
-            <div class="mt-6 rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">O que você não precisa fazer</p>
-              <ul class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                <li>Instalar FFmpeg por brew, winget, choco ou apt</li>
-                <li>Rodar comando com <code>sudo</code> ou como administrador</li>
-                <li>Editar <code>PATH</code> ou variáveis de ambiente</li>
-                <li>Abrir um terminal novo depois da instalação</li>
-              </ul>
-            </div>
-
-            <p class="mt-5 leading-7">
-              O único runtime é o Node.js 18 ou superior, que já acompanha o <code>npm</code>/<code>npx</code>
-              usado no comando acima. Não há instalação de binários de vídeo, permissão de administrador
-              nem configuração de ambiente.
-            </p>
-            <p class="leading-7">
-              Quem prefere instalação global usa <code>npm install -g @esquadrao/cli</code> e depois
-              <code>esquadrao setup</code>; o resultado é o mesmo. O Python só entra em cena no recorte de
-              pessoa (<code>studio cutout</code>), um recurso opcional.
-            </p>
-          </section>
-
-          <section id="fluxo" class="mt-14 scroll-mt-28">
-            <h2 class="font-serif text-3xl tracking-tight text-white">2. O fluxo do onboard</h2>
-            <p class="mt-4 leading-7">
-              O <code>onboard</code> conduz do zero até o primeiro vídeo renderizado com QA aprovado.
-              Sem flags, ele pergunta cada etapa; com flags, roda direto.
-            </p>
-
-            <ol class="mt-6 space-y-3">
-              <li class="flex gap-4 rounded-xl border border-white/10 p-4">
-                <span class="mt-0.5 font-mono text-xs text-subtle num">01</span>
-                <div>
-                  <p class="text-sm font-medium text-white">Verifica o ambiente</p>
-                  <p class="mt-1 text-xs leading-5 text-zinc-500">Node e FFmpeg embutido. Se algo faltar, aponta o comando de correção — nunca manda instalar binário à mão.</p>
-                </div>
-              </li>
-              <li class="flex gap-4 rounded-xl border border-white/10 p-4">
-                <span class="mt-0.5 font-mono text-xs text-subtle num">02</span>
-                <div>
-                  <p class="text-sm font-medium text-white">Define o workspace</p>
-                  <p class="mt-1 text-xs leading-5 text-zinc-500">Cria ou reaproveita a pasta com <code>assets/</code>, <code>packages/</code>, <code>artifacts/</code> e o perfil salvo.</p>
-                </div>
-              </li>
-              <li class="flex gap-4 rounded-xl border border-white/10 p-4">
-                <span class="mt-0.5 font-mono text-xs text-subtle num">03</span>
-                <div>
-                  <p class="text-sm font-medium text-white">Importa a mídia</p>
-                  <p class="mt-1 text-xs leading-5 text-zinc-500">Lê duração, resolução, fps e áudio com ffprobe e registra o asset com id <code>AST-xxxxxxxx</code>.</p>
-                </div>
-              </li>
-              <li class="flex gap-4 rounded-xl border border-white/10 p-4">
-                <span class="mt-0.5 font-mono text-xs text-subtle num">04</span>
-                <div>
-                  <p class="text-sm font-medium text-white">Monta o plano de edição</p>
-                  <p class="mt-1 text-xs leading-5 text-zinc-500">Cortes, proporção, legendas e áudio viram um <code>editplan.json</code> validado contra o contrato.</p>
-                </div>
-              </li>
-              <li class="flex gap-4 rounded-xl border border-white/10 p-4">
-                <span class="mt-0.5 font-mono text-xs text-subtle num">05</span>
-                <div>
-                  <p class="text-sm font-medium text-white">Renderiza e valida</p>
-                  <p class="mt-1 text-xs leading-5 text-zinc-500">O MP4 sai em <code>artifacts/</code> e o QA confere duração, resolução, fps, codecs e áudio.</p>
-                </div>
-              </li>
-            </ol>
-
-            <div class="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-panel">
-              <div class="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
-                <span class="font-mono text-[11px] text-subtle">terminal</span>
-                <button type="button" data-copy="esquadrao onboard" class="copy-btn inline-flex min-h-9 items-center gap-1.5 rounded-md border border-white/15 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
-                  <span>Copiar</span>
-                </button>
+            <div class="space-y-5 p-5 font-mono text-[12px] leading-6 text-zinc-300">
+              <div>
+                <p class="text-white">1. Em qual pasta você deseja guardar seus vídeos e projetos?</p>
+                <p class="text-zinc-500">[Pressione Enter para a pasta atual]</p>
+                <p class="mt-2 rounded-md border-l-2 border-emerald-400/60 bg-emerald-400/10 px-2 py-1 text-emerald-200">&gt; podcast-setembro</p>
               </div>
-              <pre class="overflow-x-auto p-4 font-mono text-[13px] leading-6 text-zinc-200"><span class="text-subtle">$</span> esquadrao onboard</pre>
-            </div>
-          </section>
-
-          <section id="modos" class="mt-14 scroll-mt-28">
-            <h2 class="font-serif text-3xl tracking-tight text-white">3. Os três modos</h2>
-            <div class="mt-5 grid gap-3 sm:grid-cols-3">
-              <div class="rounded-2xl border border-white/10 p-4">
-                <p class="font-mono text-[10px] uppercase tracking-[0.14em] text-subtle">podcast_clip</p>
-                <p class="mt-2 text-sm font-medium text-white">Gravação longa em cortes</p>
-                <p class="mt-2 text-[11px] leading-5 text-zinc-500">Detecta silêncios (&gt; 0,8 s), corta, legenda e roda QA. Sem fonte de legenda, corta sem legenda e avisa.</p>
+              <div>
+                <p class="text-white">2. Que tipo de vídeo você deseja criar hoje?</p>
+                <p class="text-zinc-500">[1] Corte de podcast ou aula com legendas automáticas (Recomendado)</p>
+                <p class="text-zinc-500">[2] Canal sem rosto / Vídeo dinâmico de alta retenção</p>
+                <p class="text-zinc-500">[3] Fatiar e juntar partes de vídeos sem legendas</p>
+                <p class="mt-2 rounded-md border-l-2 border-emerald-400/60 bg-emerald-400/10 px-2 py-1 text-emerald-200">&gt; 1</p>
               </div>
-              <div class="rounded-2xl border border-white/10 p-4">
-                <p class="font-mono text-[10px] uppercase tracking-[0.14em] text-subtle">dark</p>
-                <p class="mt-2 text-sm font-medium text-white">Tipografia sobre fundo</p>
-                <p class="mt-2 text-[11px] leading-5 text-zinc-500">Gera vídeo vertical com texto centralizado e trilha silenciosa, sem precisar de footage.</p>
+              <div>
+                <p class="text-white">3. Onde você vai postar esse vídeo?</p>
+                <p class="text-zinc-500">[1] Celular em pé (9:16 — Reels, TikTok, YouTube Shorts)</p>
+                <p class="text-zinc-500">[2] Vídeo deitado (16:9 — YouTube tradicional)</p>
+                <p class="mt-2 rounded-md border-l-2 border-emerald-400/60 bg-emerald-400/10 px-2 py-1 text-emerald-200">&gt; 1</p>
               </div>
-              <div class="rounded-2xl border border-white/10 p-4">
-                <p class="font-mono text-[10px] uppercase tracking-[0.14em] text-subtle">edit_only</p>
-                <p class="mt-2 text-sm font-medium text-white">Decupagem pura</p>
-                <p class="mt-2 text-[11px] leading-5 text-zinc-500">Une trechos contíguos do vídeo original, sem legenda ou tipografia.</p>
+              <div>
+                <p class="text-white">4. Qual é o arquivo de vídeo que você quer cortar?</p>
+                <p class="mt-2 rounded-md border-l-2 border-emerald-400/60 bg-emerald-400/10 px-2 py-1 text-emerald-200">&gt; arraste o arquivo do podcast para esta janela</p>
+                <p class="mt-1 text-zinc-500">O nome do arquivo aparece sozinho. Aperte Enter.</p>
               </div>
             </div>
-            <p class="mt-5 leading-7">
-              Proporção e estilo nunca são impostos: <code>--format 9:16</code> ou <code>16:9</code> é
-              escolha do usuário, assim como o template de legenda entre os nove presets disponíveis.
-            </p>
-          </section>
+          </div>
 
-          <section id="flags" class="mt-14 scroll-mt-28">
-            <h2 class="font-serif text-3xl tracking-tight text-white">4. Flags do onboard</h2>
-            <div class="mt-5 overflow-x-auto rounded-2xl border border-white/10">
-              <table class="w-full border-collapse text-left text-sm">
-                <thead class="bg-white/[0.04] text-[10px] uppercase tracking-[0.14em] text-zinc-400">
-                  <tr>
-                    <th scope="col" class="px-4 py-3 font-semibold">Flag</th>
-                    <th scope="col" class="px-4 py-3 font-semibold">Para que serve</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-white/10 text-zinc-300">
-                  <tr><td class="px-4 py-3 font-mono text-xs text-white">--mode</td><td class="px-4 py-3 text-xs leading-6">podcast_clip, dark ou edit_only.</td></tr>
-                  <tr><td class="px-4 py-3 font-mono text-xs text-white">--format</td><td class="px-4 py-3 text-xs leading-6">9:16 (vertical) ou 16:9 (widescreen).</td></tr>
-                  <tr><td class="px-4 py-3 font-mono text-xs text-white">--dest</td><td class="px-4 py-3 text-xs leading-6">Pasta do workspace; sem ela, sobe o diretório até achar <code>studio.json</code>.</td></tr>
-                  <tr><td class="px-4 py-3 font-mono text-xs text-white">--file</td><td class="px-4 py-3 text-xs leading-6">Vídeo de entrada; pode repetir para vários arquivos.</td></tr>
-                  <tr><td class="px-4 py-3 font-mono text-xs text-white">--captions</td><td class="px-4 py-3 text-xs leading-6">Arquivo SRT para o modo podcast_clip.</td></tr>
-                  <tr><td class="px-4 py-3 font-mono text-xs text-white">--openai</td><td class="px-4 py-3 text-xs leading-6">Transcrição pela API Whisper (exige chave própria).</td></tr>
-                  <tr><td class="px-4 py-3 font-mono text-xs text-white">--local</td><td class="px-4 py-3 text-xs leading-6">Transcrição offline opcional (<code>@xenova/transformers</code>).</td></tr>
-                  <tr><td class="px-4 py-3 font-mono text-xs text-white">--no-captions</td><td class="px-4 py-3 text-xs leading-6">Corte sem legenda, de forma explícita.</td></tr>
-                  <tr><td class="px-4 py-3 font-mono text-xs text-white">--caption-template</td><td class="px-4 py-3 text-xs leading-6">Um dos nove presets (mrbeast-yellow, tiktok-white, gold-stroke e outros).</td></tr>
-                  <tr><td class="px-4 py-3 font-mono text-xs text-white">--json</td><td class="px-4 py-3 text-xs leading-6">Saída estruturada para automação.</td></tr>
-                </tbody>
-              </table>
+          <div class="mt-5 grid gap-3 sm:grid-cols-2">
+            <div class="rounded-xl border border-white/10 p-4">
+              <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-subtle">Por que “1” na segunda pergunta</p>
+              <p class="mt-2 text-sm leading-6 text-zinc-300">É o modo que entende pausas, corta os silêncios e monta o vídeo com legenda — exatamente o que um podcast precisa.</p>
             </div>
-
-            <div class="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-panel">
-              <div class="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
-                <span class="font-mono text-[11px] text-subtle">execução sem perguntas</span>
-                <button type="button" data-copy="esquadrao onboard --mode podcast_clip --file ./podcast.mp4 --captions ./podcast.srt --dest ./workspace" class="copy-btn inline-flex min-h-9 items-center gap-1.5 rounded-md border border-white/15 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
-                  <span>Copiar</span>
-                </button>
-              </div>
-              <pre class="overflow-x-auto p-4 font-mono text-[13px] leading-6 text-zinc-200"><span class="text-subtle">$</span> esquadrao onboard --mode podcast_clip \
-    --file ./podcast.mp4 \
-    --captions ./podcast.srt \
-    --dest ./workspace</pre>
+            <div class="rounded-xl border border-white/10 p-4">
+              <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-subtle">Por que “1” na terceira</p>
+              <p class="mt-2 text-sm leading-6 text-zinc-300">O formato em pé é o que ocupa a tela inteira no celular. O vídeo deitado deixa faixas pretas nas laterais.</p>
             </div>
-          </section>
+          </div>
+        </section>
 
-          <section id="arquivos" class="mt-14 scroll-mt-28">
-            <h2 class="font-serif text-3xl tracking-tight text-white">5. O que fica no disco</h2>
-            <div class="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-black/40">
-              <pre class="overflow-x-auto p-4 font-mono text-[12px] leading-6 text-zinc-300">workspace/
-├── assets/         mídias brutas e b-rolls importados
-├── packages/       planos de edição (editplan.json)
-├── artifacts/      vídeos finais renderizados (.mp4)
-├── .esquadrao/     perfil do workspace (profile.json)
-└── studio.json     manifesto e inventário de assets</pre>
+        <section id="passo-3" class="mt-14 scroll-mt-28">
+          <div class="flex items-baseline gap-3">
+            <span class="font-mono text-xs text-subtle num">PASSO 3</span>
+            <div class="h-px flex-1 bg-white/10"></div>
+          </div>
+          <h2 class="mt-4 font-serif text-3xl tracking-tight text-white">Peça a tela dividida</h2>
+          <p class="mt-4 leading-7">
+            A tela dividida coloca uma mídia em cima e outra embaixo. No seu caso: a cena de apoio
+            ocupa a metade de cima e o podcast aparece na metade de baixo. Para isso, diga ao
+            assistente, na mesma linha do comando, onde estão as cenas e como quer a divisão.
+          </p>
+
+          <div class="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-panel">
+            <div class="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+              <span class="font-mono text-[11px] text-subtle">um comando, todas as escolhas</span>
+              <button type="button" data-copy="esquadrao onboard --mode podcast_clip --file podcast.mp4 --broll cena-01.mp4 --broll cena-02.mp4 --layout split_top --captions podcast.srt --dest podcast-setembro" class="copy-btn inline-flex min-h-9 items-center gap-1.5 rounded-md border border-white/15 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                <span>Copiar</span>
+              </button>
             </div>
-            <p class="mt-4 leading-7">
-              Nas execuções seguintes, o perfil salvo faz o CLI reaproveitar modo, proporção e pasta sem
-              perguntar de novo. Para começar outro projeto, basta apontar <code>--dest</code> para uma
-              pasta nova.
-            </p>
-          </section>
+            <pre class="overflow-x-auto p-4 font-mono text-[12px] leading-6 text-zinc-200"><span class="text-subtle">$</span> esquadrao onboard --mode podcast_clip \
+    --file podcast.mp4 \
+    --broll cena-01.mp4 \
+    --broll cena-02.mp4 \
+    --layout split_top \
+    --captions podcast.srt \
+    --dest podcast-setembro</pre>
+          </div>
 
-          <section id="legendas" class="mt-14 scroll-mt-28">
-            <h2 class="font-serif text-3xl tracking-tight text-white">6. Legendas e QA</h2>
-            <p class="mt-4 leading-7">
-              Há quatro caminhos para legendar: SRT pronto, Whisper via OpenAI, motor local opcional ou
-              nenhum (corte limpo). No modo <code>podcast_clip</code>, a ausência de fonte não trava o
-              fluxo: o onboard aplica <code>--no-captions</code> e avisa no relatório.
-            </p>
-            <p class="leading-7">
-              Todo vídeo renderizado passa por QA automático antes de ser considerado pronto:
-              duração do artefato, resolução, fps, codecs de vídeo e áudio e presença de trilha sonora.
-              O resultado aparece no terminal e pode ser consumido em JSON por agentes e pipelines.
-            </p>
-            <div class="mt-5 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-xs leading-6 text-zinc-400">
-              <strong class="font-medium text-white">Transparência:</strong> um SRT sem marcação de tempo por
-              palavra distribui o texto linearmente dentro de cada corte. Para legendas palavra a palavra, use
-              <code>--openai</code> ou o motor local.
+          <p class="mt-5 leading-7">
+            Traduzindo cada pedaço: <code>--broll</code> é a cena de apoio (pode repetir quantas
+            quiser), <code>--layout split_top</code> é a tela dividida com a cena em cima,
+            <code>--captions</code> é a legenda pronta e <code>--dest</code> é a pasta do projeto.
+            Se você não tiver a legenda pronta, o assistente oferece a legenda automática; na
+            primeira vez ela baixa o motor de transcrição e demora um pouco mais.
+          </p>
+
+          <div class="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+            <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-subtle">Como o vídeo fica</p>
+            <div class="mt-3 space-y-1.5">
+              <div class="flex h-16 items-center justify-center rounded-lg border border-white/15 bg-white/[0.06] text-[11px] text-zinc-300">cena de apoio (B-roll), sem som</div>
+              <div class="flex h-16 items-center justify-center rounded-lg border border-white/25 bg-white text-[11px] font-medium text-black">você, no podcast, com legenda</div>
             </div>
-          </section>
+            <p class="mt-3 text-[11px] leading-5 text-zinc-500">A divisão é ao meio, na vertical. Se preferir a cena embaixo, troque para <code>split_bottom</code>.</p>
+          </div>
+        </section>
 
-          <section id="problemas" class="mt-14 scroll-mt-28">
-            <h2 class="font-serif text-3xl tracking-tight text-white">7. Problemas comuns</h2>
-            <div class="mt-5 divide-y divide-white/10 overflow-hidden rounded-2xl border border-white/10">
-              <details class="group p-4 sm:p-5">
-                <summary class="flex items-center justify-between gap-4">
-                  <span class="text-sm font-medium text-white">O comando <code>esquadrao</code> não aparece</span>
-                  <svg class="chevron h-4 w-4 shrink-0 text-subtle transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-                </summary>
-                <p class="mt-3 text-sm leading-6 text-zinc-400">A pasta global do npm não está no PATH. Rode o comando pelo caminho completo exibido no fim da instalação ou use <code>npx @esquadrao/cli</code>.</p>
-              </details>
-              <details class="group p-4 sm:p-5">
-                <summary class="flex items-center justify-between gap-4">
-                  <span class="text-sm font-medium text-white">Erro de permissão ao instalar</span>
-                  <svg class="chevron h-4 w-4 shrink-0 text-subtle transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-                </summary>
-                <p class="mt-3 text-sm leading-6 text-zinc-400">Não use <code>sudo</code>. Instale com <code>npx</code> ou configure um prefixo de usuário no npm; o FFmpeg não precisa de permissão de administrador.</p>
-              </details>
-              <details class="group p-4 sm:p-5">
-                <summary class="flex items-center justify-between gap-4">
-                  <span class="text-sm font-medium text-white">O vídeo sai sem legenda</span>
-                  <svg class="chevron h-4 w-4 shrink-0 text-subtle transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-                </summary>
-                <p class="mt-3 text-sm leading-6 text-zinc-400">Sem SRT, sem chave OpenAI e sem motor local, o onboard corta sem legenda por decisão explícita. Passe <code>--captions arquivo.srt</code> para legendar.</p>
-              </details>
-              <details class="group p-4 sm:p-5">
-                <summary class="flex items-center justify-between gap-4">
-                  <span class="text-sm font-medium text-white">Áudio estourado ou desincronizado</span>
-                  <svg class="chevron h-4 w-4 shrink-0 text-subtle transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-                </summary>
-                <p class="mt-3 text-sm leading-6 text-zinc-400">O QA confere a presença da trilha, não a mixagem artística. Ajuste volume e ducking no plano de edição e renderize novamente.</p>
-              </details>
-              <details class="group p-4 sm:p-5">
-                <summary class="flex items-center justify-between gap-4">
-                  <span class="text-sm font-medium text-white">Renderização muito lenta</span>
-                  <svg class="chevron h-4 w-4 shrink-0 text-subtle transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-                </summary>
-                <p class="mt-3 text-sm leading-6 text-zinc-400">Tudo roda na máquina local. Vídeos longos em 4K exigem tempo e memória; reduza a resolução de saída ou corte antes de legendar.</p>
-              </details>
+        <section id="passo-4" class="mt-14 scroll-mt-28">
+          <div class="flex items-baseline gap-3">
+            <span class="font-mono text-xs text-subtle num">PASSO 4</span>
+            <div class="h-px flex-1 bg-white/10"></div>
+          </div>
+          <h2 class="mt-4 font-serif text-3xl tracking-tight text-white">Encontre as dez partes virais</h2>
+          <p class="mt-4 leading-7">
+            Nem toda hora de conversa rende um corte. O Esquadrão varre a transcrição e ranqueia os
+            trechos com cara de gancho, entre 30 e 60 segundos — o tamanho que prende atenção sem
+            cansar.
+          </p>
+
+          <div class="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-panel">
+            <div class="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+              <span class="font-mono text-[11px] text-subtle">liste os candidatos</span>
+              <button type="button" data-copy="esquadrao studio find-hooks podcast.mp4" class="copy-btn inline-flex min-h-9 items-center gap-1.5 rounded-md border border-white/15 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                <span>Copiar</span>
+              </button>
             </div>
-          </section>
+            <pre class="overflow-x-auto p-4 font-mono text-[13px] leading-6 text-zinc-200"><span class="text-subtle">$</span> esquadrao studio find-hooks podcast.mp4</pre>
+          </div>
 
-          <section id="glossario" class="mt-14 scroll-mt-28">
-            <h2 class="font-serif text-3xl tracking-tight text-white">8. Glossário para quem nunca abriu um terminal</h2>
-            <dl class="mt-5 grid gap-4 sm:grid-cols-2">
-              <div class="rounded-xl border border-white/10 p-4">
-                <dt class="text-sm font-medium text-white">Terminal</dt>
-                <dd class="mt-1 text-xs leading-5 text-zinc-500">Janela de texto onde comandos são digitados. No Windows é o Prompt de Comando ou PowerShell; no Mac, o Terminal.</dd>
-              </div>
-              <div class="rounded-xl border border-white/10 p-4">
-                <dt class="text-sm font-medium text-white">Workspace</dt>
-                <dd class="mt-1 text-xs leading-5 text-zinc-500">Pasta do projeto onde ficam mídias, planos e vídeos prontos.</dd>
-              </div>
-              <div class="rounded-xl border border-white/10 p-4">
-                <dt class="text-sm font-medium text-white">Renderizar</dt>
-                <dd class="mt-1 text-xs leading-5 text-zinc-500">Transformar o plano de edição em um arquivo de vídeo final.</dd>
-              </div>
-              <div class="rounded-xl border border-white/10 p-4">
-                <dt class="text-sm font-medium text-white">QA</dt>
-                <dd class="mt-1 text-xs leading-5 text-zinc-500">Conferência automática do vídeo: duração, tamanho, fps, codecs e áudio.</dd>
-              </div>
-              <div class="rounded-xl border border-white/10 p-4">
-                <dt class="text-sm font-medium text-white">Codec</dt>
-                <dd class="mt-1 text-xs leading-5 text-zinc-500">Formato de compressão do vídeo. O padrão é H.264 com áudio AAC.</dd>
-              </div>
-              <div class="rounded-xl border border-white/10 p-4">
-                <dt class="text-sm font-medium text-white">SRT</dt>
-                <dd class="mt-1 text-xs leading-5 text-zinc-500">Arquivo de legenda com trechos e tempos. Pode vir pronto de outro serviço.</dd>
-              </div>
-            </dl>
-          </section>
+          <div class="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/50">
+            <pre class="overflow-x-auto p-4 font-mono text-[12px] leading-6 text-zinc-300">Cortes virais identificados (30s - 60s): 12
 
-          <section id="limites" class="mt-14 scroll-mt-28">
-            <h2 class="font-serif text-3xl tracking-tight text-white">9. Limites atuais</h2>
-            <ul class="mt-4 leading-7">
-              <li>O recorte de pessoa (<code>studio cutout</code>) é experimental: sem cache e sem GPU.</li>
-              <li>A transcrição local é opcional e depende de download de modelo na primeira execução.</li>
-              <li>SRT sem tempo por palavra distribui o texto linearmente no corte.</li>
-              <li>O QA valida especificação técnica; julgamento estético continua humano.</li>
-            </ul>
-          </section>
+[Opção 1]  Duração: 47s  (de 12:04 a 12:51)  Nota: 3
+  Gancho: "ninguém te conta isso sobre precificação"
+[Opção 2]  Duração: 52s  (de 41:18 a 42:10)  Nota: 3
+  Gancho: "o erro que quase quebrou o negócio"
+[Opção 3]  Duração: 38s  (de 1:07:22 a 1:08:00)  Nota: 2
+  Gancho: "três sinais de que o cliente vai desistir"</pre>
+          </div>
 
-          <section class="mt-14 border-t border-white/10 pt-8">
-            <p class="text-sm leading-7 text-zinc-400">
-              Documento consolidado a partir de <code>README.md</code>, <code>SPEC.md</code>,
-              <code>skill-media-producer/SKILL.md</code>, <code>references/configuracao-inicial.md</code> e
-              <code>references/llm-agent-guide.md</code>. Versão do CLI: 1.7.1.
-            </p>
-          </section>
-        </div>
+          <p class="mt-4 leading-7">
+            A nota mostra a força do gancho e a frase citada ajuda a decidir sem assistir a tudo.
+            Comece pelas primeiras colocadas e siga a lista até fechar dez — são as que têm mais
+            chance de segurar quem passa o dedo no feed. Cada escolha vira um vídeo separado, com o
+            mesmo acabamento: legenda e tela dividida.
+          </p>
+        </section>
+
+        <section id="passo-5" class="mt-14 scroll-mt-28">
+          <div class="flex items-baseline gap-3">
+            <span class="font-mono text-xs text-subtle num">PASSO 5</span>
+            <div class="h-px flex-1 bg-white/10"></div>
+          </div>
+          <h2 class="mt-4 font-serif text-3xl tracking-tight text-white">Renderize e confira</h2>
+          <p class="mt-4 leading-7">
+            Com os dez pedidos de corte prontos, o Esquadrão monta todos de uma vez. Cada vídeo é
+            gravado na pasta de vídeos prontos e, no fim, passa por uma conferência automática:
+            duração, tamanho da tela, fluidez e presença de som.
+          </p>
+
+          <div class="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-panel">
+            <div class="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+              <span class="font-mono text-[11px] text-subtle">renderize o lote</span>
+              <button type="button" data-copy="esquadrao studio batch" class="copy-btn inline-flex min-h-9 items-center gap-1.5 rounded-md border border-white/15 px-2.5 text-[11px] font-medium text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                <span>Copiar</span>
+              </button>
+            </div>
+            <pre class="overflow-x-auto p-4 font-mono text-[13px] leading-6 text-zinc-200"><span class="text-subtle">$</span> esquadrao studio batch</pre>
+          </div>
+
+          <p class="mt-4 leading-7">
+            Quando aparecer “aprovado” na tela, pegue os arquivos na pasta <code>artifacts</code> e
+            publique. Se algum vídeo for reprovado, o próprio relatório diz o motivo em uma linha —
+            normalmente duração curta demais ou áudio ausente.
+          </p>
+        </section>
+
+        <section id="problemas" class="mt-14 scroll-mt-28">
+          <h2 class="font-serif text-3xl tracking-tight text-white">Se algo der errado</h2>
+          <div class="mt-5 divide-y divide-white/10 overflow-hidden rounded-2xl border border-white/10">
+            <details class="group p-4 sm:p-5">
+              <summary class="flex items-center justify-between gap-4">
+                <span class="text-sm font-medium text-white">O vídeo saiu sem legenda</span>
+                <svg class="chevron h-4 w-4 shrink-0 text-subtle transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <p class="mt-3 text-sm leading-6 text-zinc-400">Sem arquivo de legenda e sem legenda automática escolhida, o corte sai limpo por decisão do próprio assistente. Rode de novo e aceite a legenda automática, ou informe o arquivo pronto.</p>
+            </details>
+            <details class="group p-4 sm:p-5">
+              <summary class="flex items-center justify-between gap-4">
+                <span class="text-sm font-medium text-white">A tela dividida não apareceu</span>
+                <svg class="chevron h-4 w-4 shrink-0 text-subtle transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <p class="mt-3 text-sm leading-6 text-zinc-400">A divisão só entra quando existe uma cena de apoio indicada. Confira se você passou pelo menos uma cena e se escolheu a divisão com a cena em cima.</p>
+            </details>
+            <details class="group p-4 sm:p-5">
+              <summary class="flex items-center justify-between gap-4">
+                <span class="text-sm font-medium text-white">Poucos trechos na lista</span>
+                <svg class="chevron h-4 w-4 shrink-0 text-subtle transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <p class="mt-3 text-sm leading-6 text-zinc-400">Podcast com poucas falas fortes rende menos candidatos. Você pode aumentar a faixa de duração dos cortes ou usar os trechos seguintes da lista.</p>
+            </details>
+            <details class="group p-4 sm:p-5">
+              <summary class="flex items-center justify-between gap-4">
+                <span class="text-sm font-medium text-white">O processamento demora</span>
+                <svg class="chevron h-4 w-4 shrink-0 text-subtle transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <p class="mt-3 text-sm leading-6 text-zinc-400">Três horas de vídeo levam tempo: tudo roda na sua máquina, sem enviar nada para a internet. Deixe o terminal aberto e trabalhe em outra janela enquanto ele termina.</p>
+            </details>
+          </div>
+        </section>
+
+        <section id="glossario" class="mt-14 scroll-mt-28">
+          <h2 class="font-serif text-3xl tracking-tight text-white">Só seis palavras para aprender</h2>
+          <dl class="mt-5 grid gap-4 sm:grid-cols-2">
+            <div class="rounded-xl border border-white/10 p-4">
+              <dt class="text-sm font-medium text-white">Terminal</dt>
+              <dd class="mt-1 text-xs leading-5 text-zinc-500">A janela onde você cola o comando e aperta Enter. No Windows é o Prompt de Comando; no Mac, o Terminal.</dd>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4">
+              <dt class="text-sm font-medium text-white">Enter</dt>
+              <dd class="mt-1 text-xs leading-5 text-zinc-500">A tecla que envia a resposta. É o “confirmar” do terminal.</dd>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4">
+              <dt class="text-sm font-medium text-white">Corte</dt>
+              <dd class="mt-1 text-xs leading-5 text-zinc-500">Um trecho do podcast que vira um vídeo curto independente.</dd>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4">
+              <dt class="text-sm font-medium text-white">B-roll</dt>
+              <dd class="mt-1 text-xs leading-5 text-zinc-500">A cena de apoio que aparece na metade de cima, sem som.</dd>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4">
+              <dt class="text-sm font-medium text-white">Renderizar</dt>
+              <dd class="mt-1 text-xs leading-5 text-zinc-500">Montar o vídeo final com as escolhas que você fez.</dd>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4">
+              <dt class="text-sm font-medium text-white">Aprovado</dt>
+              <dd class="mt-1 text-xs leading-5 text-zinc-500">A conferência automática passou: o vídeo está pronto para publicar.</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="mt-14 border-t border-white/10 pt-8">
+          <p class="text-sm leading-7 text-zinc-400">
+            Este guia descreve o fluxo do Esquadrão para um podcast longo. Se você quiser o detalhe
+            técnico de cada opção, ele continua disponível para a equipe de suporte — aqui, o
+            objetivo é você publicar os dez cortes sem precisar aprender nada além do que está nesta
+            página.
+          </p>
+        </section>
       </div>
     </main>
 
     <footer class="border-t border-white/10">
-      <div class="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 px-5 py-6 text-[11px] text-subtle sm:flex-row sm:px-8">
+      <div class="mx-auto flex w-full max-w-5xl flex-col items-center justify-between gap-3 px-5 py-6 text-[11px] text-subtle sm:flex-row sm:px-8">
         <p>© 2026 Esquadrão de Conteúdo. Todos os direitos reservados.</p>
-        <nav aria-label="Links institucionais" class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-          <a href="https://www.npmjs.com/package/@esquadrao/cli" class="hover:text-white" target="_blank" rel="noopener noreferrer">npm</a>
-          <a href="#instalacao" class="hover:text-white">Instalação</a>
-          <a href="#problemas" class="hover:text-white">Suporte</a>
+        <nav aria-label="Links úteis" class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+          <a href="#passo-1" class="hover:text-white">Começar</a>
+          <a href="#problemas" class="hover:text-white">Ajuda</a>
+          <a href="mailto:acesso@esquadraodeconteudo.com.br" class="hover:text-white">Suporte</a>
         </nav>
       </div>
     </footer>
