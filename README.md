@@ -2,6 +2,8 @@
 
 Framework autônomo local e CLI de orquestração de skills, execução de papéis técnicos e produção automatizada de vídeo vertical (9:16) e widescreen (16:9) via FFmpeg, com formato e estilo definidos pelo usuário.
 
+> **Sem login, sem API key, sem créditos, sem telemetria e sem upload para nuvem.** O CLI não exige conta nem autenticação: tudo roda na sua máquina.
+
 ---
 
 ## Documentação Canônica e Sincronia de Desenvolvimento
@@ -30,7 +32,7 @@ Este repositório (`LuizKarlos/esquadrao_skill`) adota engenharia rigorosa centr
 ## Requisitos (zero configuração)
 
 - **Node.js** >= 18 para executar o pacote (o `npx` já baixa e roda sem instalação global).
-- **FFmpeg & ffprobe**: vêm **embutidos** no pacote (`ffmpeg-static`/`ffprobe-static`). Não há passo de `brew`, `winget` ou `apt`, nem edição manual de `PATH`; o CLI injeta os binários no processo.
+- **FFmpeg & ffprobe**: vêm **embutidos** no pacote (`ffmpeg-static` 5.2.0 e `ffprobe-static`), resolvidos automaticamente na ordem ambiente → cache local → binário do pacote → `PATH`. Nada a instalar, nenhum comando de sistema, nenhum `sudo`, nenhuma edição de `PATH`; o CLI injeta os binários no processo.
 - **Python 3 + rembg**: apenas para `studio cutout` (recorte de pessoa). Recurso opcional.
 
 ## Installation
@@ -63,6 +65,7 @@ esquadrao studio detect-silence <video.mp4> [--json]
 esquadrao studio transcribe <video.mp4> [--captions <file.srt>] [--openai] [--local] [--json]
 
 # Configurar skills nos harnesses locais do usuário (.agents, .claude, .codex, .cursor)
+# Copia as 18 skills e os scripts auxiliares
 esquadrao setup [--dest <path>] [--json]
 
 # Inspecionar e executar papéis canônicos
@@ -80,6 +83,16 @@ esquadrao studio cutout <video.mp4> --background <pack.mp4> [--python <interpret
 ```
 
 ## Primeiro acesso
+
+### Teste de 30 segundos (sem importar mídia)
+
+Valide a instalação e veja um vídeo pronto antes de tocar em qualquer arquivo:
+
+```bash
+npx @esquadrao/cli onboard --mode dark --dest .
+```
+
+Ou, com instalação global: `esquadrao onboard --mode dark --dest .`. O comando confere o ambiente, renderiza um vídeo de teste 1080x1920 com áudio e roda o QA — em segundos, com código de saída `0` e `QA: PASSED`. Se esse passo funcionar, FFmpeg, fontes e escrita em disco estão prontos.
 
 O comando `onboard` conduz o cliente do zero até o primeiro vídeo renderizado com validação automatizada de QA. No modo `podcast_clip`, ele executa o pipeline real de `studio auto-clip` (detecção de silêncio, cortes, legendas e QA) e aceita `--captions`, `--openai`, `--local` ou `--no-captions`. Sem qualquer fonte de legenda, aplica `--no-captions` automaticamente, gera o corte real sem legendas e avisa; já o `studio auto-clip` direto, sem `--no-captions`, falha com código `1`.
 

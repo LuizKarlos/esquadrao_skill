@@ -7,6 +7,8 @@
 > **Pacote npm:** `@esquadrao/cli`  
 > **Nome Comercial:** Esquadrão de Conteúdo  
 > **Documentos Relacionados:** [`GLOSSARY.md`](./GLOSSARY.md), [`ROADMAP.md`](./ROADMAP.md), [`README.md`](./README.md)
+>
+> **Distribuição:** sem login, sem API key, sem créditos, sem telemetria e sem upload para nuvem. O CLI não exige conta nem autenticação.
 
 > **Estado de implementação (2026-11-11):** os contratos abaixo são a meta; o que está entregue, as lacunas e o backlog estão no §8.
 
@@ -22,7 +24,7 @@ O **Esquadrão de Conteúdo CLI** (`@esquadrao/cli`) é um framework autônomo e
 3. **Soberania Digital e Posse Vitalícia:** Sem DRM, sem validação periódica de chaves em nuvem, sem restrição de dispositivos e sem telemetria oculta. O cliente é dono definitivo do seu ambiente e dos seus arquivos.
 4. **Decisão do Usuário sobre Formato e Fundo (Anti-Padrão Forçado):** O sistema e os agentes de IA NUNCA forçam fundo preto (`dark`) ou widescreen (`16:9`) como padrão. O usuário define ativamente o formato (Vertical 9:16 para mobile ou Widescreen 16:9 para desktop) e o estilo de edição (cortes com legendas `podcast_clip`, decupagem `edit_only` com packs/fontes ou tipografia `dark`).
 5. **Resiliência a Falhas do FFmpeg:** Todo comando FFmpeg é executado com captura de streams e sanitização de logs. Falhas de execução limpam artefatos temporários parciais (`SIGINT`) e exibem diagnósticos objetivos sem despejar comandos quilométricos por padrão.
-6. **Compatibilidade Multi-Plataforma:** Suporte homogêneo a Windows, macOS e Linux, detectando nativamente binários de `ffmpeg` e `ffprobe` no PATH com mensagens de instalação acionáveis por sistema operacional.
+6. **Compatibilidade Multi-Plataforma com FFmpeg Embutido:** Suporte homogêneo a Windows, macOS e Linux. `ffmpeg-static` (fixado em `5.2.0`) e `ffprobe-static` acompanham o pacote em `optionalDependencies`; `src/binaries.js` resolve os binários na ordem `ESQUADRAO_FFMPEG`/`ESQUADRAO_FFPROBE` → `~/.esquadrao/bin/<plataforma>-<arch>` → binário do pacote → `PATH`, e `bin/cli.js` injeta o resultado no `PATH` do processo antes do dispatch. O usuário nunca instala FFmpeg, nunca usa `sudo` e nunca edita `PATH`.
 
 ---
 
@@ -42,11 +44,9 @@ Conduz o usuário do zero absoluto até a renderização do seu primeiro vídeo 
   - `edit_only`: Decupagem e junção contígua de 2 cortes de fontes de vídeo fornecidas, aplicando corte determinístico de tempo de entrada (`in_ms`) e saída (`out_ms`).
   - `podcast_clip`: geração de corte vertical a partir de gravação longa com legendas sincronizadas. O `onboard` executa o pipeline real de `studio auto-clip` (detecção de silêncio, cortes, legendas e QA); aceita `--captions`, `--openai`, `--local` e `--no-captions`. Sem qualquer fonte de legenda, aplica `--no-captions` automaticamente, gera o corte real sem legendas e avisa; já o `studio auto-clip` direto, sem `--no-captions`, falha com código `1`.
 - **Detecção de Ambiente e Pré-requisitos:**
-  - Verifica disponibilidade de `ffmpeg` e `ffprobe` antes de iniciar.
-  - Em caso de ausência, encerra imediatamente com código `1` exibindo o comando exato de instalação para o sistema operacional ativo:
-    - Windows: `winget install Gyan.FFmpeg` ou `choco install ffmpeg`
-    - macOS: `brew install ffmpeg`
-    - Linux: `sudo apt update && sudo apt install -y ffmpeg`
+  - Verifica `node` (>= 18) e resolve `ffmpeg`/`ffprobe` pelo pipeline embutido descrito em §1.1.6.
+  - Não há passo de instalação de FFmpeg: os binários `ffmpeg-static`/`ffprobe-static` vêm no pacote e são injetados no processo. `setup` e `onboard` apenas reportam a origem resolvida (`bundled`, `cache` ou `system`).
+  - Ausência total dos binários (pacote corrompido ou instalação parcial) encerra com código `1` e instrução para reinstalar o pacote — nunca para instalar FFmpeg no sistema operacional.
 - **Persistência de Perfil:**
   - O diretório de destino (`--dest`) persiste a configuração no perfil do workspace (`<workspace>/.esquadrao/profile.json`, com espelho em `studio.json`), permitindo execuções subsequentes sem redigitação de caminhos. Sem `--dest`, o CLI descobre o workspace subindo a partir do diretório atual até encontrar `studio.json`.
 
@@ -156,7 +156,7 @@ Orienta agentes a selecionar trechos de 30s a 60s (ajustáveis conforme a ideia)
 - **Especificação completa, comandos e critérios:** [`skill-media-producer/references/composicoes-especiais.md`](./skill-media-producer/references/composicoes-especiais.md).
 
 ### 2.3. Configuração Multi-Harness (`esquadrao setup`)
-Distribui as 18 skills empacotadas para os diretórios locais dos agentes de IA suportados e detecta os demais harnesses presentes no workspace do usuário:
+Distribui as 18 skills empacotadas e os scripts auxiliares para os diretórios locais dos agentes de IA suportados e detecta os demais harnesses presentes no workspace do usuário:
 - **Grok Build:** `.agents/skills/`
 - **Claude Code:** `.claude/skills/`
 - **OpenAI Codex CLI:** `.codex/skills/` e `AGENTS.md`
@@ -245,7 +245,7 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.7.0) foi execu
 2. **Auditoria Estática de Código:** `npm run lint` validou a conformidade sintática e estilística em 40 arquivos de código-fonte sem avisos ou falhas.
 3. **Inspeção de Estrutura do Estúdio:** Execução real de `esquadrao studio init` em diretório temporário isolado confirmou a criação exclusiva dos diretórios `assets/`, `packages/`, `artifacts/` e do arquivo `studio.json`. Os diretórios `editplans/`, `renders/` e `qa/` não são gerados pelo comando.
 4. **Inspeção de Dependências e Runtime:** O manifesto `package.json` declara `dependencies: {}` e `optionalDependencies: { "@xenova/transformers": "^2.17.2" }`. O motor local é opcional: se a instalação do pacote opcional falhar, `--local` retorna erro acionável e o restante do CLI permanece funcional.
-5. **Inventário de Papéis e Habilidades:** Validação via `esquadrao role list --json` confirmou os 12 papéis técnicos canônicos. O comando `esquadrao setup` distribui 18 skills empacotadas para os diretórios dos agentes suportados.
+5. **Inventário de Papéis e Habilidades:** Validação via `esquadrao role list --json` confirmou os 12 papéis técnicos canônicos. O comando `esquadrao setup` distribui 18 skills empacotadas e os scripts auxiliares para os diretórios dos agentes suportados.
 
 ### 8.2. Matriz de Capacidades: Entregue vs. Previsto
 
@@ -348,7 +348,7 @@ A auditoria das capacidades do pacote `@esquadrao/cli` (versão 1.7.0) foi execu
 
 ### 8.5. Cobertura das 18 Skills Empacotadas
 
-O pacote instala 18 skills, mas a cobertura de execução é heterogênea: 12 skills de papel são prompts de autoridade e 6 skills de engenharia são majoritariamente advisory, com quatro scripts locais (DAG, Merkle, AST e WCAG). Apenas `skill-media-producer` executa o pipeline de vídeo.
+O pacote instala 18 skills e os scripts auxiliares, mas a cobertura de execução é heterogênea: 12 skills de papel são prompts de autoridade e 6 skills de engenharia são majoritariamente advisory, com quatro scripts locais (DAG, Merkle, AST e WCAG). Apenas `skill-media-producer` executa o pipeline de vídeo.
 
 | Skill | Promessa no `SKILL.md` | Entrega local verificada | Status |
 | :--- | :--- | :--- | :--- |

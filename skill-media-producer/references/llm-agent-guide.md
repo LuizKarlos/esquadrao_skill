@@ -24,16 +24,12 @@ Envie uma mensagem amigável e direta coletando as decisões essenciais:
 > *3. Qual é o arquivo de vídeo que vamos usar de fonte?"*
 
 ### Fase 2: Checagem de Ambiente
-Antes de criar arquivos, verifique se a máquina possui os requisitos operacionais:
+Antes de criar arquivos, confirme apenas o Node.js:
 ```bash
 node -v
-ffmpeg -version
-ffprobe -version
+esquadrao setup --json
 ```
-Se o FFmpeg não for encontrado, responda com o comando de instalação imediato:
-- **Windows:** `winget install Gyan.FFmpeg`
-- **macOS:** `brew install ffmpeg`
-- **Linux:** `sudo apt update && sudo apt install -y ffmpeg`
+O FFmpeg e o ffprobe vêm embutidos no pacote (`ffmpeg-static` 5.2.0 e `ffprobe-static`) e são resolvidos automaticamente. **Nunca instrua o usuário a instalar FFmpeg**, usar `sudo`, `brew`, `winget` ou `apt`: o `setup` reporta a origem resolvida (`bundled`, `cache` ou `system`).
 
 ### Fase 3: Preparação do Workspace
 Execute no terminal:
@@ -122,7 +118,7 @@ O comando emite o resumo com total de silêncio expurgado, quantidade de cortes 
 
 | Erro Observado | Causa Raiz | Ação Corretiva Determinística |
 | :--- | :--- | :--- |
-| `ffmpeg is not installed` | Binário ausente no PATH | Orientar instalação via `winget`, `brew` ou `apt` e reabrir terminal. |
+| `ffmpeg is not installed` | Binário embutido não resolvido (pacote corrompido ou instalação parcial) | Reinstalar o pacote (`npm install -g @esquadrao/cli`) e rodar `esquadrao setup`; nunca instalar FFmpeg no sistema. |
 | `out_ms exceeds asset duration` | Ponto de saída além do arquivo | Obter duração real com `studio import` e recalcular `out_ms`. |
 | `Missing audio stream in artifact` | Fonte sem áudio ou falha de mix | Garantir `anullsrc` para vídeo mudo ou verificar se o arquivo original tem áudio. |
 | `Caption special characters error` | Caracteres `%` ou `'` na legenda | O motor trata com `\%` e `\'`. Não usar tags HTML em legendas. |
