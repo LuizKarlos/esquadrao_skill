@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "asset_variados_01",
+      "pack": "broll-variados",
+      "filename": "pack_variados_video1.mp4",
+      "duration_ms": 15000,
+      "description": "Take vertical de apoio do pack Variados, 15 segundos, 1080x1920, para intercalar em cortes quando a fala pede uma imagem genérica de estilo de vida.",
+      "tags": ["9:16", "lifestyle", "variados", "vertical"]
+    }
+  ]
+}

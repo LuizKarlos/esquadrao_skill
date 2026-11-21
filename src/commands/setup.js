@@ -56,6 +56,14 @@ export async function run({ positionals = [], flags = {} } = {}) {
   const destDir = destArg || path.join(cwd, '.agents', 'skills');
 
   fs.mkdirSync(destDir, { recursive: true });
+  // RAG local: o catálogo semântico vai para o workspace, separado das skills.
+  const workspaceDir = destArg ? path.resolve(destArg) : cwd;
+  const catalogSrc = path.join(rootDir, 'assets', 'broll-catalog.json');
+  const catalogDest = path.join(workspaceDir, '.esquadrao', 'broll-catalog.json');
+  if (fs.existsSync(catalogSrc)) {
+    fs.mkdirSync(path.dirname(catalogDest), { recursive: true });
+    fs.copyFileSync(catalogSrc, catalogDest);
+  }
   const installed = [];
   for (const item of [...SKILLS, 'scripts']) {
     const src = path.join(rootDir, item);

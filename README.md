@@ -65,7 +65,7 @@ esquadrao studio detect-silence <video.mp4> [--json]
 esquadrao studio transcribe <video.mp4> [--captions <file.srt>] [--openai] [--local] [--json]
 
 # Configurar skills nos harnesses locais do usuário (.agents, .claude, .codex, .cursor)
-# Copia as 18 skills e os scripts auxiliares
+# Copia as 18 skills, os scripts auxiliares e o catálogo semântico (.esquadrao/broll-catalog.json)
 esquadrao setup [--dest <path>] [--json]
 
 # Inspecionar e executar papéis canônicos

@@ -81,6 +81,11 @@ test('CLI Setup: installs skills locally without MCP config emission', async () 
     assert.equal(fs.existsSync(path.join(tmp, 'mcp.json')), false, 'mcp.json must not be emitted');
     assert.equal(report.mcpConfig, undefined, 'mcpConfig must not be in report');
     assert.equal(report.connectivity, undefined, 'connectivity must not be in report');
+    const catalog = JSON.parse(fs.readFileSync(path.join(tmp, '.esquadrao', 'broll-catalog.json'), 'utf8'));
+    assert.equal(catalog.version, 1);
+    assert.equal(catalog.items.length, 1);
+    assert.equal(catalog.items[0].id, 'asset_variados_01');
+    assert.ok(catalog.items[0].description);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

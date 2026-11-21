@@ -157,6 +157,7 @@ Orienta agentes a selecionar trechos de 30s a 60s (ajustáveis conforme a ideia)
 
 ### 2.3. Configuração Multi-Harness (`esquadrao setup`)
 Distribui as 18 skills empacotadas e os scripts auxiliares para os diretórios locais dos agentes de IA suportados e detecta os demais harnesses presentes no workspace do usuário:
+- **Catálogo semântico local:** copia `assets/broll-catalog.json` para `<workspace>/.esquadrao/broll-catalog.json`. O arquivo traz `id`, `pack`, `filename`, `duration_ms`, `description` e `tags` de cada take. A LLM do usuário lê esse arquivo na máquina dele e escolhe os vídeos a partir da transcrição; nada é enviado para fora.
 - **Grok Build:** `.agents/skills/`
 - **Claude Code:** `.claude/skills/`
 - **OpenAI Codex CLI:** `.codex/skills/` e `AGENTS.md`
