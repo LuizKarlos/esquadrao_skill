@@ -83,9 +83,9 @@ test('CLI Setup: installs skills locally without MCP config emission', async () 
     assert.equal(report.connectivity, undefined, 'connectivity must not be in report');
     const catalog = JSON.parse(fs.readFileSync(path.join(tmp, '.esquadrao', 'broll-catalog.json'), 'utf8'));
     assert.equal(catalog.version, 1);
-    assert.equal(catalog.items.length, 1);
+    assert.equal(catalog.items.length, 850, 'o pacote deve distribuir os 850 vídeos');
     assert.equal(catalog.items[0].id, 'asset_variados_01');
-    assert.ok(catalog.items[0].description);
+    assert.ok(catalog.items.every((i) => i.description && Array.isArray(i.tags) && i.tags.length));
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

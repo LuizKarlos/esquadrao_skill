@@ -6,6 +6,13 @@ O formato segue as diretrizes do [Keep a Changelog](https://keepachangelog.com/p
 
 ---
 
+## [1.8.0] - 2026-11-23
+
+### Added
+
+- **Catálogo Semântico de RAG Local:** `assets/broll-catalog.json` com os 850 vídeos (16 packs), cada um com `id`, `pack`, `filename`, `duration_ms`, `description` e `tags`. As descrições foram geradas por modelo de visão a partir de quadros extraídos dos próprios vídeos.
+- `esquadrao setup` agora espelha o catálogo em `<workspace>/.esquadrao/broll-catalog.json`; a LLM do usuário o lê localmente para escolher os takes de apoio a partir da transcrição, sem envio de dados.
+
 ## [1.7.1] - 2026-11-16
 
 ### Corrigido
